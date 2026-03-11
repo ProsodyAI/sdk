@@ -260,6 +260,14 @@ export class ProsodyClient {
   }
 
   async submitSessionOutcome(options: SessionOutcomeOptions, signal?: AbortSignal): Promise<{ status: string }> {
+    if (options.outcomes?.length) {
+      return postJSON('/v1/feedback/session_outcome', this.opts, {
+        session_id: options.sessionId,
+        outcomes: options.outcomes,
+        notes: options.notes,
+      }, signal);
+    }
+    // Legacy path for backward compat
     return postJSON('/v1/feedback/session_outcome', this.opts, {
       session_id: options.sessionId,
       vertical: options.vertical,
