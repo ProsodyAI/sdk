@@ -117,14 +117,15 @@ export class ProsodyRealtimeStream {
         return;
       }
 
-      const originalOnMessage = this.ws.onmessage;
-      this.ws.onmessage = (event) => {
+      const ws = this.ws;
+      const originalOnMessage = ws.onmessage;
+      ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === 'end_ack') {
-          this.ws?.close();
+          ws.close();
           resolve();
         } else {
-          originalOnMessage?.call(this.ws, event);
+          originalOnMessage?.call(ws, event);
         }
       };
 

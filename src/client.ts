@@ -130,10 +130,10 @@ export class ProsodyClient {
       } else {
         const fs = await import('fs');
         const buffer = fs.readFileSync(audio);
-        formData.append('file', new Blob([buffer]), 'audio.wav');
+        formData.append('file', new Blob([new Uint8Array(buffer)]), 'audio.wav');
       }
     } else {
-      formData.append('file', new Blob([audio]), 'audio.wav');
+      formData.append('file', new Blob([new Uint8Array(audio)]), 'audio.wav');
     }
 
     if (options?.language) formData.append('language', options.language);
@@ -197,10 +197,10 @@ export class ProsodyClient {
       } else {
         const fs = await import('fs');
         const buffer = fs.readFileSync(audio);
-        formData.append('file', new Blob([buffer]), 'audio.wav');
+        formData.append('file', new Blob([new Uint8Array(buffer)]), 'audio.wav');
       }
     } else {
-      formData.append('file', new Blob([audio]), 'audio.wav');
+      formData.append('file', new Blob([new Uint8Array(audio)]), 'audio.wav');
     }
 
     if (options?.language) formData.append('language', options.language);
@@ -219,10 +219,10 @@ export class ProsodyClient {
       } else {
         const fs = await import('fs');
         const buffer = fs.readFileSync(audio);
-        formData.append('file', new Blob([buffer]), 'audio.wav');
+        formData.append('file', new Blob([new Uint8Array(buffer)]), 'audio.wav');
       }
     } else {
-      formData.append('file', new Blob([audio]), 'audio.wav');
+      formData.append('file', new Blob([new Uint8Array(audio)]), 'audio.wav');
     }
 
     return postForm<Record<string, number>>('/v1/features/prosody', this.opts, formData, signal);
