@@ -15,6 +15,17 @@ export interface ProsodyMarkers {
   tempo?: string;
 }
 
+export interface ProsodySignals {
+  engagement: number;
+  stress: number;
+  certainty: number;
+  rapport: number;
+  empathy: number;
+  tempo: number;
+  intensity: number;
+  expressiveness: number;
+}
+
 export interface VerticalAnalysis {
   vertical: string;
   state: string;
@@ -88,6 +99,7 @@ export interface AnalysisResult {
   arousal: number;
   dominance: number;
   prosody?: ProsodyMarkers;
+  signals?: ProsodySignals;
   duration: number;
   word_count: number;
   format: string;

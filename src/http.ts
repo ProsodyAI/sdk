@@ -8,7 +8,7 @@ function sleep(ms: number): Promise<void> {
 export interface RequestOptions {
   apiKey: string;
   baseUrl: string;
-  basetenPredictUrl?: string;
+  modelPredictUrl?: string;
   timeoutMs: number;
   retry: RetryConfig;
   headers: Record<string, string>;

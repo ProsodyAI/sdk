@@ -3,7 +3,7 @@ import { createWavBuffer } from '@/wav';
 import { postJSON, postForm, requestJSON } from '@/http';
 import { ProsodyStream } from '@/stream';
 import { ProsodyRealtimeStream } from '@/realtime';
-function basetenResponseToAnalysisResult(raw) {
+function modelResponseToAnalysisResult(raw) {
     if (raw.error) {
         throw new Error(raw.error);
     }
@@ -34,15 +34,15 @@ export class ProsodyClient {
         this.opts = resolved;
     }
     // ──────────────────────────── Analysis ────────────────────────────
-    /** Call Baseten predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
-    async analyzeViaBaseten(audioBase64, signal) {
-        const url = this.opts.basetenPredictUrl;
+    /** Call model predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
+    async analyzeViaModelPredict(audioBase64, signal) {
+        const url = this.opts.modelPredictUrl;
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.opts.timeoutMs);
         const requestSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
         try {
             if (this.opts.debug) {
-                console.debug(`[prosody] POST ${url} (Baseten predict)`);
+                console.debug(`[prosody] POST ${url} (model predict)`);
             }
             this.opts.onRequest?.(url, {
                 method: 'POST',
@@ -62,17 +62,17 @@ export class ProsodyClient {
             this.opts.onResponse?.(url, res);
             if (!res.ok) {
                 const text = await res.text();
-                throw new Error(`Baseten predict failed: ${res.status} ${text}`);
+                throw new Error(`Model predict failed: ${res.status} ${text}`);
             }
             const raw = (await res.json());
-            return basetenResponseToAnalysisResult(raw);
+            return modelResponseToAnalysisResult(raw);
         }
         finally {
             clearTimeout(timeout);
         }
     }
     async analyze(audio, options, signal) {
-        if (this.opts.basetenPredictUrl) {
+        if (this.opts.modelPredictUrl) {
             let base64;
             if (Buffer.isBuffer(audio)) {
                 base64 = audio.toString('base64');
@@ -92,7 +92,7 @@ export class ProsodyClient {
             else {
                 throw new Error('analyze(audio): audio must be a Buffer or string (file path or URL)');
             }
-            return this.analyzeViaBaseten(base64, signal);
+            return this.analyzeViaModelPredict(base64, signal);
         }
         const formData = new FormData();
         if (typeof audio === 'string') {
@@ -119,8 +119,8 @@ export class ProsodyClient {
         return postForm('/v1/analyze/audio', this.opts, formData, signal);
     }
     async analyzeBase64(base64Audio, options, signal) {
-        if (this.opts.basetenPredictUrl) {
-            return this.analyzeViaBaseten(base64Audio, signal);
+        if (this.opts.modelPredictUrl) {
+            return this.analyzeViaModelPredict(base64Audio, signal);
         }
         return postJSON('/v1/analyze/base64', this.opts, {
             audio_base64: base64Audio,
@@ -215,6 +215,14 @@ export class ProsodyClient {
         }, signal);
     }
     async submitSessionOutcome(options, signal) {
+        if (options.outcomes?.length) {
+            return postJSON('/v1/feedback/session_outcome', this.opts, {
+                session_id: options.sessionId,
+                outcomes: options.outcomes,
+                notes: options.notes,
+            }, signal);
+        }
+        // Legacy path for backward compat
         return postJSON('/v1/feedback/session_outcome', this.opts, {
             session_id: options.sessionId,
             vertical: options.vertical,

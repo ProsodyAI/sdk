@@ -38,22 +38,28 @@ export class ProsodyRealtimeStream {
             this.ws.onmessage = (event) => {
                 try {
                     const message = JSON.parse(event.data);
-                    if (message.type === 'result') {
+                    if (message.type === 'directive' || message.type === 'result') {
+                        // API sends "directive" with VAD nested under `prosody`;
+                        // accept both shapes for forward compat.
+                        const prosody = message.prosody ?? {};
                         const result = {
                             prediction_id: message.prediction_id || '',
                             session_id: message.session_id,
-                            text: message.text,
+                            text: message.text ?? '',
                             emotion: {
-                                primary: message.emotion,
-                                confidence: message.confidence,
+                                primary: message.emotion ?? 'neutral',
+                                confidence: message.confidence ?? 0,
                                 probabilities: message.emotion_probabilities || {},
                             },
-                            valence: message.valence,
-                            arousal: message.arousal,
-                            dominance: message.dominance,
+                            valence: prosody.valence ?? message.valence ?? 0,
+                            arousal: prosody.arousal ?? message.arousal ?? 0.5,
+                            dominance: prosody.dominance ?? message.dominance ?? 0.5,
                             duration: message.duration || 0,
                             word_count: message.text?.split(' ').length || 0,
                             format: 'json',
+                            signals: message.signals,
+                            kpi_predictions: message.kpi_predictions,
+                            alerts: message.alerts,
                             forward_predictions: message.forward_predictions,
                         };
                         this.options.onResult?.(result);

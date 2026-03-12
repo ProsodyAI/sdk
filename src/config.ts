@@ -9,8 +9,8 @@ export interface RetryConfig {
 export interface ProsodyClientConfig {
   apiKey: string;
   baseUrl?: string;
-  /** When set, analyze/analyzeBase64/analyzePCM call this Baseten predict URL with Api-Key auth and { audio_base64 } body. Example: https://model-31ddmz13.api.baseten.co/environments/production/predict */
-  basetenPredictUrl?: string;
+  /** When set, analyze/analyzeBase64/analyzePCM call this model predict URL with Api-Key auth and { audio_base64 } body. */
+  modelPredictUrl?: string;
   timeoutMs?: number;
   retry?: Partial<RetryConfig>;
   headers?: Record<string, string>;
@@ -32,7 +32,7 @@ export const DEFAULT_RETRY: RetryConfig = {
 export function resolveConfig(input: ProsodyClientConfig | string): {
   apiKey: string;
   baseUrl: string;
-  basetenPredictUrl?: string;
+  modelPredictUrl?: string;
   timeoutMs: number;
   retry: RetryConfig;
   headers: Record<string, string>;
@@ -54,7 +54,7 @@ export function resolveConfig(input: ProsodyClientConfig | string): {
   return {
     apiKey: input.apiKey,
     baseUrl: input.baseUrl || DEFAULT_BASE_URL,
-    basetenPredictUrl: input.basetenPredictUrl,
+    modelPredictUrl: input.modelPredictUrl,
     timeoutMs: input.timeoutMs ?? 30_000,
     retry: { ...DEFAULT_RETRY, ...input.retry },
     headers: input.headers ?? {},

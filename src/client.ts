@@ -18,8 +18,8 @@ import { postJSON, postForm, requestJSON } from '@/http';
 import { ProsodyStream } from '@/stream';
 import { ProsodyRealtimeStream } from '@/realtime';
 
-/** Baseten predict response (ProsodySSM Truss). */
-interface BasetenPredictResponse {
+/** ProsodySSM model predict response (emotion, confidence, VAD). */
+interface ModelPredictResponse {
   error?: string;
   emotion?: string;
   confidence?: number;
@@ -29,7 +29,7 @@ interface BasetenPredictResponse {
   dominance?: number;
 }
 
-function basetenResponseToAnalysisResult(raw: BasetenPredictResponse): AnalysisResult {
+function modelResponseToAnalysisResult(raw: ModelPredictResponse): AnalysisResult {
   if (raw.error) {
     throw new Error(raw.error);
   }
@@ -64,15 +64,15 @@ export class ProsodyClient {
 
   // ──────────────────────────── Analysis ────────────────────────────
 
-  /** Call Baseten predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
-  private async analyzeViaBaseten(audioBase64: string, signal?: AbortSignal): Promise<AnalysisResult> {
-    const url = this.opts.basetenPredictUrl!;
+  /** Call model predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
+  private async analyzeViaModelPredict(audioBase64: string, signal?: AbortSignal): Promise<AnalysisResult> {
+    const url = this.opts.modelPredictUrl!;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.opts.timeoutMs);
     const requestSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
     try {
       if (this.opts.debug) {
-        console.debug(`[prosody] POST ${url} (Baseten predict)`);
+        console.debug(`[prosody] POST ${url} (model predict)`);
       }
       this.opts.onRequest?.(url, {
         method: 'POST',
@@ -92,17 +92,17 @@ export class ProsodyClient {
       this.opts.onResponse?.(url, res);
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Baseten predict failed: ${res.status} ${text}`);
+        throw new Error(`Model predict failed: ${res.status} ${text}`);
       }
-      const raw = (await res.json()) as BasetenPredictResponse;
-      return basetenResponseToAnalysisResult(raw);
+      const raw = (await res.json()) as ModelPredictResponse;
+      return modelResponseToAnalysisResult(raw);
     } finally {
       clearTimeout(timeout);
     }
   }
 
   async analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
-    if (this.opts.basetenPredictUrl) {
+    if (this.opts.modelPredictUrl) {
       let base64: string;
       if (Buffer.isBuffer(audio)) {
         base64 = audio.toString('base64');
@@ -119,7 +119,7 @@ export class ProsodyClient {
       } else {
         throw new Error('analyze(audio): audio must be a Buffer or string (file path or URL)');
       }
-      return this.analyzeViaBaseten(base64, signal);
+      return this.analyzeViaModelPredict(base64, signal);
     }
 
     const formData = new FormData();
@@ -145,8 +145,8 @@ export class ProsodyClient {
   }
 
   async analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
-    if (this.opts.basetenPredictUrl) {
-      return this.analyzeViaBaseten(base64Audio, signal);
+    if (this.opts.modelPredictUrl) {
+      return this.analyzeViaModelPredict(base64Audio, signal);
     }
     return postJSON<AnalysisResult>('/v1/analyze/base64', this.opts, {
       audio_base64: base64Audio,

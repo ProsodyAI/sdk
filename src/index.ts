@@ -2,6 +2,7 @@ export type {
   ProsodyConfig,
   EmotionResult,
   ProsodyMarkers,
+  ProsodySignals,
   VerticalAnalysis,
   ForwardPredictions,
   KPIImpactFactor,

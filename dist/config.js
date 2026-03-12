@@ -20,7 +20,7 @@ export function resolveConfig(input) {
     return {
         apiKey: input.apiKey,
         baseUrl: input.baseUrl || DEFAULT_BASE_URL,
-        basetenPredictUrl: input.basetenPredictUrl,
+        modelPredictUrl: input.modelPredictUrl,
         timeoutMs: input.timeoutMs ?? 30_000,
         retry: { ...DEFAULT_RETRY, ...input.retry },
         headers: input.headers ?? {},

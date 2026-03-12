@@ -68,6 +68,7 @@ export class ProsodyRealtimeStream {
               duration: message.duration || 0,
               word_count: message.text?.split(' ').length || 0,
               format: 'json',
+              signals: message.signals,
               kpi_predictions: message.kpi_predictions,
               alerts: message.alerts,
               forward_predictions: message.forward_predictions,

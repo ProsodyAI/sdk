@@ -12,6 +12,16 @@ export interface ProsodyMarkers {
     intensity?: string;
     tempo?: string;
 }
+export interface ProsodySignals {
+    engagement: number;
+    stress: number;
+    certainty: number;
+    rapport: number;
+    empathy: number;
+    tempo: number;
+    intensity: number;
+    expressiveness: number;
+}
 export interface VerticalAnalysis {
     vertical: string;
     state: string;
@@ -23,6 +33,9 @@ export interface VerticalAnalysis {
         threshold: any;
     }>;
 }
+/**
+ * @deprecated Use KPIPredictionResult instead. Kept for backward compatibility.
+ */
 export interface ForwardPredictions {
     will_escalate: number;
     escalation_onset: number;
@@ -37,6 +50,39 @@ export interface ForwardPredictions {
     prediction_confidence: number;
     utterances_seen: number;
 }
+export interface KPIImpactFactor {
+    signal: string;
+    value: number;
+    impact: number;
+    description: string;
+}
+export interface KPIRecommendedAction {
+    action: string;
+    expected_impact: number;
+    signal_target: string;
+}
+export interface KPIAlertResult {
+    threshold: number;
+    direction: string;
+    message: string;
+}
+export interface KPIPredictionResult {
+    kpi_id: string;
+    kpi_name: string;
+    kpi_type: 'SCALAR' | 'BINARY' | 'CATEGORICAL';
+    predicted_value: any;
+    confidence: number;
+    trajectory?: string;
+    impact_factors?: KPIImpactFactor[];
+    recommended_actions?: KPIRecommendedAction[];
+    alert?: KPIAlertResult;
+}
+export interface KPIOutcomeEntry {
+    kpi_id: string;
+    scalar_value?: number;
+    boolean_value?: boolean;
+    category_value?: string;
+}
 export interface AnalysisResult {
     prediction_id: string;
     session_id?: string;
@@ -46,10 +92,14 @@ export interface AnalysisResult {
     arousal: number;
     dominance: number;
     prosody?: ProsodyMarkers;
+    signals?: ProsodySignals;
     duration: number;
     word_count: number;
     format: string;
+    kpi_predictions?: KPIPredictionResult[];
+    alerts?: KPIAlertResult[];
     vertical_analysis?: VerticalAnalysis;
+    /** @deprecated Use kpi_predictions instead. */
     forward_predictions?: ForwardPredictions;
 }
 export interface AnalysisOptions {
@@ -77,20 +127,34 @@ export interface FeedbackOutcomeOptions {
 }
 export interface SessionOutcomeOptions {
     sessionId: string;
-    vertical: string;
-    actualCsat?: number;
-    escalated?: boolean;
-    churned?: boolean;
-    firstCallResolved?: boolean;
-    transferred?: boolean;
-    dealWon?: boolean;
-    dealValue?: number;
-    daysToClose?: number;
-    phqScore?: number;
-    interventionOccurred?: boolean;
-    followUpScheduled?: boolean;
-    finalSentiment?: number;
+    outcomes?: KPIOutcomeEntry[];
     notes?: string;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    vertical?: string;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    actualCsat?: number;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    escalated?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    churned?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    firstCallResolved?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    transferred?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    dealWon?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    dealValue?: number;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    daysToClose?: number;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    phqScore?: number;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    interventionOccurred?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    followUpScheduled?: boolean;
+    /** @deprecated Pass outcomes via the `outcomes` array instead. */
+    finalSentiment?: number;
 }
 export interface PCMOptions extends AnalysisOptions {
     sampleRate?: number;
@@ -123,6 +187,7 @@ export interface FineTuneJob {
     modelId?: string;
     createdAt: string;
     completedAt?: string;
+    metrics?: Record<string, any>;
 }
 export interface FineTuneSample {
     audioUrl?: string;

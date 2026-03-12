@@ -7,8 +7,8 @@ export declare class ProsodyClient {
     readonly apiKey: string;
     readonly baseUrl: string;
     constructor(config: ProsodyClientConfig | string);
-    /** Call Baseten predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
-    private analyzeViaBaseten;
+    /** Call model predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
+    private analyzeViaModelPredict;
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     analyzePCM(pcmData: Int16Array | Float32Array | ArrayBuffer, options?: PCMOptions, signal?: AbortSignal): Promise<AnalysisResult>;
