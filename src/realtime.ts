@@ -1,4 +1,4 @@
-import type { AnalysisResult, StreamingOptions } from '@/types';
+import type { AnalysisResult, SessionTranscript, StreamingOptions } from '@/types';
 import type { ProsodyClient } from '@/client';
 
 export class ProsodyRealtimeStream {
@@ -8,6 +8,7 @@ export class ProsodyRealtimeStream {
   private options: StreamingOptions;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
+  private _resolveEnd: (() => void) | null = null;
 
   constructor(client: ProsodyClient, options?: StreamingOptions) {
     this.apiKey = (client as any).apiKey;
@@ -50,8 +51,6 @@ export class ProsodyRealtimeStream {
           const message = JSON.parse(event.data);
 
           if (message.type === 'directive' || message.type === 'result') {
-            // API sends "directive" with VAD nested under `prosody`;
-            // accept both shapes for forward compat.
             const prosody = message.prosody ?? {};
             const result: AnalysisResult = {
               prediction_id: message.prediction_id || '',
@@ -65,6 +64,7 @@ export class ProsodyRealtimeStream {
               valence: prosody.valence ?? message.valence ?? 0,
               arousal: prosody.arousal ?? message.arousal ?? 0.5,
               dominance: prosody.dominance ?? message.dominance ?? 0.5,
+              speaker_id: message.speaker_id,
               duration: message.duration || 0,
               word_count: message.text?.split(' ').length || 0,
               format: 'json',
@@ -74,6 +74,17 @@ export class ProsodyRealtimeStream {
               forward_predictions: message.forward_predictions,
             };
             this.options.onResult?.(result);
+          } else if (message.type === 'session_end') {
+            if (message.transcript) {
+              const transcript: SessionTranscript = {
+                session_id: message.session_id ?? message.transcript.session_id,
+                duration_seconds: message.transcript.duration_seconds ?? 0,
+                turns: message.transcript.turns ?? [],
+                segments: message.transcript.segments,
+              };
+              this.options.onTranscript?.(transcript);
+            }
+            this._resolveEnd?.();
           } else if (message.type === 'escalation_alert') {
             this.options.onEscalationAlert?.({
               onset_probability: message.onset_probability,
@@ -107,13 +118,7 @@ export class ProsodyRealtimeStream {
       int16Samples = samples;
     }
 
-    const bytes = new Uint8Array(int16Samples.buffer);
-    const base64 = btoa(String.fromCharCode(...bytes));
-
-    this.ws.send(JSON.stringify({
-      type: 'audio',
-      data: base64,
-    }));
+    this.ws.send(int16Samples.buffer);
   }
 
   async end(): Promise<void> {
@@ -123,16 +128,10 @@ export class ProsodyRealtimeStream {
         return;
       }
 
-      const ws = this.ws;
-      const originalOnMessage = ws.onmessage;
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'end_ack') {
-          ws.close();
-          resolve();
-        } else {
-          originalOnMessage?.call(ws, event);
-        }
+      this._resolveEnd = () => {
+        this._resolveEnd = null;
+        this.ws?.close();
+        resolve();
       };
 
       this.ws.send(JSON.stringify({ type: 'end' }));
