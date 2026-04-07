@@ -30,6 +30,8 @@ export class ProsodyRealtimeStream {
           language: this.options.language || 'en',
           vertical: this.options.vertical,
           session_id: this.options.sessionId,
+          sample_rate: this.options.sampleRate || 16000,
+          encoding: this.options.encoding || 'pcm16',
           chunk_duration_ms: (this.options.chunkDuration || 3) * 1000,
         }));
         this.reconnectAttempts = 0;

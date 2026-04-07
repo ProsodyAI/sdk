@@ -206,6 +206,8 @@ export interface PCMOptions extends AnalysisOptions {
   sampleRate?: number;
   channels?: number;
   bitDepth?: number;
+  /** Audio encoding: "pcm16" (default), "mulaw" (G.711 μ-law), "alaw" (G.711 A-law) */
+  encoding?: 'pcm16' | 'mulaw' | 'alaw';
 }
 
 export interface StreamingOptions extends PCMOptions {
