@@ -19,7 +19,7 @@ export interface ProsodyClientConfig {
   onResponse?: (url: string, response: Response) => void;
 }
 
-export const DEFAULT_BASE_URL = 'https://api.prosody.ai';
+export const DEFAULT_BASE_URL = 'https://api.prosodyai.app';
 
 export const DEFAULT_RETRY: RetryConfig = {
   maxRetries: 2,

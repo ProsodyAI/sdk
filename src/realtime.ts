@@ -22,11 +22,13 @@ export class ProsodyRealtimeStream {
         .replace('https://', 'wss://')
         .replace('http://', 'ws://');
 
-      this.ws = new WebSocket(`${wsUrl}/v1/stream/realtime?api_key=${this.apiKey}`);
+      this.ws = new WebSocket(`${wsUrl}/v1/stream/realtime`);
+      this.ws.binaryType = 'arraybuffer';
 
       this.ws.onopen = () => {
         this.ws?.send(JSON.stringify({
           type: 'config',
+          api_key: this.apiKey,
           language: this.options.language || 'en',
           vertical: this.options.vertical,
           session_id: this.options.sessionId,
@@ -120,7 +122,11 @@ export class ProsodyRealtimeStream {
       int16Samples = samples;
     }
 
-    this.ws.send(int16Samples.buffer);
+    const buf = int16Samples.buffer.slice(
+      int16Samples.byteOffset,
+      int16Samples.byteOffset + int16Samples.byteLength,
+    );
+    this.ws.send(buf);
   }
 
   async end(): Promise<void> {
