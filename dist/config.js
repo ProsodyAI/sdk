@@ -1,4 +1,4 @@
-export const DEFAULT_BASE_URL = 'https://api.prosody.ai';
+export const DEFAULT_BASE_URL = 'https://api.prosodyai.app';
 export const DEFAULT_RETRY = {
     maxRetries: 2,
     initialDelayMs: 500,
@@ -20,7 +20,6 @@ export function resolveConfig(input) {
     return {
         apiKey: input.apiKey,
         baseUrl: input.baseUrl || DEFAULT_BASE_URL,
-        modelPredictUrl: input.modelPredictUrl,
         timeoutMs: input.timeoutMs ?? 30_000,
         retry: { ...DEFAULT_RETRY, ...input.retry },
         headers: input.headers ?? {},

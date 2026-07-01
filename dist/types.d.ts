@@ -93,6 +93,7 @@ export interface AnalysisResult {
     dominance: number;
     prosody?: ProsodyMarkers;
     signals?: ProsodySignals;
+    speaker_id?: string;
     duration: number;
     word_count: number;
     format: string;
@@ -101,6 +102,36 @@ export interface AnalysisResult {
     vertical_analysis?: VerticalAnalysis;
     /** @deprecated Use kpi_predictions instead. */
     forward_predictions?: ForwardPredictions;
+}
+export interface TranscriptSegment {
+    start_ms: number;
+    end_ms: number;
+    text: string;
+    speaker_id: string;
+    emotion: string;
+    confidence: number;
+    valence: number;
+    arousal: number;
+    dominance: number;
+    signals?: Record<string, number>;
+}
+export interface TranscriptTurn {
+    start_ms: number;
+    end_ms: number;
+    speaker_id: string;
+    text: string;
+    segments: TranscriptSegment[];
+    dominant_emotion: string;
+    avg_confidence: number;
+    avg_valence: number;
+    avg_arousal: number;
+    avg_dominance: number;
+}
+export interface SessionTranscript {
+    session_id: string;
+    duration_seconds: number;
+    turns: TranscriptTurn[];
+    segments?: TranscriptSegment[];
 }
 export interface AnalysisOptions {
     language?: string;
@@ -160,10 +191,13 @@ export interface PCMOptions extends AnalysisOptions {
     sampleRate?: number;
     channels?: number;
     bitDepth?: number;
+    /** Audio encoding: "pcm16" (default), "mulaw" (G.711 μ-law), "alaw" (G.711 A-law) */
+    encoding?: 'pcm16' | 'mulaw' | 'alaw';
 }
 export interface StreamingOptions extends PCMOptions {
     sessionId?: string;
     onResult?: (result: AnalysisResult) => void;
+    onTranscript?: (transcript: SessionTranscript) => void;
     onEscalationAlert?: (alert: {
         onset_probability: number;
         recommended_tone: string;

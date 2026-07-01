@@ -5,6 +5,7 @@ export class ProsodyRealtimeStream {
     options;
     reconnectAttempts = 0;
     maxReconnectAttempts = 3;
+    _resolveEnd = null;
     constructor(client, options) {
         this.apiKey = client.apiKey;
         this.baseUrl = client.baseUrl;
@@ -15,13 +16,17 @@ export class ProsodyRealtimeStream {
             const wsUrl = this.baseUrl
                 .replace('https://', 'wss://')
                 .replace('http://', 'ws://');
-            this.ws = new WebSocket(`${wsUrl}/v1/stream/realtime?api_key=${this.apiKey}`);
+            this.ws = new WebSocket(`${wsUrl}/v1/stream/realtime`);
+            this.ws.binaryType = 'arraybuffer';
             this.ws.onopen = () => {
                 this.ws?.send(JSON.stringify({
                     type: 'config',
+                    api_key: this.apiKey,
                     language: this.options.language || 'en',
                     vertical: this.options.vertical,
                     session_id: this.options.sessionId,
+                    sample_rate: this.options.sampleRate || 16000,
+                    encoding: this.options.encoding || 'pcm16',
                     chunk_duration_ms: (this.options.chunkDuration || 3) * 1000,
                 }));
                 this.reconnectAttempts = 0;
@@ -39,8 +44,6 @@ export class ProsodyRealtimeStream {
                 try {
                     const message = JSON.parse(event.data);
                     if (message.type === 'directive' || message.type === 'result') {
-                        // API sends "directive" with VAD nested under `prosody`;
-                        // accept both shapes for forward compat.
                         const prosody = message.prosody ?? {};
                         const result = {
                             prediction_id: message.prediction_id || '',
@@ -54,6 +57,7 @@ export class ProsodyRealtimeStream {
                             valence: prosody.valence ?? message.valence ?? 0,
                             arousal: prosody.arousal ?? message.arousal ?? 0.5,
                             dominance: prosody.dominance ?? message.dominance ?? 0.5,
+                            speaker_id: message.speaker_id,
                             duration: message.duration || 0,
                             word_count: message.text?.split(' ').length || 0,
                             format: 'json',
@@ -63,6 +67,18 @@ export class ProsodyRealtimeStream {
                             forward_predictions: message.forward_predictions,
                         };
                         this.options.onResult?.(result);
+                    }
+                    else if (message.type === 'session_end') {
+                        if (message.transcript) {
+                            const transcript = {
+                                session_id: message.session_id ?? message.transcript.session_id,
+                                duration_seconds: message.transcript.duration_seconds ?? 0,
+                                turns: message.transcript.turns ?? [],
+                                segments: message.transcript.segments,
+                            };
+                            this.options.onTranscript?.(transcript);
+                        }
+                        this._resolveEnd?.();
                     }
                     else if (message.type === 'escalation_alert') {
                         this.options.onEscalationAlert?.({
@@ -98,12 +114,8 @@ export class ProsodyRealtimeStream {
         else {
             int16Samples = samples;
         }
-        const bytes = new Uint8Array(int16Samples.buffer);
-        const base64 = btoa(String.fromCharCode(...bytes));
-        this.ws.send(JSON.stringify({
-            type: 'audio',
-            data: base64,
-        }));
+        const buf = int16Samples.buffer.slice(int16Samples.byteOffset, int16Samples.byteOffset + int16Samples.byteLength);
+        this.ws.send(buf);
     }
     async end() {
         return new Promise((resolve) => {
@@ -111,17 +123,10 @@ export class ProsodyRealtimeStream {
                 resolve();
                 return;
             }
-            const ws = this.ws;
-            const originalOnMessage = ws.onmessage;
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                if (message.type === 'end_ack') {
-                    ws.close();
-                    resolve();
-                }
-                else {
-                    originalOnMessage?.call(ws, event);
-                }
+            this._resolveEnd = () => {
+                this._resolveEnd = null;
+                this.ws?.close();
+                resolve();
             };
             this.ws.send(JSON.stringify({ type: 'end' }));
         });

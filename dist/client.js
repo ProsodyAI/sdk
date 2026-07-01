@@ -3,26 +3,6 @@ import { createWavBuffer } from '@/wav';
 import { postJSON, postForm, requestJSON } from '@/http';
 import { ProsodyStream } from '@/stream';
 import { ProsodyRealtimeStream } from '@/realtime';
-function modelResponseToAnalysisResult(raw) {
-    if (raw.error) {
-        throw new Error(raw.error);
-    }
-    return {
-        prediction_id: '',
-        text: '',
-        emotion: {
-            primary: raw.emotion ?? 'neutral',
-            confidence: raw.confidence ?? 0,
-            probabilities: raw.emotion_probabilities ?? {},
-        },
-        valence: raw.valence ?? 0,
-        arousal: raw.arousal ?? 0.5,
-        dominance: raw.dominance ?? 0.5,
-        duration: 0,
-        word_count: 0,
-        format: 'json',
-    };
-}
 export class ProsodyClient {
     opts;
     apiKey;
@@ -34,66 +14,7 @@ export class ProsodyClient {
         this.opts = resolved;
     }
     // ──────────────────────────── Analysis ────────────────────────────
-    /** Call model predict URL with Api-Key and { audio_base64 }; map response to AnalysisResult. */
-    async analyzeViaModelPredict(audioBase64, signal) {
-        const url = this.opts.modelPredictUrl;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), this.opts.timeoutMs);
-        const requestSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
-        try {
-            if (this.opts.debug) {
-                console.debug(`[prosody] POST ${url} (model predict)`);
-            }
-            this.opts.onRequest?.(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Api-Key ${this.apiKey}` },
-                body: JSON.stringify({ audio_base64: audioBase64 }),
-            });
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Api-Key ${this.apiKey}`,
-                },
-                body: JSON.stringify({ audio_base64: audioBase64 }),
-                signal: requestSignal,
-            });
-            clearTimeout(timeout);
-            this.opts.onResponse?.(url, res);
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Model predict failed: ${res.status} ${text}`);
-            }
-            const raw = (await res.json());
-            return modelResponseToAnalysisResult(raw);
-        }
-        finally {
-            clearTimeout(timeout);
-        }
-    }
     async analyze(audio, options, signal) {
-        if (this.opts.modelPredictUrl) {
-            let base64;
-            if (Buffer.isBuffer(audio)) {
-                base64 = audio.toString('base64');
-            }
-            else if (typeof audio === 'string') {
-                if (audio.startsWith('http')) {
-                    const res = await fetch(audio);
-                    const buf = Buffer.from(await res.arrayBuffer());
-                    base64 = buf.toString('base64');
-                }
-                else {
-                    const fs = await import('fs');
-                    const buffer = fs.readFileSync(audio);
-                    base64 = Buffer.from(buffer).toString('base64');
-                }
-            }
-            else {
-                throw new Error('analyze(audio): audio must be a Buffer or string (file path or URL)');
-            }
-            return this.analyzeViaModelPredict(base64, signal);
-        }
         const formData = new FormData();
         if (typeof audio === 'string') {
             if (audio.startsWith('http')) {
@@ -119,9 +40,6 @@ export class ProsodyClient {
         return postForm('/v1/analyze/audio', this.opts, formData, signal);
     }
     async analyzeBase64(base64Audio, options, signal) {
-        if (this.opts.modelPredictUrl) {
-            return this.analyzeViaModelPredict(base64Audio, signal);
-        }
         return postJSON('/v1/analyze/base64', this.opts, {
             audio_base64: base64Audio,
             language: options?.language,
@@ -149,26 +67,6 @@ export class ProsodyClient {
         }
         const wavBuffer = createWavBuffer(samples, sampleRate, channels, bitDepth);
         return this.analyze(Buffer.from(wavBuffer), options, signal);
-    }
-    async analyzeWithModel(modelId, audio, options, signal) {
-        const formData = new FormData();
-        formData.append('model_id', modelId);
-        if (typeof audio === 'string') {
-            if (audio.startsWith('http')) {
-                formData.append('audio_url', audio);
-            }
-            else {
-                const fs = await import('fs');
-                const buffer = fs.readFileSync(audio);
-                formData.append('file', new Blob([new Uint8Array(buffer)]), 'audio.wav');
-            }
-        }
-        else {
-            formData.append('file', new Blob([new Uint8Array(audio)]), 'audio.wav');
-        }
-        if (options?.language)
-            formData.append('language', options.language);
-        return postForm('/v1/analyze/audio', this.opts, formData, signal);
     }
     // ──────────────────────────── Features ────────────────────────────
     async extractFeatures(audio, signal) {

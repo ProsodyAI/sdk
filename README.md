@@ -167,13 +167,7 @@ console.log(status.progress);  // 0.75
 
 ## Examples
 
-A **live mic test page** that records in the browser and sends audio to the Baseten ProsodySSM endpoint is in this package:
-
-```bash
-cd packages/sdk && npm run example
-```
-
-Then open **http://localhost:3000/examples/live-baseten.html**, enter your Baseten API key, and click Record and send. See [examples/README.md](examples/README.md) for details.
+See [prosodyai.app/docs/quickstart](https://prosodyai.app/docs/quickstart) and the [local demo](https://prosodyai.app/demo).
 
 ## API
 

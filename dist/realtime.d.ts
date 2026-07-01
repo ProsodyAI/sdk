@@ -7,6 +7,7 @@ export declare class ProsodyRealtimeStream {
     private options;
     private reconnectAttempts;
     private maxReconnectAttempts;
+    private _resolveEnd;
     constructor(client: ProsodyClient, options?: StreamingOptions);
     connect(): Promise<void>;
     send(samples: Float32Array | Int16Array | ArrayBuffer): void;

@@ -35,7 +35,7 @@ describe('constructor', () => {
     it('accepts string API key with default base URL', () => {
         const client = new ProsodyClient('test-key');
         expect(client.apiKey).toBe('test-key');
-        expect(client.baseUrl).toBe('https://api.prosody.ai');
+        expect(client.baseUrl).toBe('https://api.prosodyai.app');
     });
     it('accepts config object with custom base URL', () => {
         const client = new ProsodyClient({ apiKey: 'k', baseUrl: 'http://localhost:8000' });
@@ -59,7 +59,7 @@ describe('health', () => {
         const client = new ProsodyClient('key');
         const result = await client.health();
         expect(result).toEqual({ status: 'ok' });
-        expect(fetch.mock.calls[0][0]).toBe('https://api.prosody.ai/health');
+        expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/health');
     });
 });
 // ──────────────────────────── Analyze ────────────────────────────────
@@ -74,7 +74,7 @@ describe('analyze', () => {
         const fetch = mockFetchOk();
         const client = new ProsodyClient('key');
         await client.analyze(Buffer.from('audio'));
-        expect(fetch.mock.calls[0][0]).toBe('https://api.prosody.ai/v1/analyze/audio');
+        expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/analyze/audio');
     });
     it('appends vertical and sessionId to form data', async () => {
         const fetch = mockFetchOk();
@@ -92,7 +92,7 @@ describe('analyzeBase64', () => {
         const client = new ProsodyClient('key');
         await client.analyzeBase64('dGVzdA==', { vertical: 'sales' });
         const [url, init] = fetch.mock.calls[0];
-        expect(url).toBe('https://api.prosody.ai/v1/analyze/base64');
+        expect(url).toBe('https://api.prosodyai.app/v1/analyze/base64');
         const body = JSON.parse(init.body);
         expect(body.audio_base64).toBe('dGVzdA==');
         expect(body.vertical).toBe('sales');
@@ -160,7 +160,7 @@ describe('feedback', () => {
         const client = new ProsodyClient('key');
         await client.submitCorrection({ predictionId: 'p1', correctEmotion: 'angry' });
         const [url, init] = fetch.mock.calls[0];
-        expect(url).toBe('https://api.prosody.ai/v1/feedback/correction');
+        expect(url).toBe('https://api.prosodyai.app/v1/feedback/correction');
         expect(JSON.parse(init.body).correct_emotion).toBe('angry');
     });
     it('submitSessionOutcome posts to /v1/feedback/session_outcome', async () => {
@@ -185,7 +185,7 @@ describe('fine-tuning', () => {
         const fetch = mockFetchOk({ id: 'ft-1', status: 'completed', name: 'test', createdAt: '' });
         const client = new ProsodyClient('key');
         await client.getFineTune('ft-1');
-        expect(fetch.mock.calls[0][0]).toBe('https://api.prosody.ai/v1/fine-tune/ft-1');
+        expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/fine-tune/ft-1');
         expect(fetch.mock.calls[0][1].method).toBe('GET');
     });
     it('listFineTunes returns array', async () => {

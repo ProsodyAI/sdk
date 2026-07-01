@@ -9,8 +9,6 @@ export interface RetryConfig {
 export interface ProsodyClientConfig {
   apiKey: string;
   baseUrl?: string;
-  /** When set, analyze/analyzeBase64/analyzePCM call this model predict URL with Api-Key auth and { audio_base64 } body. */
-  modelPredictUrl?: string;
   timeoutMs?: number;
   retry?: Partial<RetryConfig>;
   headers?: Record<string, string>;
@@ -32,7 +30,6 @@ export const DEFAULT_RETRY: RetryConfig = {
 export function resolveConfig(input: ProsodyClientConfig | string): {
   apiKey: string;
   baseUrl: string;
-  modelPredictUrl?: string;
   timeoutMs: number;
   retry: RetryConfig;
   headers: Record<string, string>;
@@ -54,7 +51,6 @@ export function resolveConfig(input: ProsodyClientConfig | string): {
   return {
     apiKey: input.apiKey,
     baseUrl: input.baseUrl || DEFAULT_BASE_URL,
-    modelPredictUrl: input.modelPredictUrl,
     timeoutMs: input.timeoutMs ?? 30_000,
     retry: { ...DEFAULT_RETRY, ...input.retry },
     headers: input.headers ?? {},
