@@ -51,6 +51,9 @@ export class ProsodyClient {
     if (options?.vertical) formData.append('vertical', options.vertical);
     if (options?.sessionId) formData.append('session_id', options.sessionId);
     if (options?.includeFeatures) formData.append('include_features', 'true');
+    // Interview product: per-turn VAD + signals. Opt out with { diarize: false }.
+    const diarize = options?.diarize !== false;
+    formData.append('diarize', diarize ? 'true' : 'false');
 
     return postForm<AnalysisResult>('/v1/analyze/audio', this.opts, formData, signal);
   }

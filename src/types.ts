@@ -3,6 +3,7 @@ export interface ProsodyConfig {
   baseUrl?: string;
 }
 
+/** @deprecated Emotion is not the product surface — use VAD + signals / turn.prosody. */
 export interface EmotionResult {
   primary: string;
   confidence: number;
@@ -24,6 +25,15 @@ export interface ProsodySignals {
   tempo: number;
   intensity: number;
   expressiveness: number;
+}
+
+/** Per-turn delivery (interview / call review product). */
+export interface TurnProsody {
+  valence: number;
+  arousal: number;
+  dominance: number;
+  confidence: number;
+  signals?: ProsodySignals | Record<string, number> | null;
 }
 
 export interface VerticalAnalysis {
@@ -94,7 +104,8 @@ export interface AnalysisResult {
   prediction_id: string;
   session_id?: string;
   text: string;
-  emotion: EmotionResult;
+  /** @deprecated Prefer valence/arousal/dominance + signals. */
+  emotion?: EmotionResult;
   valence: number;
   arousal: number;
   dominance: number;
@@ -104,6 +115,22 @@ export interface AnalysisResult {
   duration: number;
   word_count: number;
   format: string;
+  /** Diarized turns with per-turn VAD + delivery signals (interview product). */
+  turns?: Array<{
+    start_ms: number;
+    end_ms: number;
+    speaker_id: string;
+    text: string;
+    prosody?: TurnProsody;
+  }>;
+  prosody_timeline?: Array<{
+    start_ms: number;
+    end_ms: number;
+    valence: number;
+    arousal: number;
+    dominance: number;
+    signals?: Record<string, number>;
+  }>;
   kpi_predictions?: KPIPredictionResult[];
   alerts?: KPIAlertResult[];
   vertical_analysis?: VerticalAnalysis;
@@ -116,7 +143,8 @@ export interface TranscriptSegment {
   end_ms: number;
   text: string;
   speaker_id: string;
-  emotion: string;
+  /** @deprecated Prefer valence/arousal/dominance + signals. */
+  emotion?: string;
   confidence: number;
   valence: number;
   arousal: number;
@@ -130,11 +158,13 @@ export interface TranscriptTurn {
   speaker_id: string;
   text: string;
   segments: TranscriptSegment[];
-  dominant_emotion: string;
+  /** @deprecated Prefer avg_valence / avg_arousal / avg_dominance. */
+  dominant_emotion?: string;
   avg_confidence: number;
   avg_valence: number;
   avg_arousal: number;
   avg_dominance: number;
+  prosody?: TurnProsody;
 }
 
 export interface SessionTranscript {
@@ -149,6 +179,8 @@ export interface AnalysisOptions {
   vertical?: string;
   sessionId?: string;
   includeFeatures?: boolean;
+  /** When true (default), return diarized turns with per-turn VAD + delivery signals. */
+  diarize?: boolean;
 }
 
 export interface FeedbackCorrectionOptions {
