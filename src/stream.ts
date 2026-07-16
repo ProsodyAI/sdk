@@ -13,7 +13,7 @@ export class ProsodyStream {
     this.client = client;
     this.options = options || {};
     const sampleRate = options?.sampleRate || 16000;
-    const chunkDuration = options?.chunkDuration || 3;
+    const chunkDuration = options?.chunkDuration ?? 3;
     this.samplesPerChunk = sampleRate * chunkDuration;
   }
 

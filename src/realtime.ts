@@ -1,5 +1,6 @@
-import type { AnalysisResult, SessionTranscript, StreamingOptions } from '@/types';
+import type { SessionTranscript, StreamingOptions } from '@/types';
 import type { ProsodyClient } from '@/client';
+import { normalizeAnalysisResult } from '@/normalize';
 
 export class ProsodyRealtimeStream {
   private ws: WebSocket | null = null;
@@ -34,7 +35,8 @@ export class ProsodyRealtimeStream {
           session_id: this.options.sessionId,
           sample_rate: this.options.sampleRate || 16000,
           encoding: this.options.encoding || 'pcm16',
-          chunk_duration_ms: (this.options.chunkDuration || 3) * 1000,
+          // Server field is chunk_seconds (default 1); ignored if absent.
+          chunk_seconds: this.options.chunkDuration ?? 1,
         }));
         this.reconnectAttempts = 0;
         resolve();
@@ -55,29 +57,7 @@ export class ProsodyRealtimeStream {
           const message = JSON.parse(event.data);
 
           if (message.type === 'directive' || message.type === 'result') {
-            const prosody = message.prosody ?? {};
-            const result: AnalysisResult = {
-              prediction_id: message.prediction_id || '',
-              session_id: message.session_id,
-              text: message.text ?? '',
-              emotion: {
-                primary: message.emotion ?? 'neutral',
-                confidence: message.confidence ?? 0,
-                probabilities: message.emotion_probabilities || {},
-              },
-              valence: prosody.valence ?? message.valence ?? 0,
-              arousal: prosody.arousal ?? message.arousal ?? 0.5,
-              dominance: prosody.dominance ?? message.dominance ?? 0.5,
-              speaker_id: message.speaker_id,
-              duration: message.duration || 0,
-              word_count: message.text?.split(' ').length || 0,
-              format: 'json',
-              signals: message.signals,
-              kpi_predictions: message.kpi_predictions,
-              alerts: message.alerts,
-              forward_predictions: message.forward_predictions,
-            };
-            this.options.onResult?.(result);
+            this.options.onResult?.(normalizeAnalysisResult(message));
           } else if (message.type === 'session_end') {
             if (message.transcript) {
               const transcript: SessionTranscript = {

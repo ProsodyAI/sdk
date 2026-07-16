@@ -133,6 +133,7 @@ export interface AnalysisResult {
   }>;
   kpi_predictions?: KPIPredictionResult[];
   alerts?: KPIAlertResult[];
+  /** @deprecated Not returned by current analyze endpoints; use kpi_predictions. */
   vertical_analysis?: VerticalAnalysis;
   /** @deprecated Use kpi_predictions instead. */
   forward_predictions?: ForwardPredictions;
@@ -176,10 +177,15 @@ export interface SessionTranscript {
 
 export interface AnalysisOptions {
   language?: string;
+  /**
+   * Optional session tag (streaming / outcomes). Not a Form field on
+   * `POST /v1/analyze/audio` — prefer org KPIs for product outcomes.
+   */
   vertical?: string;
   sessionId?: string;
+  /** @deprecated Ignored by the API; detailed features are not returned this way. */
   includeFeatures?: boolean;
-  /** When true (default), return diarized turns with per-turn VAD + delivery signals. */
+  /** When true (default in the SDK), return diarized turns with per-turn VAD + delivery signals. */
   diarize?: boolean;
 }
 
@@ -248,6 +254,10 @@ export interface StreamingOptions extends PCMOptions {
   onTranscript?: (transcript: SessionTranscript) => void;
   onEscalationAlert?: (alert: { onset_probability: number; recommended_tone: string; segment_id: string }) => void;
   onError?: (error: Error) => void;
+  /**
+   * Seconds of PCM per analyze / realtime chunk.
+   * Realtime default: 1 (matches server). Chunked `createStream` default: 3.
+   */
   chunkDuration?: number;
 }
 

@@ -15,6 +15,7 @@ import type { RequestOptions } from '@/http';
 import { resolveConfig } from '@/config';
 import { createWavBuffer } from '@/wav';
 import { postJSON, postForm, requestJSON } from '@/http';
+import { normalizeAnalysisResult } from '@/normalize';
 import { ProsodyStream } from '@/stream';
 import { ProsodyRealtimeStream } from '@/realtime';
 
@@ -48,24 +49,23 @@ export class ProsodyClient {
     }
 
     if (options?.language) formData.append('language', options.language);
-    if (options?.vertical) formData.append('vertical', options.vertical);
     if (options?.sessionId) formData.append('session_id', options.sessionId);
-    if (options?.includeFeatures) formData.append('include_features', 'true');
     // Interview product: per-turn VAD + signals. Opt out with { diarize: false }.
     const diarize = options?.diarize !== false;
     formData.append('diarize', diarize ? 'true' : 'false');
 
-    return postForm<AnalysisResult>('/v1/analyze/audio', this.opts, formData, signal);
+    const raw = await postForm<Record<string, unknown>>('/v1/analyze/audio', this.opts, formData, signal);
+    return normalizeAnalysisResult(raw);
   }
 
   async analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
-    return postJSON<AnalysisResult>('/v1/analyze/base64', this.opts, {
+    const raw = await postJSON<Record<string, unknown>>('/v1/analyze/base64', this.opts, {
       audio_base64: base64Audio,
       language: options?.language,
-      vertical: options?.vertical,
       session_id: options?.sessionId,
       output_format: 'json',
     }, signal);
+    return normalizeAnalysisResult(raw);
   }
 
   async analyzePCM(
