@@ -90,13 +90,15 @@ describe('analyze', () => {
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/analyze/audio');
   });
 
-  it('appends vertical and sessionId to form data', async () => {
+  it('appends sessionId and diarize to form data', async () => {
     const fetch = mockFetchOk();
     const client = new ProsodyClient('key');
     await client.analyze(Buffer.from('audio'), { vertical: 'contact_center', sessionId: 'sess-1' });
     const body = fetch.mock.calls[0][1].body as FormData;
-    expect(body.get('vertical')).toBe('contact_center');
     expect(body.get('session_id')).toBe('sess-1');
+    expect(body.get('diarize')).toBe('true');
+    // vertical is session metadata for streaming; batch analyze ignores it
+    expect(body.get('vertical')).toBeNull();
   });
 });
 
@@ -106,12 +108,13 @@ describe('analyzeBase64', () => {
   it('sends JSON body with base64 audio', async () => {
     const fetch = mockFetchOk();
     const client = new ProsodyClient('key');
-    await client.analyzeBase64('dGVzdA==', { vertical: 'sales' });
+    await client.analyzeBase64('dGVzdA==', { sessionId: 'sess-2' });
     const [url, init] = fetch.mock.calls[0];
     expect(url).toBe('https://api.prosodyai.app/v1/analyze/base64');
     const body = JSON.parse(init.body);
     expect(body.audio_base64).toBe('dGVzdA==');
-    expect(body.vertical).toBe('sales');
+    expect(body.session_id).toBe('sess-2');
+    expect(body.vertical).toBeUndefined();
   });
 });
 
