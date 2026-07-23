@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createWavBuffer } from '@/wav';
+import { createWavBuffer } from '../wav.js';
 
 describe('createWavBuffer', () => {
   it('starts with RIFF header', () => {

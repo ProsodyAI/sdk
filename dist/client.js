@@ -1,8 +1,7 @@
-import { resolveConfig } from '@/config';
-import { createWavBuffer } from '@/wav';
-import { postJSON, postForm, requestJSON } from '@/http';
-import { ProsodyStream } from '@/stream';
-import { ProsodyRealtimeStream } from '@/realtime';
+import { parseAnalysisResult } from './analysis.js';
+import { resolveConfig } from './config.js';
+import { postJSON, postForm, requestJSON } from './http.js';
+import { createWavBuffer } from './wav.js';
 export class ProsodyClient {
     opts;
     apiKey;
@@ -31,22 +30,22 @@ export class ProsodyClient {
         }
         if (options?.language)
             formData.append('language', options.language);
-        if (options?.vertical)
-            formData.append('vertical', options.vertical);
         if (options?.sessionId)
             formData.append('session_id', options.sessionId);
-        if (options?.includeFeatures)
-            formData.append('include_features', 'true');
-        return postForm('/v1/analyze/audio', this.opts, formData, signal);
+        // Interview product: per-turn VAD + signals. Opt out with { diarize: false }.
+        const diarize = options?.diarize !== false;
+        formData.append('diarize', diarize ? 'true' : 'false');
+        const raw = await postForm('/v1/analyze/audio', this.opts, formData, signal);
+        return parseAnalysisResult(raw);
     }
     async analyzeBase64(base64Audio, options, signal) {
-        return postJSON('/v1/analyze/base64', this.opts, {
+        const raw = await postJSON('/v1/analyze/base64', this.opts, {
             audio_base64: base64Audio,
             language: options?.language,
-            vertical: options?.vertical,
             session_id: options?.sessionId,
             output_format: 'json',
         }, signal);
+        return parseAnalysisResult(raw);
     }
     async analyzePCM(pcmData, options, signal) {
         const sampleRate = options?.sampleRate || 16000;
@@ -113,53 +112,13 @@ export class ProsodyClient {
         }, signal);
     }
     async submitSessionOutcome(options, signal) {
-        if (options.outcomes?.length) {
-            return postJSON('/v1/feedback/session_outcome', this.opts, {
-                session_id: options.sessionId,
-                outcomes: options.outcomes,
-                notes: options.notes,
-            }, signal);
+        if (options.outcomes.length === 0) {
+            throw new Error('submitSessionOutcome requires at least one KPI outcome');
         }
-        // Legacy path for backward compat
         return postJSON('/v1/feedback/session_outcome', this.opts, {
             session_id: options.sessionId,
-            vertical: options.vertical,
-            actual_csat: options.actualCsat,
-            escalated: options.escalated,
-            churned: options.churned,
-            first_call_resolved: options.firstCallResolved,
-            transferred: options.transferred,
-            deal_won: options.dealWon,
-            deal_value: options.dealValue,
-            days_to_close: options.daysToClose,
-            phq_score: options.phqScore,
-            intervention_occurred: options.interventionOccurred,
-            follow_up_scheduled: options.followUpScheduled,
-            final_sentiment: options.finalSentiment,
+            outcomes: options.outcomes,
             notes: options.notes,
         }, signal);
-    }
-    // ──────────────────────────── Fine-Tuning ────────────────────────
-    async createFineTune(config, signal) {
-        return postJSON('/v1/fine-tune', this.opts, config, signal);
-    }
-    async uploadFineTuneSamples(jobId, samples, signal) {
-        return postJSON(`/v1/fine-tune/${jobId}/samples`, this.opts, { samples }, signal);
-    }
-    async startFineTune(jobId, signal) {
-        return postJSON(`/v1/fine-tune/${jobId}/start`, this.opts, {}, signal);
-    }
-    async getFineTune(jobId, signal) {
-        return requestJSON('GET', `/v1/fine-tune/${jobId}`, this.opts, null, undefined, signal);
-    }
-    async listFineTunes(signal) {
-        return requestJSON('GET', '/v1/fine-tune', this.opts, null, undefined, signal);
-    }
-    // ──────────────────────────── Streaming ───────────────────────────
-    createStream(options) {
-        return new ProsodyStream(this, options);
-    }
-    createRealtimeStream(options) {
-        return new ProsodyRealtimeStream(this, options);
     }
 }

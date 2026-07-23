@@ -1,4 +1,4 @@
-import { errorFromResponse, TimeoutError, ConnectionError, RateLimitError } from '@/errors';
+import { errorFromResponse, TimeoutError, ConnectionError, RateLimitError } from './errors.js';
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -1,5 +1,5 @@
-import type { RetryConfig } from '@/config';
-import { errorFromResponse, TimeoutError, ConnectionError, RateLimitError } from '@/errors';
+import type { RetryConfig } from './config.js';
+import { errorFromResponse, TimeoutError, ConnectionError, RateLimitError } from './errors.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

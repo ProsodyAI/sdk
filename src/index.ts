@@ -1,16 +1,24 @@
 export type {
   ProsodyConfig,
-  EmotionResult,
   ProsodyMarkers,
+  ProsodyFeatures,
   ProsodySignals,
   TurnProsody,
-  VerticalAnalysis,
-  ForwardPredictions,
   KPIImpactFactor,
   KPIRecommendedAction,
   KPIAlertResult,
   KPIPredictionResult,
   KPIOutcomeEntry,
+  ProsodyTrajectory,
+  ProsodyTimelinePoint,
+  ProsodySummary,
+  PerSpeakerAnalysis,
+  CallInsight,
+  AnalysisAlert,
+  RecommendedAction,
+  DiarizationTurn,
+  DiarizationResult,
+  AnalysisTurn,
   AnalysisResult,
   TranscriptSegment,
   TranscriptTurn,
@@ -20,13 +28,33 @@ export type {
   FeedbackOutcomeOptions,
   SessionOutcomeOptions,
   PCMOptions,
-  StreamingOptions,
-  FineTuneConfig,
-  FineTuneJob,
-  FineTuneSample,
-} from '@/types';
+  ModulationMode,
+  ModulationTts,
+  AgentModulation,
+  ForwardPrediction,
+  DiarizationSegment,
+  ProsodyEmbedding,
+  ProsodyEventType,
+  ProsodyEventEnvelope,
+  DirectiveEvent,
+  TranscriptUpdateSegment,
+  TranscriptUpdateEvent,
+  AgentSteeringEvent,
+  InsightsUpdateEvent,
+  SessionDiagnostic,
+  SessionEndEvent,
+  WarningEvent,
+  ServerErrorEvent,
+  ProsodyEvent,
+} from './types.js';
 
-export type { ProsodyClientConfig, RetryConfig } from '@/config';
+export type { ProsodyClientConfig, RetryConfig } from './config.js';
+export type {
+  LiveKitParticipantLike,
+  LiveKitDataReceivedHandler,
+  LiveKitRoomLike,
+  ProsodySessionOptions,
+} from './session.js';
 
 export {
   ProsodyError,
@@ -35,11 +63,15 @@ export {
   ValidationError,
   TimeoutError,
   ConnectionError,
-} from '@/errors';
+} from './errors.js';
 
-export { createWavBuffer } from '@/wav';
-export { ProsodyClient } from '@/client';
-export { ProsodyStream } from '@/stream';
-export { ProsodyRealtimeStream } from '@/realtime';
+export { parseAnalysisResult } from './analysis.js';
+export { ProsodyClient } from './client.js';
+export {
+  PROSODY_EVENT_TOPIC,
+  ProsodySession,
+  parseProsodyEvent,
+} from './session.js';
+export { createWavBuffer } from './wav.js';
 
-export { ProsodyClient as default } from '@/client';
+export { ProsodyClient as default } from './client.js';

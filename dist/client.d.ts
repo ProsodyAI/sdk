@@ -1,7 +1,5 @@
-import type { AnalysisOptions, AnalysisResult, PCMOptions, StreamingOptions, FeedbackCorrectionOptions, FeedbackOutcomeOptions, SessionOutcomeOptions, FineTuneConfig, FineTuneJob, FineTuneSample } from '@/types';
-import type { ProsodyClientConfig } from '@/config';
-import { ProsodyStream } from '@/stream';
-import { ProsodyRealtimeStream } from '@/realtime';
+import type { AnalysisOptions, AnalysisResult, PCMOptions, FeedbackCorrectionOptions, FeedbackOutcomeOptions, SessionOutcomeOptions } from './types.js';
+import type { ProsodyClientConfig } from './config.js';
 export declare class ProsodyClient {
     private readonly opts;
     readonly apiKey: string;
@@ -23,13 +21,4 @@ export declare class ProsodyClient {
     submitSessionOutcome(options: SessionOutcomeOptions, signal?: AbortSignal): Promise<{
         status: string;
     }>;
-    createFineTune(config: FineTuneConfig, signal?: AbortSignal): Promise<FineTuneJob>;
-    uploadFineTuneSamples(jobId: string, samples: FineTuneSample[], signal?: AbortSignal): Promise<{
-        uploaded: number;
-    }>;
-    startFineTune(jobId: string, signal?: AbortSignal): Promise<FineTuneJob>;
-    getFineTune(jobId: string, signal?: AbortSignal): Promise<FineTuneJob>;
-    listFineTunes(signal?: AbortSignal): Promise<FineTuneJob[]>;
-    createStream(options?: StreamingOptions): ProsodyStream;
-    createRealtimeStream(options?: StreamingOptions): ProsodyRealtimeStream;
 }

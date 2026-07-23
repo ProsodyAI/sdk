@@ -1,6 +1,6 @@
-export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from '@/errors';
-export { createWavBuffer } from '@/wav';
-export { ProsodyClient } from '@/client';
-export { ProsodyStream } from '@/stream';
-export { ProsodyRealtimeStream } from '@/realtime';
-export { ProsodyClient as default } from '@/client';
+export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
+export { parseAnalysisResult } from './analysis.js';
+export { ProsodyClient } from './client.js';
+export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './session.js';
+export { createWavBuffer } from './wav.js';
+export { ProsodyClient as default } from './client.js';

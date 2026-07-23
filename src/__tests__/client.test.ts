@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ProsodyClient } from '@/client';
-import { ProsodyError, AuthenticationError, RateLimitError, TimeoutError } from '@/errors';
+import { ProsodyClient } from '../client.js';
+import { ProsodyError, AuthenticationError, RateLimitError } from '../errors.js';
 
 const mockResult = {
   prediction_id: 'pred-1',
   text: 'hello',
-  emotion: { primary: 'neutral', confidence: 0.9, probabilities: { neutral: 0.9 } },
-  valence: 0.1,
-  arousal: 0.3,
-  dominance: 0.5,
+  prosody: {
+    valence: 0.1,
+    arousal: 0.3,
+    dominance: 0.5,
+  },
   duration: 1.5,
   word_count: 1,
-  format: 'json',
 };
 
 beforeEach(() => {
@@ -60,7 +60,6 @@ describe('constructor', () => {
     expect(client.apiKey).toBe('k');
   });
 });
-
 // ──────────────────────────── Health ─────────────────────────────────
 
 describe('health', () => {
@@ -72,7 +71,6 @@ describe('health', () => {
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/health');
   });
 });
-
 // ──────────────────────────── Analyze ────────────────────────────────
 
 describe('analyze', () => {
@@ -93,12 +91,10 @@ describe('analyze', () => {
   it('appends sessionId and diarize to form data', async () => {
     const fetch = mockFetchOk();
     const client = new ProsodyClient('key');
-    await client.analyze(Buffer.from('audio'), { vertical: 'contact_center', sessionId: 'sess-1' });
+    await client.analyze(Buffer.from('audio'), { sessionId: 'sess-1' });
     const body = fetch.mock.calls[0][1].body as FormData;
     expect(body.get('session_id')).toBe('sess-1');
     expect(body.get('diarize')).toBe('true');
-    // vertical is session metadata for streaming; batch analyze ignores it
-    expect(body.get('vertical')).toBeNull();
   });
 });
 
@@ -194,36 +190,12 @@ describe('feedback', () => {
   it('submitSessionOutcome posts to /v1/feedback/session_outcome', async () => {
     const fetch = mockFetchOk({ status: 'ok' });
     const client = new ProsodyClient('key');
-    await client.submitSessionOutcome({ sessionId: 's1', vertical: 'contact_center', actualCsat: 4, escalated: false });
+    await client.submitSessionOutcome({
+      sessionId: 's1',
+      outcomes: [{ kpi_id: 'csat', scalar_value: 4 }],
+    });
     const body = JSON.parse(fetch.mock.calls[0][1].body);
     expect(body.session_id).toBe('s1');
-    expect(body.actual_csat).toBe(4);
-  });
-});
-
-// ──────────────────────────── Fine-tuning ────────────────────────────
-
-describe('fine-tuning', () => {
-  it('createFineTune posts config', async () => {
-    const fetch = mockFetchOk({ id: 'ft-1', status: 'pending', name: 'test', createdAt: '' });
-    const client = new ProsodyClient('key');
-    const job = await client.createFineTune({ name: 'test', epochs: 10 });
-    expect(job.id).toBe('ft-1');
-    expect(JSON.parse(fetch.mock.calls[0][1].body).epochs).toBe(10);
-  });
-
-  it('getFineTune sends GET', async () => {
-    const fetch = mockFetchOk({ id: 'ft-1', status: 'completed', name: 'test', createdAt: '' });
-    const client = new ProsodyClient('key');
-    await client.getFineTune('ft-1');
-    expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/fine-tune/ft-1');
-    expect(fetch.mock.calls[0][1].method).toBe('GET');
-  });
-
-  it('listFineTunes returns array', async () => {
-    const fetch = mockFetchOk([{ id: 'ft-1', status: 'completed', name: 'a', createdAt: '' }]);
-    const client = new ProsodyClient('key');
-    const jobs = await client.listFineTunes();
-    expect(jobs).toHaveLength(1);
+    expect(body.outcomes).toEqual([{ kpi_id: 'csat', scalar_value: 4 }]);
   });
 });

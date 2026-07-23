@@ -1,25 +1,38 @@
 {
   "name": "@prosodyai/sdk",
   "version": "0.1.0",
-  "description": "ProsodyAI SDK for speech emotion analysis",
+  "description": "TypeScript SDK for ProsodyAI batch analysis and LiveKit session events",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "sideEffects": false,
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "scripts": {
-    "build": "tsc",
-    "test": "vitest",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "example": "npx --yes serve . -p 3000",
-    "prepublishOnly": "npm run build"
+    "prepack": "npm run build"
   },
   "keywords": [
     "prosody",
-    "emotion",
     "speech",
+    "livekit",
+    "voice-agents",
     "ai",
     "nlp"
   ],
@@ -28,7 +41,6 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.3.0",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.0.18"
   },
   "engines": {

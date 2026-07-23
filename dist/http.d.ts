@@ -1,4 +1,4 @@
-import type { RetryConfig } from '@/config';
+import type { RetryConfig } from './config.js';
 export interface RequestOptions {
     apiKey: string;
     baseUrl: string;
