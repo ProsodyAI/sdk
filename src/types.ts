@@ -230,6 +230,7 @@ export interface SessionTranscript {
   segments: TranscriptSegment[];
   steering_events: AgentSteeringEvent[];
   prosody_timeline: ProsodyTimelinePoint[];
+  prosody_summary: ProsodySummary | null;
   per_speaker: PerSpeakerAnalysis[];
   sequence_signals: Record<string, number> | null;
   call_insights: CallInsight[];
