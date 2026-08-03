@@ -39,6 +39,84 @@ export interface ProsodySignals {
   [signal: string]: number | undefined;
 }
 
+/** Why the serving checkpoint is allowed to publish a measurement head. */
+export interface AcousticProvenance {
+  kind?: string;
+  feature_version?: string;
+}
+
+/**
+ * What the waveform measured over one window. These are the trained heads —
+ * physical quantities with units, not inferred labels. A value is `null` when
+ * the window could not support it (e.g. `f0_median_hz` with no voiced frames);
+ * check `masks` before reading.
+ */
+export interface AcousticStateValues {
+  rms_dbfs?: number | null;
+  peak_dbfs?: number | null;
+  f0_median_hz?: number | null;
+  f0_range_semitones?: number | null;
+  f0_slope_semitones_per_second?: number | null;
+  spectral_tilt_db_per_octave?: number | null;
+  voiced_ratio?: number | null;
+  pause_ratio?: number | null;
+  clipping_ratio?: number | null;
+  voice_onset_rate_hz?: number | null;
+  tempo_syllables_per_second?: number | null;
+  turn_boundary_probability?: number | null;
+  [feature: string]: number | null | undefined;
+}
+
+export interface AcousticStateMasks {
+  f0_available?: boolean;
+  f0_range_available?: boolean;
+  f0_slope_available?: boolean;
+  spectral_tilt_available?: boolean;
+  voiced_mask?: boolean[];
+}
+
+/** Per-Mimi-frame trajectory (12.5 Hz). Absent in the batch report. */
+export interface AcousticStateFrames {
+  frame_rate_hz?: number;
+  rms_dbfs?: number[];
+  /** `null` on unvoiced frames rather than a floor value. */
+  f0_hz?: (number | null)[];
+  spectral_tilt_db_per_octave?: (number | null)[];
+  voiced_probability?: number[];
+  voice_activity_boundary_probability?: number[];
+}
+
+export interface AcousticState {
+  values?: AcousticStateValues;
+  masks?: AcousticStateMasks;
+  frames?: AcousticStateFrames | null;
+  provenance?: AcousticProvenance;
+}
+
+/** Signed deltas against the reference window. Zero is a real reading. */
+export interface AcousticChangeValues {
+  rms_db_change?: number;
+  peak_db_change?: number;
+  f0_median_semitone_change?: number;
+  f0_range_semitone_change?: number;
+  f0_slope_semitones_per_second_change?: number;
+  spectral_tilt_db_per_octave_change?: number;
+  voiced_ratio_change?: number;
+  pause_ratio_change?: number;
+  voice_onset_rate_hz_change?: number;
+  [feature: string]: number | undefined;
+}
+
+/**
+ * How delivery moved against the same speaker's previous window, which is what
+ * makes "louder" mean louder than that person rather than a population.
+ */
+export interface AcousticChange {
+  values?: AcousticChangeValues;
+  reference?: string;
+  provenance?: AcousticProvenance;
+}
+
 /** Per-turn delivery (interview / call review product). */
 export interface TurnProsody {
   valence: number;
@@ -46,6 +124,9 @@ export interface TurnProsody {
   dominance: number;
   confidence: number;
   signals?: ProsodySignals | Record<string, number> | null;
+  /** The trained measurement for the window covering this turn. */
+  acoustic_state?: AcousticState | null;
+  acoustic_change?: AcousticChange | null;
 }
 
 export interface KPIImpactFactor {
@@ -91,12 +172,17 @@ export type ProsodyTrajectory = 'rising' | 'declining' | 'stable';
 export interface ProsodyTimelinePoint {
   start_ms: number;
   end_ms: number;
+  speaker_id?: string;
   valence: number;
   arousal: number;
   dominance: number;
   signals?: Record<string, number> | null;
   sequence_signals?: Record<string, number> | null;
   seq_frame?: Record<string, number | number[]> | null;
+  /** What this window measured. Present on every window of a diarized call. */
+  acoustic_state?: AcousticState | null;
+  /** Absent on a speaker's first window — there is nothing to compare against. */
+  acoustic_change?: AcousticChange | null;
 }
 
 export interface ProsodySummary {
@@ -179,6 +265,12 @@ export interface AnalysisResult {
   session_id?: string | null;
   text: string;
   prosody: ProsodyFeatures;
+  /**
+   * False when the serving checkpoint publishes no human-gated affect, which
+   * makes `prosody.valence/arousal/dominance` defaults rather than readings.
+   * The measurements are `acoustic_state` on `turns` and `prosody_timeline`.
+   */
+  affect_available?: boolean;
   signals?: ProsodySignals | null;
   sequence_signals?: Record<string, number> | null;
   timings_ms?: Record<string, number> | null;

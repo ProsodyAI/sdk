@@ -3,6 +3,13 @@ export type {
   ProsodyMarkers,
   ProsodyFeatures,
   ProsodySignals,
+  AcousticProvenance,
+  AcousticStateValues,
+  AcousticStateMasks,
+  AcousticStateFrames,
+  AcousticState,
+  AcousticChangeValues,
+  AcousticChange,
   TurnProsody,
   KPIImpactFactor,
   KPIRecommendedAction,
@@ -65,7 +72,7 @@ export {
   ConnectionError,
 } from './errors.js';
 
-export { parseAnalysisResult } from './analysis.js';
+export { parseAnalysisResult, acousticWindows, acousticSeries } from './analysis.js';
 export { ProsodyClient } from './client.js';
 export {
   PROSODY_EVENT_TOPIC,
