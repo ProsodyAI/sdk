@@ -38,8 +38,12 @@ export function resolveConfig(input: ProsodyClientConfig | string): {
   onResponse?: (url: string, response: Response) => void;
 } {
   if (typeof input === 'string') {
+    const apiKey = input.trim();
+    if (!apiKey) {
+      throw new Error('ProsodyClient requires a non-empty apiKey');
+    }
     return {
-      apiKey: input,
+      apiKey,
       baseUrl: DEFAULT_BASE_URL,
       timeoutMs: 30_000,
       retry: { ...DEFAULT_RETRY },
@@ -48,8 +52,13 @@ export function resolveConfig(input: ProsodyClientConfig | string): {
     };
   }
 
+  const apiKey = (input.apiKey ?? '').trim();
+  if (!apiKey) {
+    throw new Error('ProsodyClient requires a non-empty apiKey');
+  }
+
   return {
-    apiKey: input.apiKey,
+    apiKey,
     baseUrl: input.baseUrl || DEFAULT_BASE_URL,
     timeoutMs: input.timeoutMs ?? 30_000,
     retry: { ...DEFAULT_RETRY, ...input.retry },

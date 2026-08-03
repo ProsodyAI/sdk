@@ -116,6 +116,27 @@ export {
 } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export {
+  LiveSession,
+  type LiveSessionOptions,
+  type LiveSessionStartOptions,
+} from './live-session.js';
+export {
+  transcriptionFromConversation,
+  prosodyFromVocalFeatures,
+  Speaker,
+  type Prosody,
+  type ProsodyChange,
+  type TranscribeOptions,
+  type TranscribeTurn,
+  type Transcription,
+  type VoiceProfile,
+  type VoiceStat,
+} from './transcription.js';
+export {
+  applySpeakerUpdateToSegments,
+  speakerAfterMerges,
+} from './conversation.js';
+export {
   PROSODY_EVENT_TOPIC,
   ProsodySession,
   parseProsodyEvent,

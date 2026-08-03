@@ -6,6 +6,10 @@ import type {
   DiarizedSpeaker,
   DirectiveEvent,
   ProsodyEvent,
+  SessionEndEvent,
+  SpeakerClusterUpdateEvent,
+  SpeakerMerge,
+  SpeakerUpdateEvent,
   TranscriptUpdateEvent,
   TranscriptUpdateSegment,
 } from './types.js';
@@ -62,9 +66,8 @@ type StepAnchor = {
 /**
  * Developer product object for diarized turns and vocal measurements.
  *
- * Live: feed Prosody wire events via `apply`. Batch: `Conversation.fromAnalysis`.
- * Logic mirrors the demo transcript merge and turn builder so the SDK and demo
- * share one conversation spine.
+ * Live: feed Prosody wire events via `apply` (same spine as the demo session
+ * hook). Batch: `Conversation.fromAnalysis`.
  */
 export class Conversation {
   private segments: LiveSegment[] = [];
@@ -102,6 +105,68 @@ export class Conversation {
         Boolean(update.is_final),
         Boolean(update.speech_final),
       );
+      return this;
+    }
+    if (type === 'speaker_update') {
+      const update = event as SpeakerUpdateEvent;
+      const startMs = Number(update.start_ms ?? 0);
+      const endMs = Number(update.end_ms ?? startMs);
+      const speakerId = normalizeSpeakerId(
+        update.speaker_id ?? update.dominant_speaker_id ?? 'unknown',
+      );
+      this.steps = this.steps.map((step) => {
+        if (step.timestamp_ms >= endMs || step.timestamp_ms + 1000 <= startMs) {
+          return step;
+        }
+        const existing = normalizeSpeakerId(step.speaker_id);
+        if (speakerId === 'unknown' || existing !== 'unknown') return step;
+        return { ...step, speaker_id: speakerId };
+      });
+      if (isKnownSpeaker(speakerId)) {
+        this.segments = applySpeakerUpdateToSegments(
+          this.segments,
+          startMs,
+          endMs,
+          speakerId,
+        );
+      }
+      this.applySpeakerMerges(update.speaker_merges);
+      return this;
+    }
+    if (type === 'speaker_cluster_update') {
+      const update = event as SpeakerClusterUpdateEvent;
+      this.applySpeakerMerges(update.speaker_merges);
+      return this;
+    }
+    if (type === 'session_end') {
+      const end = event as SessionEndEvent;
+      const turns = end.transcript?.turns ?? [];
+      if (turns.length) {
+        this.segments = turns.map((turn) => ({
+          start_ms: turn.start_ms,
+          end_ms: turn.end_ms,
+          speaker_id: normalizeSpeakerId(turn.speaker_id),
+          text: turn.text || '',
+          result_id: 'session_end',
+          provider: 'session_end',
+          is_final: true,
+          speech_final: true,
+        }));
+      }
+      const timeline = end.prosody_timeline?.length
+        ? end.prosody_timeline
+        : end.transcript?.prosody_timeline;
+      if (timeline?.length && this.steps.length === 0) {
+        for (const point of timeline) {
+          if (!point.acoustic_state) continue;
+          this.steps.push({
+            speaker_id: normalizeSpeakerId(point.speaker_id),
+            timestamp_ms: point.start_ms,
+            acoustic_state: point.acoustic_state,
+            acoustic_change: point.acoustic_change ?? null,
+          });
+        }
+      }
       return this;
     }
     return this;
@@ -216,6 +281,21 @@ export class Conversation {
     });
   }
 
+  private applySpeakerMerges(rawMerges: SpeakerMerge[] | undefined | null): void {
+    const merges = (rawMerges ?? []).filter(
+      (item) => item?.source_speaker_id && item?.target_speaker_id,
+    );
+    if (!merges.length) return;
+    this.segments = this.segments.map((segment) => ({
+      ...segment,
+      speaker_id: speakerAfterMerges(segment.speaker_id, merges),
+    }));
+    this.steps = this.steps.map((step) => ({
+      ...step,
+      speaker_id: speakerAfterMerges(step.speaker_id, merges),
+    }));
+  }
+
   private batchTurn(turn: AnalysisTurn): ConversationTurn {
     const state = turn.prosody?.acoustic_state ?? null;
     const change = turn.prosody?.acoustic_change ?? null;
@@ -267,6 +347,43 @@ function isKnownSpeaker(id: string | undefined | null): boolean {
 
 function overlapMs(startA: number, endA: number, startB: number, endB: number): number {
   return Math.max(0, Math.min(endA, endB) - Math.max(startA, startB));
+}
+
+/** Port of demo `applySpeakerUpdateToSegments`. */
+export function applySpeakerUpdateToSegments(
+  segments: LiveSegment[],
+  startMs: number,
+  endMs: number,
+  speakerId: string,
+): LiveSegment[] {
+  const resolved = normalizeSpeakerId(speakerId);
+  if (!isKnownSpeaker(resolved) || !segments.length) return segments;
+  const spanEnd = Math.max(startMs + 1, endMs);
+  let changed = false;
+  const next = segments.map((segment) => {
+    if (isKnownSpeaker(segment.speaker_id)) return segment;
+    const segEnd = Math.max(segment.start_ms + 1, segment.end_ms);
+    const overlap = overlapMs(segment.start_ms, segEnd, startMs, spanEnd);
+    const duration = Math.max(1, segEnd - segment.start_ms);
+    if (overlap < duration * 0.25 && overlap < 200) return segment;
+    changed = true;
+    return { ...segment, speaker_id: resolved };
+  });
+  return changed ? next : segments;
+}
+
+export function speakerAfterMerges(speakerId: string, merges: SpeakerMerge[]): string {
+  let current = normalizeSpeakerId(speakerId);
+  const seen = new Set<string>();
+  while (!seen.has(current)) {
+    seen.add(current);
+    const merge = merges.find(
+      (item) => normalizeSpeakerId(item.source_speaker_id) === current,
+    );
+    if (!merge?.target_speaker_id) break;
+    current = normalizeSpeakerId(merge.target_speaker_id);
+  }
+  return current;
 }
 
 /** Port of demo `mergeTranscriptUpdateSegments`. */

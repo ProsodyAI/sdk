@@ -1,47 +1,62 @@
 # @prosodyai/sdk
 
-TypeScript SDK for turning recorded speech into a **`Conversation`**: diarized
-transcript turns, vocal acoustics over time, and speaker-relative change.
+TypeScript SDK shaped like a transcription client: `transcribe(audio, { prosody })`
+returns diarized turns with optional vocal measurement on each turn.
 
-Persistent speaker identity is a separate API surface. Conversation speakers
-are local to one recording. `prosody.speakers` provides durable identity only
-when the API key has access to that capability.
+Live uses `listen(...)` (same socket as `realtime`). Persistent speaker identity
+is a separate resource under `client.speakers`.
 
 ## Install
-
-The npm package is not published yet. Install the current public SDK from
-GitHub:
 
 ```bash
 npm install github:ProsodyAI/sdk#main
 ```
 
-## Analyze a recording
+You need a `psk_*` API key to use the client. Create one under **Organization →
+API keys** in the [dashboard](https://prosodyai.app/login), then:
 
-Every request requires a `psk_*` API key.
+```bash
+export PROSODY_API_KEY=psk_...
+```
+
+## Transports
+
+| Path | What it is | Entry |
+| --- | --- | --- |
+| REST | Analyze a recording | `client.transcribe(audio, { prosody: true })` |
+| Realtime WebSocket | You send PCM/Opus to `WS /v1/stream/realtime` | `client.realtime.session()` |
+| LiveKit | WebRTC media; Prosody events on the room data topic | `client.livekit.createSession()` + `client.livekit.attach(room, …)` |
+
+LiveKit is **not** a Prosody WebSocket. Browser media goes through LiveKit;
+the analysis WebSocket is for workers (and the mic/file demo that pumps PCM
+directly). The Python `livekit-plugins-prosodyai` package bridges a LiveKit
+track into that WebSocket on the agent process.
+
+## Transcribe a recording
 
 ```typescript
 import { ProsodyClient } from '@prosodyai/sdk';
 
-const prosody = new ProsodyClient({
+const client = new ProsodyClient({
   apiKey: process.env.PROSODY_API_KEY!,
 });
 
-const conversation = await prosody.conversations.analyze('./call.wav');
+const result = await client.transcribe('./call.wav', { prosody: true });
 
-console.log(conversation.getTranscript());
-console.log(conversation.getSpeakers());
+console.log(result.text);
+console.log(result.speakers);
 
-for (const turn of conversation.getTurns()) {
-  console.log(turn.speaker_id, turn.text, turn.vocal?.f0_median_hz);
+for (const turn of result.turns) {
+  console.log(turn.speaker, turn.text, turn.prosody?.f0_median_hz);
 }
 
-console.log(conversation.getVocalFeatures()); // latest window
+const conversation = result.conversation;
+console.log(conversation.getVocalFeatures());
 console.log(conversation.getFeatureSeries('f0_median_hz', 'speaker_0'));
 console.log(conversation.getDeltas('speaker_0'));
 ```
 
-Diarization is on by default. `speaker_id` is local to the recording.
+Diarization and `prosody` both default to true. Speakers are local to the recording.
 
 ## Acoustic windows
 

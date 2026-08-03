@@ -54,7 +54,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Use an npm release with trusted publishing support
-        run: npm install --global 'npm@^11.5.1'
+        run: npm install --global 'npm@11.19.0'
 
       - name: Validate the tag, package version, and main ancestry
         run: |

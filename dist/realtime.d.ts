@@ -11,9 +11,12 @@ export interface ProsodyRealtimeConfig {
     sampleRate?: number;
     /** Required when encoding is opus (`ogg` or `webm`). */
     container?: 'ogg' | 'webm';
-    maxSpeakers?: number;
     analysisMode?: string;
     source?: string;
+    /** Match demo stream-file seek: analysis clock starts at this offset. */
+    sourceOffsetMs?: number;
+    /** Analysis window length in seconds. Defaults to 1. */
+    chunkSeconds?: number;
     /** WebSocket constructor. Inject in tests; defaults to global WebSocket. */
     WebSocketImpl?: typeof WebSocket;
 }
@@ -31,6 +34,8 @@ export interface ProsodyRealtimeHandlers {
     onSteering?: (event: AgentSteeringEvent) => void;
     onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;
+    /** Fired on `frame_ack` (and after directives) for paced file replay. */
+    onFrameAck?: (event: Record<string, unknown>) => void;
     onWarning?: (event: WarningEvent) => void;
     onServerError?: (event: ServerErrorEvent) => void;
     onEvent?: (event: ProsodyEvent | Record<string, unknown>) => void;

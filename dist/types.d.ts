@@ -396,6 +396,11 @@ export interface AnalysisOptions {
     sessionId?: string;
     /** Return diarized turns and call-level analysis. Defaults to true. */
     diarize?: boolean;
+    /**
+     * Include vocal measurement on transcript turns when using
+     * {@link ProsodyClient.transcribe}. Defaults to true.
+     */
+    prosody?: boolean;
 }
 export interface FeedbackCorrectionOptions {
     predictionId: string;

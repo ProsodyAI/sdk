@@ -72,6 +72,7 @@ export class ProsodyRealtimeStream {
                         return;
                     }
                     if (payload.type === 'frame_ack') {
+                        this.handlers.onFrameAck?.(payload);
                         return;
                     }
                     if (payload.type === 'error'
@@ -153,13 +154,18 @@ export class ProsodyRealtimeStream {
             api_key: this.config.apiKey,
             encoding,
             sample_rate: sampleRate,
-            max_speakers: this.config.maxSpeakers ?? 4,
             source: this.config.source ?? 'sdk',
         };
         if (this.config.sessionId)
             config.session_id = this.config.sessionId;
         if (this.config.analysisMode)
             config.analysis_mode = this.config.analysisMode;
+        if (this.config.sourceOffsetMs != null) {
+            config.source_offset_ms = this.config.sourceOffsetMs;
+        }
+        if (this.config.chunkSeconds != null) {
+            config.chunk_seconds = this.config.chunkSeconds;
+        }
         if (encoding === 'opus') {
             config.container = this.config.container ?? 'ogg';
         }
@@ -181,9 +187,11 @@ export class ProsodyRealtimeStream {
                 break;
             case 'speaker_update':
                 this.handlers.onSpeakerUpdate?.(event);
+                this.handlers.conversation?.apply(event);
                 break;
             case 'speaker_cluster_update':
                 this.handlers.onSpeakerClusterUpdate?.(event);
+                this.handlers.conversation?.apply(event);
                 break;
             case 'speaker_profiles':
                 this.handlers.onSpeakerProfiles?.(event);
@@ -197,6 +205,7 @@ export class ProsodyRealtimeStream {
                 break;
             case 'session_end':
                 this.handlers.onSessionEnd?.(event);
+                this.handlers.conversation?.apply(event);
                 break;
             case 'warning':
                 this.handlers.onWarning?.(event);

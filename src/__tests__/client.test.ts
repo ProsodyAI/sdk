@@ -59,6 +59,11 @@ describe('constructor', () => {
     });
     expect(client.apiKey).toBe('k');
   });
+
+  it('rejects an empty API key', () => {
+    expect(() => new ProsodyClient('')).toThrow(/non-empty apiKey/);
+    expect(() => new ProsodyClient({ apiKey: '   ' })).toThrow(/non-empty apiKey/);
+  });
 });
 // ──────────────────────────── Health ─────────────────────────────────
 
@@ -137,6 +142,100 @@ describe('analyze', () => {
       window_count: 1,
     }]);
     expect(JSON.stringify(conversation.getSpeakers())).not.toMatch(/person|identity/);
+  });
+});
+
+// ─────────────────────────── Transcribe ──────────────────────────────
+
+describe('transcribe', () => {
+  it('returns text and turns with prosody by default', async () => {
+    mockFetchOk({
+      ...mockResult,
+      affect_available: true,
+      acoustic_state: {
+        provenance: { schema_version: 'prosody_output/v2', values_unit: 'physical' },
+        values: {
+          rms_dbfs: -24,
+          peak_dbfs: -12,
+          f0_median_hz: 180,
+          f0_range_semitones: 2,
+          f0_slope_semitones_per_second: 0.1,
+          spectral_tilt_db_per_octave: -12,
+          voiced_ratio: 0.8,
+          pause_ratio: 0.1,
+          clipping_ratio: 0,
+          voice_onset_rate_hz: 1.2,
+        },
+        masks: {},
+        frames: {},
+      },
+      turns: [{
+        start_ms: 0,
+        end_ms: 1_500,
+        speaker_id: 'speaker_0',
+        text: 'hello',
+        prosody: {
+          acoustic_state: {
+            provenance: { schema_version: 'prosody_output/v2', values_unit: 'physical' },
+            values: {
+              rms_dbfs: -24,
+              peak_dbfs: -12,
+              f0_median_hz: 180,
+              f0_range_semitones: 2,
+              f0_slope_semitones_per_second: 0.1,
+              spectral_tilt_db_per_octave: -12,
+              voiced_ratio: 0.8,
+              pause_ratio: 0.1,
+              clipping_ratio: 0,
+              voice_onset_rate_hz: 1.2,
+            },
+            masks: { f0_available: true },
+            frames: {},
+          },
+        },
+      }],
+      per_speaker: [{
+        speaker_id: 'speaker_0',
+        talk_ms: 1_500,
+        window_count: 1,
+      }],
+    });
+    const client = new ProsodyClient('key');
+    const result = await client.transcribe(Buffer.from('audio'), { prosody: true });
+
+    expect(result.text).toBe('hello');
+    expect(result.turns[0]?.text).toBe('hello');
+    expect(result.turns[0]?.prosody?.pitchHz).toBe(180);
+    expect(result.turns[0]?.prosody?.loudnessDbfs).toBe(-24);
+    expect(result.turns[0]?.prosody?.tiltDbPerOctave).toBe(-12);
+    expect(result.turns[0]?.prosody?.pitchAvailable).toBe(true);
+    expect(result.conversation.getTranscript()).toBe('hello');
+
+    const speaker = result.turns[0]!.speaker;
+    expect(speaker.id).toBe('speaker_0');
+    expect(speaker.label).toBe('Speaker 1');
+    expect(speaker.isUnknown).toBe(false);
+    // Turns hold the same instance the result lists.
+    expect(result.getSpeaker('speaker_0')).toBe(speaker);
+    expect(result.speakers[0]).toBe(speaker);
+    expect(result.turnsBySpeaker(speaker)).toHaveLength(1);
+  });
+
+  it('omits turn.prosody when prosody: false', async () => {
+    mockFetchOk({
+      ...mockResult,
+      turns: [{
+        start_ms: 0,
+        end_ms: 1_500,
+        speaker_id: 'speaker_0',
+        text: 'hello',
+      }],
+      per_speaker: [{ speaker_id: 'speaker_0', talk_ms: 1_500, window_count: 1 }],
+    });
+    const client = new ProsodyClient('key');
+    const result = await client.transcribe(Buffer.from('audio'), { prosody: false });
+    expect(result.turns[0]?.speaker.id).toBe('speaker_0');
+    expect(result.turns[0]).not.toHaveProperty('prosody');
   });
 });
 

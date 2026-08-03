@@ -2,17 +2,63 @@ import type { AnalysisOptions, AnalysisResult, PCMOptions, FeedbackCorrectionOpt
 import type { ProsodyClientConfig } from './config.js';
 import { Conversation } from './conversation.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
+import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
+import { ProsodySession, type LiveKitRoomLike, type ProsodySessionOptions } from './session.js';
+import { type Transcription, type TranscribeOptions } from './transcription.js';
+type RealtimeSessionOpts = LiveSessionStartOptions & Pick<LiveSessionOptions, 'onUpdate' | 'onError' | 'onClose' | 'onEvent' | 'WebSocketImpl'>;
+type RealtimeConnectOpts = {
+    sessionId?: string;
+    encoding?: RealtimeEncoding;
+    sampleRate?: number;
+    container?: 'ogg' | 'webm';
+    analysisMode?: string;
+    source?: string;
+    sourceOffsetMs?: number;
+    chunkSeconds?: number;
+    WebSocketImpl?: typeof WebSocket;
+};
 /**
  * Developer client authenticated with a `psk_*` API key.
  *
- * Public verbs map to authenticated Prosody API routes. Request-scoped
- * conversation analysis and persistent speaker identity are exposed as
- * separate developer resources. The API key owns tenant scope and access.
+ * Three transports — keep them straight:
+ *
+ * 1. **REST** — {@link ProsodyClient.transcribe} → `POST /v1/analyze/audio`
+ * 2. **Realtime WebSocket** — {@link ProsodyClient.realtime} →
+ *    `WS /v1/stream/realtime` (you send PCM/Opus; events come back)
+ * 3. **LiveKit** — {@link ProsodyClient.livekit} → WebRTC media plane;
+ *    mint a room, consume analysis events on the data topic. Audio does not
+ *    go over the Prosody WebSocket from the browser.
+ *
+ * The Python LiveKit plugin bridges a LiveKit track → analysis WS on the
+ * agent worker. That is an agent concern, not this client's job.
  */
 export declare class ProsodyClient {
     private readonly opts;
     readonly apiKey: string;
     readonly baseUrl: string;
+    /**
+     * Analysis WebSocket transport (`WS /v1/stream/realtime`).
+     * Not LiveKit. Not WebRTC.
+     */
+    readonly realtime: {
+        /** Session with Conversation: `start` → `send` → `stop`. */
+        session: (options?: RealtimeSessionOpts) => LiveSession;
+        /** Low-level stream if you want handlers without Conversation. */
+        connect: (handlers?: ProsodyRealtimeHandlers, options?: RealtimeConnectOpts) => ProsodyRealtimeStream;
+    };
+    /**
+     * LiveKit media plane (WebRTC). Audio rides LiveKit; Prosody events arrive
+     * on the room data topic after a worker/plugin is analyzing the track.
+     */
+    readonly livekit: {
+        /** Mint room credentials (`POST /v1/realtime/sessions`). Server-side only. */
+        createSession: (options?: RealtimeSessionCreateOptions, signal?: AbortSignal) => Promise<RealtimeSessionCredentials>;
+        /**
+         * Attach to an existing LiveKit room and receive Prosody events from the
+         * data channel. Does not open a Prosody WebSocket.
+         */
+        attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => ProsodySession;
+    };
     readonly conversations: {
         analyze: (audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal) => Promise<Conversation>;
     };
@@ -22,6 +68,11 @@ export declare class ProsodyClient {
         confirmEnrollment: (audio: string | Buffer, previewSha256: string, mappings: VoiceEnrollmentMapping[], signal?: AbortSignal) => Promise<VoiceEnrollmentResult>;
     };
     constructor(config: ProsodyClientConfig | string);
+    /**
+     * Transcribe a recording over REST. Diarization and vocal measurement are
+     * options (`prosody` defaults true).
+     */
+    transcribe(audio: string | Buffer, options?: TranscribeOptions, signal?: AbortSignal): Promise<Transcription>;
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyzeConversation(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<Conversation>;
@@ -41,25 +92,19 @@ export declare class ProsodyClient {
         status: string;
     }>;
     /**
-     * Open `WS /v1/stream/realtime` with this developer key.
-     * Use only from a trusted server or worker. Do not put `psk_*` in the browser.
+     * @deprecated Use {@link ProsodyClient.realtime.connect}.
+     * Low-level `WS /v1/stream/realtime` (analysis WebSocket — not LiveKit).
      */
-    realtime(handlers?: ProsodyRealtimeHandlers, options?: {
-        sessionId?: string;
-        encoding?: RealtimeEncoding;
-        sampleRate?: number;
-        container?: 'ogg' | 'webm';
-        maxSpeakers?: number;
-        analysisMode?: string;
-        source?: string;
-        WebSocketImpl?: typeof WebSocket;
-    }): ProsodyRealtimeStream;
+    openRealtimeStream(handlers?: ProsodyRealtimeHandlers, options?: RealtimeConnectOpts): ProsodyRealtimeStream;
+    /** @deprecated Use {@link ProsodyClient.realtime.session}. */
+    openRealtimeSession(options?: RealtimeSessionOpts): LiveSession;
     /**
-     * Mint LiveKit room credentials for browser media and republished events.
-     * Call from a trusted server only.
+     * Mint LiveKit room credentials. Prefer {@link ProsodyClient.livekit.createSession}.
+     * Server-side only — holds `psk_*`.
      */
     createRealtimeSession(options?: RealtimeSessionCreateOptions, signal?: AbortSignal): Promise<RealtimeSessionCredentials>;
     health(signal?: AbortSignal): Promise<{
         status: string;
     }>;
 }
+export {};
