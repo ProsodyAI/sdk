@@ -264,13 +264,55 @@ describe('cancellation', () => {
 // ──────────────────────────── Feedback ───────────────────────────────
 
 describe('feedback', () => {
-  it('submitCorrection posts to /v1/feedback/correction', async () => {
+  it('submitCorrection sends the exact correction wire keys', async () => {
     const fetch = mockFetchOk({ status: 'ok' });
     const client = new ProsodyClient('key');
-    await client.submitCorrection({ predictionId: 'p1', correctEmotion: 'angry' });
+    await client.submitCorrection({
+      predictionId: 'p1',
+      correctedValence: 0,
+      correctedArousal: 0.25,
+      correctedDominance: 0.5,
+      notes: 'reviewed',
+    });
     const [url, init] = fetch.mock.calls[0];
     expect(url).toBe('https://api.prosodyai.app/v1/feedback/correction');
-    expect(JSON.parse(init.body).correct_emotion).toBe('angry');
+    expect(JSON.parse(init.body)).toEqual({
+      prediction_id: 'p1',
+      corrected_valence: 0,
+      corrected_arousal: 0.25,
+      corrected_dominance: 0.5,
+      notes: 'reviewed',
+    });
+  });
+
+  it('submitCorrection requires at least one corrected value', async () => {
+    const fetch = mockFetchOk({ status: 'ok' });
+    const client = new ProsodyClient('key');
+
+    await expect(client.submitCorrection({ predictionId: 'p1' })).rejects.toThrow(
+      'submitCorrection requires at least one corrected value',
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['correctedValence', { correctedValence: -1.01 }],
+    ['correctedValence', { correctedValence: Number.NaN }],
+    ['correctedArousal', { correctedArousal: 1.01 }],
+    ['correctedDominance', { correctedDominance: -0.01 }],
+  ] as const)('submitCorrection rejects invalid %s values', async (field, correction) => {
+    const fetch = mockFetchOk({ status: 'ok' });
+    const client = new ProsodyClient('key');
+
+    await expect(client.submitCorrection({ predictionId: 'p1', ...correction })).rejects.toThrow(
+      `${field} must be a finite number`,
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('does not expose the removed single-prediction outcome endpoint', () => {
+    const client = new ProsodyClient('key');
+    expect('submitOutcome' in client).toBe(false);
   });
 
   it('submitSessionOutcome posts to /v1/feedback/session_outcome', async () => {

@@ -1,13 +1,19 @@
 # @prosodyai/sdk
 
-TypeScript SDK for ProsodyAI developers. The product object is
-**`Conversation`**: diarized transcript turns plus gated vocal features and
-speaker-relative acoustic change.
+TypeScript SDK for turning recorded speech into a **`Conversation`**: diarized
+transcript turns, vocal acoustics over time, and speaker-relative change.
+
+Persistent speaker identity is a separate API surface. Conversation speakers
+are local to one recording. `prosody.speakers` provides durable identity only
+when the API key has access to that capability.
 
 ## Install
 
+The npm package is not published yet. Install the current public SDK from
+GitHub:
+
 ```bash
-npm install @prosodyai/sdk
+npm install github:ProsodyAI/sdk#main
 ```
 
 ## Analyze a recording
@@ -70,8 +76,8 @@ await prosody.speakers.confirmEnrollment(
 );
 ```
 
-This is still a developer API. The API key controls tenant scope and whether
-persistent identity is available. Raw speaker-profile vectors are not returned.
+The API key controls data scope and whether persistent identity is available.
+Raw speaker-profile vectors are not returned.
 
 ## Raw API response
 

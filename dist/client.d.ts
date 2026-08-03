@@ -1,9 +1,9 @@
-import type { AnalysisOptions, AnalysisResult, PCMOptions, FeedbackCorrectionOptions, FeedbackOutcomeOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
+import type { AnalysisOptions, AnalysisResult, PCMOptions, FeedbackCorrectionOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import { Conversation } from './conversation.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
 /**
- * Organization data-plane client (`psk_*`).
+ * Developer client authenticated with a `psk_*` API key.
  *
  * Public verbs map to authenticated Prosody API routes. Request-scoped
  * conversation analysis and persistent speaker identity are exposed as
@@ -27,7 +27,7 @@ export declare class ProsodyClient {
     analyzeConversation(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<Conversation>;
     analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     analyzePCM(pcmData: Int16Array | Float32Array | ArrayBuffer, options?: PCMOptions, signal?: AbortSignal): Promise<AnalysisResult>;
-    /** People this organization has resolved from stored acoustic speaker profiles. */
+    /** People resolved from stored speaker profiles within this API key's data scope. */
     listSpeakers(limit?: number, signal?: AbortSignal): Promise<SpeakerDirectoryResult>;
     /** Diarize an enrollment recording without persisting any identity yet. */
     previewSpeakerEnrollment(audio: string | Buffer, signal?: AbortSignal): Promise<VoiceEnrollmentPreview>;
@@ -37,15 +37,12 @@ export declare class ProsodyClient {
     submitCorrection(options: FeedbackCorrectionOptions, signal?: AbortSignal): Promise<{
         status: string;
     }>;
-    submitOutcome(options: FeedbackOutcomeOptions, signal?: AbortSignal): Promise<{
-        status: string;
-    }>;
     submitSessionOutcome(options: SessionOutcomeOptions, signal?: AbortSignal): Promise<{
         status: string;
     }>;
     /**
-     * Open `WS /v1/stream/realtime` with this org key.
-     * Trusted server / worker only — do not put `psk_*` in the browser.
+     * Open `WS /v1/stream/realtime` with this developer key.
+     * Use only from a trusted server or worker. Do not put `psk_*` in the browser.
      */
     realtime(handlers?: ProsodyRealtimeHandlers, options?: {
         sessionId?: string;
@@ -58,8 +55,8 @@ export declare class ProsodyClient {
         WebSocketImpl?: typeof WebSocket;
     }): ProsodyRealtimeStream;
     /**
-     * Mint one LiveKit room (media plane). Analysis still runs on the WebSocket
-     * inside the Prosody worker. Call from a trusted server only.
+     * Mint LiveKit room credentials for browser media and republished events.
+     * Call from a trusted server only.
      */
     createRealtimeSession(options?: RealtimeSessionCreateOptions, signal?: AbortSignal): Promise<RealtimeSessionCredentials>;
     health(signal?: AbortSignal): Promise<{

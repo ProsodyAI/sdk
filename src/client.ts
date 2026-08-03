@@ -3,7 +3,6 @@ import type {
   AnalysisResult,
   PCMOptions,
   FeedbackCorrectionOptions,
-  FeedbackOutcomeOptions,
   SessionOutcomeOptions,
   RealtimeSessionCreateOptions,
   RealtimeSessionCredentials,
@@ -26,7 +25,7 @@ import {
 import { createWavBuffer } from './wav.js';
 
 /**
- * Organization data-plane client (`psk_*`).
+ * Developer client authenticated with a `psk_*` API key.
  *
  * Public verbs map to authenticated Prosody API routes. Request-scoped
  * conversation analysis and persistent speaker identity are exposed as
@@ -144,7 +143,7 @@ export class ProsodyClient {
 
   // ───────────────────────── Speaker identity ──────────────────────
 
-  /** People this organization has resolved from stored acoustic speaker profiles. */
+  /** People resolved from stored speaker profiles within this API key's data scope. */
   async listSpeakers(limit = 500, signal?: AbortSignal): Promise<SpeakerDirectoryResult> {
     if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
       throw new Error('listSpeakers limit must be an integer from 1 to 1000');
@@ -212,25 +211,21 @@ export class ProsodyClient {
   }
 
   async submitCorrection(options: FeedbackCorrectionOptions, signal?: AbortSignal): Promise<{ status: string }> {
+    const hasCorrection = options.correctedValence !== undefined
+      || options.correctedArousal !== undefined
+      || options.correctedDominance !== undefined;
+    if (!hasCorrection) {
+      throw new Error('submitCorrection requires at least one corrected value');
+    }
+    assertFeedbackRange('correctedValence', options.correctedValence, -1, 1);
+    assertFeedbackRange('correctedArousal', options.correctedArousal, 0, 1);
+    assertFeedbackRange('correctedDominance', options.correctedDominance, 0, 1);
     return postJSON('/v1/feedback/correction', this.opts, {
       prediction_id: options.predictionId,
-      correct_emotion: options.correctEmotion,
-      correct_valence: options.correctValence,
-      correct_arousal: options.correctArousal,
-      correct_dominance: options.correctDominance,
+      corrected_valence: options.correctedValence,
+      corrected_arousal: options.correctedArousal,
+      corrected_dominance: options.correctedDominance,
       notes: options.notes,
-    }, signal);
-  }
-
-  async submitOutcome(options: FeedbackOutcomeOptions, signal?: AbortSignal): Promise<{ status: string }> {
-    return postJSON('/v1/feedback/outcome', this.opts, {
-      prediction_id: options.predictionId,
-      vertical: options.vertical,
-      outcome_correct: options.outcomeCorrect,
-      actual_csat: options.actualCsat,
-      deal_won: options.dealWon,
-      deal_value: options.dealValue,
-      phq_score: options.phqScore,
     }, signal);
   }
 
@@ -246,8 +241,8 @@ export class ProsodyClient {
   }
 
   /**
-   * Open `WS /v1/stream/realtime` with this org key.
-   * Trusted server / worker only — do not put `psk_*` in the browser.
+   * Open `WS /v1/stream/realtime` with this developer key.
+   * Use only from a trusted server or worker. Do not put `psk_*` in the browser.
    */
   realtime(
     handlers?: ProsodyRealtimeHandlers,
@@ -280,8 +275,8 @@ export class ProsodyClient {
   }
 
   /**
-   * Mint one LiveKit room (media plane). Analysis still runs on the WebSocket
-   * inside the Prosody worker. Call from a trusted server only.
+   * Mint LiveKit room credentials for browser media and republished events.
+   * Call from a trusted server only.
    */
   async createRealtimeSession(
     options: RealtimeSessionCreateOptions = {},
@@ -297,6 +292,18 @@ export class ProsodyClient {
 
   async health(signal?: AbortSignal): Promise<{ status: string }> {
     return requestJSON<{ status: string }>('GET', '/health', this.opts, null, undefined, signal);
+  }
+}
+
+function assertFeedbackRange(
+  field: string,
+  value: number | undefined,
+  minimum: number,
+  maximum: number,
+): void {
+  if (value === undefined) return;
+  if (!Number.isFinite(value) || value < minimum || value > maximum) {
+    throw new Error(`${field} must be a finite number from ${minimum} to ${maximum}`);
   }
 }
 
