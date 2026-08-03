@@ -21,7 +21,7 @@ export interface ProsodyRealtimeConfig {
   apiKey: string;
   baseUrl?: string;
   sessionId?: string;
-  /** Defaults to pcm16 @ 16 kHz mono — the org live analysis ingress. */
+  /** Defaults to pcm16 at 16 kHz mono for live analysis ingress. */
   encoding?: RealtimeEncoding;
   sampleRate?: number;
   /** Required when encoding is opus (`ogg` or `webm`). */
@@ -29,7 +29,7 @@ export interface ProsodyRealtimeConfig {
   maxSpeakers?: number;
   analysisMode?: string;
   source?: string;
-  /** WebSocket constructor — inject in tests. Defaults to global WebSocket. */
+  /** WebSocket constructor. Inject in tests; defaults to global WebSocket. */
   WebSocketImpl?: typeof WebSocket;
 }
 
@@ -55,11 +55,11 @@ export interface ProsodyRealtimeHandlers {
 }
 
 /**
- * Organization live analysis client for `WS /v1/stream/realtime`.
+ * Lower-level live analysis client for `WS /v1/stream/realtime`.
  *
- * Holds the org `psk_*` — use from a trusted server (or a Node worker), not
- * from an untrusted browser page. Browser LiveKit clients should mint a room
- * and consume republished events with `ProsodySession` instead.
+ * Holds a developer `psk_*` key. Use it from a trusted server or Node worker,
+ * not from an untrusted browser page. Browser LiveKit clients should mint a
+ * room and consume republished events with `ProsodySession` instead.
  */
 export class ProsodyRealtimeStream {
   private readonly config: ProsodyRealtimeConfig;

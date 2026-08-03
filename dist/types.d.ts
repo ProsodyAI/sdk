@@ -41,7 +41,7 @@ export interface AcousticProvenance {
     feature_version?: string;
 }
 /**
- * What the waveform measured over one window. These are the trained heads —
+ * What the waveform measured over one window. These are the trained heads:
  * physical quantities with units, not inferred labels. A value is `null` when
  * the window could not support it (e.g. `f0_median_hz` with no voiced frames);
  * check `masks` before reading.
@@ -163,7 +163,7 @@ export interface ProsodyTimelinePoint {
     seq_frame?: Record<string, number | number[]> | null;
     /** What this window measured. Present on every window of a diarized call. */
     acoustic_state?: AcousticState | null;
-    /** Absent on a speaker's first window — there is nothing to compare against. */
+    /** Absent on a speaker's first window because there is nothing to compare against. */
     acoustic_change?: AcousticChange | null;
 }
 export interface ProsodySummary {
@@ -399,20 +399,10 @@ export interface AnalysisOptions {
 }
 export interface FeedbackCorrectionOptions {
     predictionId: string;
-    correctEmotion: string;
-    correctValence?: number;
-    correctArousal?: number;
-    correctDominance?: number;
+    correctedValence?: number;
+    correctedArousal?: number;
+    correctedDominance?: number;
     notes?: string;
-}
-export interface FeedbackOutcomeOptions {
-    predictionId: string;
-    vertical: string;
-    outcomeCorrect?: boolean;
-    actualCsat?: number;
-    dealWon?: boolean;
-    dealValue?: number;
-    phqScore?: number;
 }
 export interface SessionOutcomeOptions {
     sessionId: string;
@@ -501,7 +491,7 @@ export interface RealtimeSessionCredentials {
     event_topic: string;
     control_topic: string;
 }
-/** Matches api/models/stream_events.py Directive — the live product event. */
+/** Matches api/models/stream_events.py Directive, the live product event. */
 export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
@@ -536,7 +526,7 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     speaker_merge_conflicts?: Array<Record<string, unknown>>;
     phonemes: string[];
     ipa_transcript: string;
-    /** Contour dict for spectrogram UI — not the 256-d retrieval vector. */
+    /** Contour dict for spectrogram UI, not the 256-d retrieval vector. */
     prosody_embedding: ProsodyEmbedding | null;
     forward_prediction: ForwardPrediction | null;
     kpi_predictions?: KPIPredictionResult[];

@@ -1,11 +1,11 @@
 import { parseProsodyEvent } from './session.js';
 import { AcousticWindow } from './step.js';
 /**
- * Organization live analysis client for `WS /v1/stream/realtime`.
+ * Lower-level live analysis client for `WS /v1/stream/realtime`.
  *
- * Holds the org `psk_*` — use from a trusted server (or a Node worker), not
- * from an untrusted browser page. Browser LiveKit clients should mint a room
- * and consume republished events with `ProsodySession` instead.
+ * Holds a developer `psk_*` key. Use it from a trusted server or Node worker,
+ * not from an untrusted browser page. Browser LiveKit clients should mint a
+ * room and consume republished events with `ProsodySession` instead.
  */
 export class ProsodyRealtimeStream {
     config;

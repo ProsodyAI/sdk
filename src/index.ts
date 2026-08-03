@@ -42,7 +42,6 @@ export type {
   SessionTranscript,
   AnalysisOptions,
   FeedbackCorrectionOptions,
-  FeedbackOutcomeOptions,
   SessionOutcomeOptions,
   PCMOptions,
   ModulationMode,
