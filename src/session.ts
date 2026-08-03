@@ -60,7 +60,7 @@ export interface ProsodySessionOptions {
   onAcousticWindow?: (window: AcousticWindow) => void;
   /** @deprecated Use onAcousticWindow. */
   onRecurrentStep?: (step: AcousticWindow) => void;
-  /** Fold B Conversation — diarized turns + vocal features. */
+  /** Optional conversation object that receives parsed session events. */
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;

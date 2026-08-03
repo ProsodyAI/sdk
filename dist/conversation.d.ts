@@ -1,6 +1,7 @@
-import type { AcousticState, AcousticChange, AnalysisResult, ProsodyEvent, SpeakerIdentity, SpeakerProfile, TranscriptUpdateSegment } from './types.js';
-import { AcousticWindow } from './step.js';
-/** Gated vocal measurements Bob reads — same fields as `acoustic_state.values`. */
+import type { AcousticState, AcousticChange, AnalysisResult, DiarizedSpeaker, ProsodyEvent, TranscriptUpdateSegment } from './types.js';
+import { AcousticWindow, type AcousticFeatureName } from './step.js';
+import { type AcousticDeltaPoint, type AcousticFeaturePoint } from './analysis.js';
+/** Gated vocal measurements from `acoustic_state.values`. */
 export interface VocalFeatures {
     rms_dbfs: number | null;
     peak_dbfs: number | null;
@@ -16,10 +17,9 @@ export interface VocalFeatures {
     change: AcousticChange['values'] | null;
     f0_available: boolean;
 }
-/** One diarized transcript turn — Bob’s spine (matches demo LiveTurn intent). */
+/** One diarized transcript turn with the covering acoustic measurement. */
 export interface ConversationTurn {
     speaker_id: string;
-    person_id?: string | null;
     start_ms: number;
     end_ms: number;
     text: string;
@@ -37,16 +37,15 @@ type StepAnchor = {
     acoustic_change: AcousticChange | null;
 };
 /**
- * Fold B product object for Bob: diarized turns + vocal features.
+ * Developer product object for diarized turns and vocal measurements.
  *
  * Live: feed Prosody wire events via `apply`. Batch: `Conversation.fromAnalysis`.
- * Logic mirrors the demo’s transcript merge / turn builder
- * (`website/.../session-utils.ts`) so Bob and the demo share one spine.
+ * Logic mirrors the demo transcript merge and turn builder so the SDK and demo
+ * share one conversation spine.
  */
 export declare class Conversation {
     private segments;
     private steps;
-    private profiles;
     private affectAvailable;
     private batch;
     static fromAnalysis(result: AnalysisResult): Conversation;
@@ -61,11 +60,12 @@ export declare class Conversation {
      * Pass `turnIndex` for a turn; omit for the most recent recurrent step.
      */
     getVocalFeatures(turnIndex?: number): VocalFeatures | null;
-    getSpeakerProfiles(): SpeakerProfile[];
-    getSpeakerProfile(speakerId: string): SpeakerProfile | null;
-    getIdentity(speakerId: string): SpeakerIdentity | null;
-    /** All gated recurrent windows (batch timeline or live directives). */
-    getAcoustics(): AcousticWindow[];
+    getSpeakers(): DiarizedSpeaker[];
+    /** All measured windows, optionally limited to one recording-local speaker. */
+    getAcoustics(speakerId?: string): AcousticWindow[];
+    getAcousticWindow(index: number): AcousticWindow | null;
+    getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[];
+    getDeltas(speakerId?: string): AcousticDeltaPoint[];
     private batchTurn;
 }
 export declare function vocalFeaturesFromWindow(window: AcousticWindow): VocalFeatures | null;

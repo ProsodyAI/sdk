@@ -37,7 +37,7 @@ export function parseAnalysisResult(value) {
  * Consumer view of one analyzed recording.
  *
  * Accessors over the measured acoustic timeline, transcript, and recording-local
- * diarizer lanes. Durable identity lives under `client.organization.speakers`.
+ * diarizer lanes. Persistent identity lives under `client.speakers`.
  */
 export class ConversationAnalysis {
     result;

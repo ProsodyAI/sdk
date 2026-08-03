@@ -130,10 +130,13 @@ describe('analyze', () => {
     expect(conversation.getTranscript()).toBe('hello');
     expect(conversation.getTurn(0)?.speaker_id).toBe('speaker_0');
     expect(conversation.getTurn(0)?.text).toBe('hello');
-    expect(conversation.getSpeakerProfile('speaker_0')?.talk_ms).toBe(1_500);
-    expect(conversation.getIdentity('speaker_0')?.person_id).toBe(
-      'not-part-of-the-consumer-view',
-    );
+    expect(conversation.getSpeakers()).toEqual([{
+      speaker_id: 'speaker_0',
+      talk_ms: 1_500,
+      turn_count: 1,
+      window_count: 1,
+    }]);
+    expect(JSON.stringify(conversation.getSpeakers())).not.toMatch(/person|identity/);
   });
 });
 
@@ -163,10 +166,10 @@ describe('speaker identity', () => {
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=25');
   });
 
-  it('keeps organization identity under its own namespace', async () => {
+  it('exposes persistent identity as a developer speaker resource', async () => {
     const fetch = mockFetchOk({ speakers: [], memory_total: 0, memory_enabled: false });
     const client = new ProsodyClient('key');
-    await client.organization.speakers.list(10);
+    await client.speakers.list(10);
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=10');
   });
 

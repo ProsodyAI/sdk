@@ -268,7 +268,7 @@ export class AcousticWindow {
     return this.change?.values ?? null;
   }
 
-  /** Bob-facing bundle of gated vocal measurements for this step. */
+  /** Developer-facing bundle of gated vocal measurements for this window. */
   getVocalFeatures(): {
     rms_dbfs: number | null;
     peak_dbfs: number | null;

@@ -6,27 +6,24 @@ import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncod
  * Organization data-plane client (`psk_*`).
  *
  * Public verbs map to authenticated Prosody API routes. Request-scoped
- * conversation analysis and organization-scoped speaker identity are exposed
- * as separate namespaces.
+ * conversation analysis and persistent speaker identity are exposed as
+ * separate developer resources. The API key owns tenant scope and access.
  */
 export declare class ProsodyClient {
     private readonly opts;
     readonly apiKey: string;
     readonly baseUrl: string;
     readonly conversations: {
-        /** Fold B: diarized turns + vocal features (Bob’s Conversation). */
         analyze: (audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal) => Promise<Conversation>;
     };
-    readonly organization: {
-        speakers: {
-            list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
-            previewEnrollment: (audio: string | Buffer, signal?: AbortSignal) => Promise<VoiceEnrollmentPreview>;
-            confirmEnrollment: (audio: string | Buffer, previewSha256: string, mappings: VoiceEnrollmentMapping[], signal?: AbortSignal) => Promise<VoiceEnrollmentResult>;
-        };
+    readonly speakers: {
+        list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
+        previewEnrollment: (audio: string | Buffer, signal?: AbortSignal) => Promise<VoiceEnrollmentPreview>;
+        confirmEnrollment: (audio: string | Buffer, previewSha256: string, mappings: VoiceEnrollmentMapping[], signal?: AbortSignal) => Promise<VoiceEnrollmentResult>;
     };
     constructor(config: ProsodyClientConfig | string);
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
-    /** Analyze one recording into Bob’s Conversation (diarized turns + vocals). */
+    /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyzeConversation(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<Conversation>;
     analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     analyzePCM(pcmData: Int16Array | Float32Array | ArrayBuffer, options?: PCMOptions, signal?: AbortSignal): Promise<AnalysisResult>;

@@ -1,8 +1,8 @@
 # @prosodyai/sdk
 
-TypeScript SDK for ProsodyAI. The product object for integrators is
-**`Conversation`**: diarized transcript turns plus gated vocal features, live
-and batch.
+TypeScript SDK for ProsodyAI developers. The product object is
+**`Conversation`**: diarized transcript turns plus gated vocal features and
+speaker-relative acoustic change.
 
 ## Install
 
@@ -24,36 +24,18 @@ const prosody = new ProsodyClient({
 const conversation = await prosody.conversations.analyze('./call.wav');
 
 console.log(conversation.getTranscript());
+console.log(conversation.getSpeakers());
 
 for (const turn of conversation.getTurns()) {
   console.log(turn.speaker_id, turn.text, turn.vocal?.f0_median_hz);
 }
 
 console.log(conversation.getVocalFeatures()); // latest window
-console.log(conversation.getSpeakerProfile('speaker_0')?.identity?.person_id);
+console.log(conversation.getFeatureSeries('f0_median_hz', 'speaker_0'));
+console.log(conversation.getDeltas('speaker_0'));
 ```
 
-Diarization is on by default. `speaker_id` is local to the recording;
-`person_id` comes from the organization speaker directory when known.
-
-## Live conversation
-
-Feed wire events into the same object:
-
-```typescript
-import { Conversation, ProsodyRealtimeStream } from '@prosodyai/sdk';
-
-const conversation = new Conversation();
-const stream = new ProsodyRealtimeStream(
-  { apiKey: process.env.PROSODY_API_KEY! },
-  { conversation },
-);
-await stream.connect();
-// stream.sendAudio(pcm16Chunk)
-// conversation.getTurns() / getVocalFeatures() update as events arrive
-```
-
-LiveKit rooms use `ProsodySession` the same way — pass `{ conversation }`.
+Diarization is on by default. `speaker_id` is local to the recording.
 
 ## Acoustic windows
 
@@ -73,12 +55,12 @@ Measurements come from gated heads over Mimi latents. Pitch fields are `null`
 when the window is unvoiced. Raw latents, recurrent state, and voiceprint
 vectors are not returned.
 
-## Organization speaker identity
+## Persistent speaker identity
 
 ```typescript
-const directory = await prosody.organization.speakers.list();
-const preview = await prosody.organization.speakers.previewEnrollment('./enroll.wav');
-await prosody.organization.speakers.confirmEnrollment(
+const directory = await prosody.speakers.list();
+const preview = await prosody.speakers.previewEnrollment('./enroll.wav');
+await prosody.speakers.confirmEnrollment(
   './enroll.wav',
   preview.preview_sha256,
   preview.clusters.map((cluster) => ({
@@ -87,6 +69,9 @@ await prosody.organization.speakers.confirmEnrollment(
   })),
 );
 ```
+
+This is still a developer API. The API key controls tenant scope and whether
+persistent identity is available. Raw speaker-profile vectors are not returned.
 
 ## Raw API response
 

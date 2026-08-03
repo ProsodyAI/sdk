@@ -14,7 +14,7 @@ import type {
 } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import type { RequestOptions } from './http.js';
-import { ConversationAnalysis, parseAnalysisResult } from './analysis.js';
+import { parseAnalysisResult } from './analysis.js';
 import { Conversation } from './conversation.js';
 import { resolveConfig } from './config.js';
 import { postJSON, postForm, requestJSON } from './http.js';
@@ -29,35 +29,32 @@ import { createWavBuffer } from './wav.js';
  * Organization data-plane client (`psk_*`).
  *
  * Public verbs map to authenticated Prosody API routes. Request-scoped
- * conversation analysis and organization-scoped speaker identity are exposed
- * as separate namespaces.
+ * conversation analysis and persistent speaker identity are exposed as
+ * separate developer resources. The API key owns tenant scope and access.
  */
 export class ProsodyClient {
   private readonly opts: RequestOptions;
   readonly apiKey: string;
   readonly baseUrl: string;
   readonly conversations: {
-    /** Fold B: diarized turns + vocal features (Bob’s Conversation). */
     analyze: (
       audio: string | Buffer,
       options?: AnalysisOptions,
       signal?: AbortSignal,
     ) => Promise<Conversation>;
   };
-  readonly organization: {
-    speakers: {
-      list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
-      previewEnrollment: (
-        audio: string | Buffer,
-        signal?: AbortSignal,
-      ) => Promise<VoiceEnrollmentPreview>;
-      confirmEnrollment: (
-        audio: string | Buffer,
-        previewSha256: string,
-        mappings: VoiceEnrollmentMapping[],
-        signal?: AbortSignal,
-      ) => Promise<VoiceEnrollmentResult>;
-    };
+  readonly speakers: {
+    list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
+    previewEnrollment: (
+      audio: string | Buffer,
+      signal?: AbortSignal,
+    ) => Promise<VoiceEnrollmentPreview>;
+    confirmEnrollment: (
+      audio: string | Buffer,
+      previewSha256: string,
+      mappings: VoiceEnrollmentMapping[],
+      signal?: AbortSignal,
+    ) => Promise<VoiceEnrollmentResult>;
   };
 
   constructor(config: ProsodyClientConfig | string) {
@@ -68,12 +65,10 @@ export class ProsodyClient {
     this.conversations = Object.freeze({
       analyze: this.analyzeConversation.bind(this),
     });
-    this.organization = Object.freeze({
-      speakers: Object.freeze({
-        list: this.listSpeakers.bind(this),
-        previewEnrollment: this.previewSpeakerEnrollment.bind(this),
-        confirmEnrollment: this.confirmSpeakerEnrollment.bind(this),
-      }),
+    this.speakers = Object.freeze({
+      list: this.listSpeakers.bind(this),
+      previewEnrollment: this.previewSpeakerEnrollment.bind(this),
+      confirmEnrollment: this.confirmSpeakerEnrollment.bind(this),
     });
   }
 
@@ -103,7 +98,7 @@ export class ProsodyClient {
     return parseAnalysisResult(raw);
   }
 
-  /** Analyze one recording into Bob’s Conversation (diarized turns + vocals). */
+  /** Analyze one recording into a diarized conversation with vocal measurements. */
   async analyzeConversation(
     audio: string | Buffer,
     options?: AnalysisOptions,

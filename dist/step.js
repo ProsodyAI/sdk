@@ -160,7 +160,7 @@ export class AcousticWindow {
     getChange() {
         return this.change?.values ?? null;
     }
-    /** Bob-facing bundle of gated vocal measurements for this step. */
+    /** Developer-facing bundle of gated vocal measurements for this window. */
     getVocalFeatures() {
         const values = this.state?.values;
         if (!values)
