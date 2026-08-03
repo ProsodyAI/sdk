@@ -1,5 +1,8 @@
-import type { AgentSteeringEvent, DirectiveEvent, InsightsUpdateEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
-export declare const PROSODY_EVENT_TOPIC = "prosodyai.events";
+import type { AgentSteeringEvent, DirectiveEvent, InsightsUpdateEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerClusterUpdateEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
+import { AcousticWindow } from './step.js';
+import type { Conversation } from './conversation.js';
+/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+export declare const PROSODY_EVENT_TOPIC = "prosody.events.v1";
 export interface LiveKitParticipantLike {
     identity?: string;
 }
@@ -17,7 +20,16 @@ export interface ProsodySessionOptions {
     topic?: string;
     participantIdentity?: string;
     onDirective?: (event: DirectiveEvent) => void;
+    /** Physical measurements and speaker-relative deltas for each directive. */
+    onAcousticWindow?: (window: AcousticWindow) => void;
+    /** @deprecated Use onAcousticWindow. */
+    onRecurrentStep?: (step: AcousticWindow) => void;
+    /** Fold B Conversation — diarized turns + vocal features. */
+    conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
+    onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
+    onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
+    onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
     onSteering?: (event: AgentSteeringEvent) => void;
     onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;

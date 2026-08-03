@@ -38,8 +38,15 @@ describe('parseProsodyEvent', () => {
       seq: 12,
       type: 'directive',
       prosody: { valence: -0.2, arousal: 0.8, dominance: 0.6 },
-      signals: { stress: 0.72, rapport: 0.31 },
-      sequence_signals: { interruption_risk: 0.88, turn_boundary_max: 0.7 },
+      affect_available: false,
+      valence: -0.2,
+      arousal: 0.8,
+      dominance: 0.6,
+      acoustic_state: {
+        values: { rms_dbfs: -32.5, f0_median_hz: 180.0, voiced_ratio: 0.6 },
+        masks: { f0_available: true },
+      },
+      acoustic_change: null,
       timings_ms: { mimi_encode: 9.1, prosody_inference: 4.3, chunk_total: 22.4 },
       text: 'I have already called twice.',
       frames_processed: 8,
@@ -81,18 +88,105 @@ describe('parseProsodyEvent', () => {
     if (event.type !== 'directive') throw new Error('unexpected event');
     expect(event.agent_modulation?.mode).toBe('caller_escalating');
     expect(event.timings_ms.chunk_total).toBe(22.4);
-    expect(event.sequence_signals.interruption_risk).toBe(0.88);
+    expect(event.acoustic_state?.values?.rms_dbfs).toBe(-32.5);
+    expect(event.affect_available).toBe(false);
   });
 
-  it('requires the generation and sequence envelope', () => {
-    expect(() => parseProsodyEvent({
+  it('accepts the current wire envelope without generation or sequence', () => {
+    const event = parseProsodyEvent({
       session_id: 'call-123',
       type: 'directive',
-    })).toThrow(/generation/);
+    });
+    expect(event.session_id).toBe('call-123');
   });
 });
 
 describe('ProsodySession', () => {
+  it('delivers diarizer updates and cluster merges', () => {
+    const room = new MockRoom();
+    const onSpeakerUpdate = vi.fn();
+    const onSpeakerClusterUpdate = vi.fn();
+    new ProsodySession(room, {
+      sessionId: 'call-123',
+      onSpeakerUpdate,
+      onSpeakerClusterUpdate,
+    }).start();
+
+    room.emit({
+      session_id: 'call-123',
+      generation: 1,
+      seq: 1,
+      type: 'speaker_update',
+      start_ms: 0,
+      end_ms: 1000,
+      speaker_id: 'speaker_1',
+      speaker_changed: true,
+      is_overlap: false,
+      num_speakers: 2,
+      speech_ratio: 0.92,
+      diarizer_confidence: 0.88,
+      is_agent: false,
+      speaker_merges: [],
+      merge_conflicts: [],
+    });
+    room.emit({
+      session_id: 'call-123',
+      generation: 1,
+      seq: 2,
+      type: 'speaker_cluster_update',
+      speaker_merges: [{
+        source_speaker_id: 'speaker_2',
+        target_speaker_id: 'speaker_1',
+        similarity: 0.94,
+      }],
+      merge_conflicts: [],
+    });
+
+    expect(onSpeakerUpdate).toHaveBeenCalledOnce();
+    expect(onSpeakerUpdate.mock.calls[0][0]).toMatchObject({
+      speaker_id: 'speaker_1',
+      diarizer_confidence: 0.88,
+    });
+    expect(onSpeakerClusterUpdate).toHaveBeenCalledOnce();
+    expect(onSpeakerClusterUpdate.mock.calls[0][0].speaker_merges[0]).toMatchObject({
+      source_speaker_id: 'speaker_2',
+      target_speaker_id: 'speaker_1',
+    });
+  });
+
+  it('delivers durable speaker identity updates', () => {
+    const room = new MockRoom();
+    const onSpeakerProfiles = vi.fn();
+    new ProsodySession(room, { sessionId: 'call-123', onSpeakerProfiles }).start();
+
+    room.emit({
+      session_id: 'call-123',
+      generation: 1,
+      seq: 1,
+      type: 'speaker_profiles',
+      timestamp_ms: 4_000,
+      profiles: [{
+        speaker_id: 'speaker_0',
+        talk_ms: 4_000,
+        window_count: 4,
+        turn_count: 2,
+        confidence: 0.96,
+        identity: {
+          person_id: 'person:jacob',
+          display_name: 'Jacob',
+          is_returning: true,
+          person_match_sim: 0.93,
+        },
+      }],
+    });
+
+    expect(onSpeakerProfiles).toHaveBeenCalledOnce();
+    expect(onSpeakerProfiles.mock.calls[0][0].profiles[0].identity).toMatchObject({
+      person_id: 'person:jacob',
+      is_returning: true,
+    });
+  });
+
   it('delivers transcript replacements and steering callbacks in sequence', () => {
     const room = new MockRoom();
     const onTranscriptUpdate = vi.fn();

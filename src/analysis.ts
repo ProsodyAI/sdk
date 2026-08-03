@@ -1,8 +1,32 @@
 import type {
   AcousticState,
   AnalysisResult,
+  AnalysisTurn,
+  DiarizedSpeaker,
   ProsodyTimelinePoint,
 } from './types.js';
+import {
+  AcousticWindow,
+  type AcousticDeltaName,
+  type AcousticFeatureName,
+  type AffectVad,
+  type PitchReading,
+} from './step.js';
+
+export interface AcousticFeaturePoint {
+  startMs: number;
+  endMs: number;
+  speakerId: string;
+  value: number;
+}
+
+export interface AcousticDeltaPoint {
+  startMs: number;
+  endMs: number;
+  speakerId: string;
+  reference: string | null;
+  values: Partial<Record<AcousticDeltaName, number>>;
+}
 
 /**
  * Validate the stable batch envelope.
@@ -44,6 +68,181 @@ export function parseAnalysisResult(value: unknown): AnalysisResult {
 }
 
 /**
+ * Consumer view of one analyzed recording.
+ *
+ * Accessors over the measured acoustic timeline, transcript, and recording-local
+ * diarizer lanes. Durable identity lives under `client.organization.speakers`.
+ */
+export class ConversationAnalysis {
+  private readonly result: AnalysisResult;
+
+  constructor(data: AnalysisResult) {
+    this.result = data;
+  }
+
+  getTranscript(): string {
+    return this.result.text;
+  }
+
+  getTurns(): AnalysisTurn[] {
+    return [...(this.result.turns ?? [])];
+  }
+
+  getTurn(index: number): AnalysisTurn | null {
+    if (!Number.isInteger(index) || index < 0) return null;
+    return this.result.turns?.[index] ?? null;
+  }
+
+  getSpeakers(): DiarizedSpeaker[] {
+    return recordingSpeakers(this.result);
+  }
+
+  /** Measured windows produced from Mimi-latent recurrent analysis. */
+  getAcoustics(speakerId?: string): AcousticWindow[] {
+    const affectAvailable = this.result.affect_available === true;
+    return acousticWindows(this.result)
+      .filter((point) => speakerId === undefined || point.speaker_id === speakerId)
+      .map((point) => AcousticWindow.fromTimelinePoint(point, { affectAvailable }));
+  }
+
+  getAcousticWindow(index: number): AcousticWindow | null {
+    const windows = this.getAcoustics();
+    if (!Number.isInteger(index) || index < 0 || index >= windows.length) return null;
+    return windows[index] ?? null;
+  }
+
+  /** One physical measurement across the recording, optionally for one speaker. */
+  getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[] {
+    return this.getAcoustics(speakerId).flatMap((window) => {
+      const value = window.getFeature(name);
+      return value === null ? [] : [{
+        startMs: window.startMs,
+        endMs: window.endMs,
+        speakerId: window.speakerId,
+        value,
+      }];
+    });
+  }
+
+  /** Speaker-relative changes. The first window in each speaker lane has none. */
+  getDeltas(speakerId?: string): AcousticDeltaPoint[] {
+    return this.getAcoustics(speakerId).flatMap((window) => {
+      const change = window.getAcousticChange();
+      if (!change?.values) return [];
+      const values: Partial<Record<AcousticDeltaName, number>> = {};
+      for (const [name, value] of Object.entries(change.values)) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          values[name as AcousticDeltaName] = value;
+        }
+      }
+      return [{
+        startMs: window.startMs,
+        endMs: window.endMs,
+        speakerId: window.speakerId,
+        reference: change.reference ?? null,
+        values,
+      }];
+    });
+  }
+
+  /** Vocal features on the latest (or indexed) acoustic window. */
+  getVocalFeatures(windowIndex?: number): ReturnType<AcousticWindow['getVocalFeatures']> {
+    if (windowIndex === undefined) {
+      const windows = this.getAcoustics();
+      return windows[windows.length - 1]?.getVocalFeatures() ?? null;
+    }
+    return this.getAcousticWindow(windowIndex)?.getVocalFeatures() ?? null;
+  }
+
+  /** Pitch series across windows, skipping unvoiced measurements. */
+  getPitch(speakerId?: string): AcousticFeaturePoint[] {
+    return this.getFeatureSeries('f0_median_hz', speakerId);
+  }
+
+  getPitchAt(windowIndex: number): PitchReading | null {
+    return this.getAcousticWindow(windowIndex)?.getPitch() ?? null;
+  }
+
+  /**
+   * Affect VAD for the whole file when the checkpoint publishes it.
+   * Null when `affect_available` is false.
+   */
+  getVad(): AffectVad | null {
+    if (this.result.affect_available !== true) return null;
+    return {
+      valence: this.result.prosody.valence,
+      arousal: this.result.prosody.arousal,
+      dominance: this.result.prosody.dominance,
+    };
+  }
+
+  getValence(turnIndex?: number): number | null {
+    if (this.result.affect_available !== true) return null;
+    if (turnIndex === undefined) return finiteOrNull(this.result.prosody.valence);
+    return finiteOrNull(this.getTurn(turnIndex)?.prosody?.valence);
+  }
+
+  /** Raw API timeline for consumers that need the wire shape. */
+  getTimeline(): ProsodyTimelinePoint[] {
+    return [...(this.result.prosody_timeline ?? [])];
+  }
+
+  /** @deprecated Use getAcoustics(). */
+  getRecurrentSteps(): AcousticWindow[] {
+    return this.getAcoustics();
+  }
+
+  /** @deprecated Use getAcousticWindow(). */
+  getRecurrentStep(index: number): AcousticWindow | null {
+    return this.getAcousticWindow(index);
+  }
+}
+
+function recordingSpeakers(result: AnalysisResult): DiarizedSpeaker[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  const turnCounts = new Map<string, number>();
+  const turnDurations = new Map<string, number>();
+  const windowCounts = new Map<string, number>();
+  const add = (speakerId: string | undefined): void => {
+    if (speakerId && !seen.has(speakerId)) {
+      seen.add(speakerId);
+      ids.push(speakerId);
+    }
+  };
+
+  for (const turn of result.turns ?? []) {
+    add(turn.speaker_id);
+    turnCounts.set(turn.speaker_id, (turnCounts.get(turn.speaker_id) ?? 0) + 1);
+    turnDurations.set(
+      turn.speaker_id,
+      (turnDurations.get(turn.speaker_id) ?? 0) + Math.max(0, turn.end_ms - turn.start_ms),
+    );
+  }
+  for (const speaker of result.per_speaker ?? []) add(speaker.speaker_id);
+  for (const speakerId of result.diarization?.speakers ?? []) add(speakerId);
+  for (const point of result.prosody_timeline ?? []) {
+    add(point.speaker_id);
+    if (point.speaker_id) {
+      windowCounts.set(point.speaker_id, (windowCounts.get(point.speaker_id) ?? 0) + 1);
+    }
+  }
+
+  const summaries = new Map(
+    (result.per_speaker ?? []).map((speaker) => [speaker.speaker_id, speaker]),
+  );
+  return ids.map((speakerId) => {
+    const summary = summaries.get(speakerId);
+    return {
+      speaker_id: speakerId,
+      talk_ms: summary?.talk_ms ?? turnDurations.get(speakerId) ?? 0,
+      turn_count: turnCounts.get(speakerId) ?? 0,
+      window_count: summary?.window_count ?? windowCounts.get(speakerId) ?? 0,
+    };
+  });
+}
+
+/**
  * The measured windows of a call, in order.
  *
  * Empty when the upload was not diarized (`diarize: false`), since the timeline
@@ -78,4 +277,8 @@ export function acousticSeries(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function finiteOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

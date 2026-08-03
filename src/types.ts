@@ -95,16 +95,16 @@ export interface AcousticState {
 
 /** Signed deltas against the reference window. Zero is a real reading. */
 export interface AcousticChangeValues {
-  rms_db_change?: number;
-  peak_db_change?: number;
-  f0_median_semitone_change?: number;
-  f0_range_semitone_change?: number;
-  f0_slope_semitones_per_second_change?: number;
-  spectral_tilt_db_per_octave_change?: number;
-  voiced_ratio_change?: number;
-  pause_ratio_change?: number;
-  voice_onset_rate_hz_change?: number;
-  [feature: string]: number | undefined;
+  rms_db_change?: number | null;
+  peak_db_change?: number | null;
+  f0_median_semitone_change?: number | null;
+  f0_range_semitone_change?: number | null;
+  f0_slope_semitones_per_second_change?: number | null;
+  spectral_tilt_db_per_octave_change?: number | null;
+  voiced_ratio_change?: number | null;
+  pause_ratio_change?: number | null;
+  voice_onset_rate_hz_change?: number | null;
+  [feature: string]: number | null | undefined;
 }
 
 /**
@@ -213,6 +213,108 @@ export interface PerSpeakerAnalysis {
   arousal: number;
   dominance: number;
   signals?: Record<string, number> | null;
+  /** Durable person identity resolved from the stored acoustic voice profile. */
+  identity?: SpeakerIdentity | null;
+}
+
+/**
+ * One recording-local diarizer lane. This consumer type deliberately carries
+ * no voiceprint, embedding, person ID, or cross-conversation identity.
+ */
+export interface DiarizedSpeaker {
+  speaker_id: string;
+  talk_ms: number;
+  turn_count: number;
+  window_count: number;
+}
+
+/**
+ * Identity resolved for one session-local speaker lane.
+ *
+ * `speaker_id` can change between calls. `person_id` is the tenant-scoped,
+ * durable identity that survives sessions and devices.
+ */
+export interface SpeakerIdentity {
+  person_id?: string | null;
+  display_name?: string | null;
+  is_returning?: boolean;
+  person_match_sim?: number | null;
+  /** In-session diarizer similarity, distinct from `person_match_sim`. */
+  match_sim?: number | null;
+  name_source?: string | null;
+}
+
+/** Rolling state for one speaker in the current conversation. */
+export interface SpeakerProfile {
+  speaker_id: string;
+  talk_ms: number;
+  window_count: number;
+  turn_count: number;
+  confidence: number;
+  identity?: SpeakerIdentity | null;
+  baseline?: Record<string, unknown> | null;
+  range?: Record<string, unknown> | null;
+  volatility?: Record<string, number> | null;
+  trajectory?: Record<string, unknown> | null;
+  delivery?: Record<string, number> | null;
+  change?: Record<string, number> | null;
+  contrast_pairs?: Array<Record<string, unknown>> | null;
+}
+
+export interface SpeakerDirectoryEntry {
+  person_id: string;
+  display_name?: string | null;
+  last_seen_at?: number | null;
+  last_session_id?: string | null;
+  memory_count: number;
+  enrollment_count?: number;
+  evidence_seconds?: number;
+  first_seen_at?: number | null;
+  session_count?: number;
+  turn_count?: number;
+  talk_ms?: number;
+  sample_text?: string | null;
+}
+
+export interface SpeakerDirectoryResult {
+  speakers: SpeakerDirectoryEntry[];
+  memory_total: number;
+  memory_enabled: boolean;
+  error?: string;
+}
+
+export interface VoiceEnrollmentSegment {
+  start_ms: number;
+  end_ms: number;
+  text: string;
+}
+
+export interface VoiceEnrollmentCluster {
+  speaker_id: string;
+  duration_ms: number;
+  segments: VoiceEnrollmentSegment[];
+}
+
+export interface VoiceEnrollmentPreview {
+  preview_sha256: string;
+  clusters: VoiceEnrollmentCluster[];
+  requires_explicit_mapping: boolean;
+}
+
+export interface VoiceEnrollmentMapping {
+  speaker_id: string;
+  display_name: string;
+  /** Set to add evidence to an existing person instead of creating one. */
+  person_id?: string;
+}
+
+export interface VoiceEnrollmentResult {
+  preview_sha256: string;
+  enrolled: Array<{
+    speaker_id: string;
+    person_id: string;
+    display_name: string;
+  }>;
 }
 
 export interface CallInsight {
@@ -413,6 +515,12 @@ export interface DiarizationSegment {
   score: number;
 }
 
+export interface SpeakerMerge {
+  source_speaker_id?: string | null;
+  target_speaker_id?: string | null;
+  similarity?: number | null;
+}
+
 export interface ProsodyEmbedding {
   log_mel_means?: number[];
   mel_contour?: number[];
@@ -429,6 +537,9 @@ export interface ProsodyEmbedding {
 export type ProsodyEventType =
   | 'directive'
   | 'transcript_update'
+  | 'speaker_update'
+  | 'speaker_cluster_update'
+  | 'speaker_profiles'
   | 'agent_steering'
   | 'insights_update'
   | 'session_end'
@@ -436,20 +547,45 @@ export type ProsodyEventType =
   | 'error';
 
 /**
- * Every LiveKit room event belongs to one session generation and has a
- * generation-local monotonic sequence number.
+ * Live analysis event. `generation` / `seq` are optional on the API wire; when
+ * a publisher includes them, clients may use them to drop stale packets.
  */
 export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
   session_id: string;
-  generation: number;
-  seq: number;
+  generation?: number;
+  seq?: number;
   type: T;
 }
 
+/** Media-plane mint response from `POST /v1/realtime/sessions`. */
+export interface RealtimeSessionCreateOptions {
+  participantName?: string;
+}
+
+export interface RealtimeSessionCredentials {
+  session_id: string;
+  room_name: string;
+  participant_identity: string;
+  server_url: string;
+  participant_token: string;
+  expires_at: string;
+  event_topic: string;
+  control_topic: string;
+}
+
+/** Matches api/models/stream_events.py Directive — the live product event. */
 export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
+  acoustic_state?: AcousticState | null;
+  acoustic_change?: AcousticChange | null;
+  /**
+   * False when the serving checkpoint publishes no human-gated affect.
+   * Do not treat valence/arousal/dominance as measurements when false.
+   */
+  affect_available?: boolean;
   prosody: Pick<ProsodyFeatures, 'valence' | 'arousal' | 'dominance'>;
-  signals: ProsodySignals;
-  sequence_signals: Record<string, number>;
+  valence: number;
+  arousal: number;
+  dominance: number;
   timings_ms: Record<string, number>;
   text: string;
   frames_processed: number;
@@ -461,8 +597,18 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
   speaker_activity_available: boolean;
   num_speakers: number;
   diar_segments: DiarizationSegment[];
+  diarizer_confidence?: number;
+  agent_similarity?: number | null;
+  is_agent?: boolean;
+  speaker_merges?: Array<{
+    source_speaker_id: string;
+    target_speaker_id: string;
+    similarity: number;
+  }>;
+  speaker_merge_conflicts?: Array<Record<string, unknown>>;
   phonemes: string[];
   ipa_transcript: string;
+  /** Contour dict for spectrogram UI — not the 256-d retrieval vector. */
   prosody_embedding: ProsodyEmbedding | null;
   forward_prediction: ForwardPrediction | null;
   kpi_predictions?: KPIPredictionResult[];
@@ -475,9 +621,9 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
   should_yield: boolean;
   is_steering: boolean;
   tts_speed: number;
-  valence?: number;
-  arousal?: number;
-  dominance?: number;
+  will_escalate?: number | null;
+  escalation_onset?: number | null;
+  recommended_tone?: string | null;
 }
 
 /**
@@ -503,6 +649,40 @@ export interface TranscriptUpdateEvent extends ProsodyEventEnvelope<'transcript_
   is_final: boolean;
   speech_final: boolean;
   segments: TranscriptUpdateSegment[];
+}
+
+/** Diarizer attribution for one live interval. */
+export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update'> {
+  start_ms: number;
+  end_ms: number;
+  speaker_id: string;
+  dominant_speaker_id?: string | null;
+  speaker_changed: boolean;
+  is_overlap: boolean;
+  num_speakers: number;
+  backend?: string | null;
+  speech_ratio: number;
+  diarizer_confidence: number;
+  agent_similarity?: number | null;
+  is_agent: boolean;
+  speaker_merges: SpeakerMerge[];
+  merge_conflicts: Array<Record<string, unknown>>;
+}
+
+/** Relabel prior speaker IDs after the diarizer merges two provisional clusters. */
+export interface SpeakerClusterUpdateEvent extends ProsodyEventEnvelope<'speaker_cluster_update'> {
+  speaker_merges: SpeakerMerge[];
+  merge_conflicts: Array<Record<string, unknown>>;
+}
+
+/**
+ * Rolling speaker lanes with cross-session identity attached.
+ * Emitted again as the model accumulates enough voice evidence to resolve a
+ * stored person.
+ */
+export interface SpeakerProfilesEvent extends ProsodyEventEnvelope<'speaker_profiles'> {
+  profiles: SpeakerProfile[];
+  timestamp_ms?: number | null;
 }
 
 export interface AgentSteeringEvent extends ProsodyEventEnvelope<'agent_steering'> {
@@ -562,6 +742,9 @@ export interface ServerErrorEvent extends ProsodyEventEnvelope<'error'> {
 export type ProsodyEvent =
   | DirectiveEvent
   | TranscriptUpdateEvent
+  | SpeakerUpdateEvent
+  | SpeakerClusterUpdateEvent
+  | SpeakerProfilesEvent
   | AgentSteeringEvent
   | InsightsUpdateEvent
   | SessionEndEvent

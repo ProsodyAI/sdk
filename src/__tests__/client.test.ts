@@ -96,6 +96,45 @@ describe('analyze', () => {
     expect(body.get('session_id')).toBe('sess-1');
     expect(body.get('diarize')).toBe('true');
   });
+
+  it('returns a request-scoped conversation product surface', async () => {
+    mockFetchOk({
+      ...mockResult,
+      affect_available: true,
+      turns: [{
+        start_ms: 0,
+        end_ms: 1_500,
+        speaker_id: 'speaker_0',
+        text: 'hello',
+        prosody: {
+          valence: 0.1,
+          arousal: 0.3,
+          dominance: 0.5,
+          confidence: 0.9,
+        },
+      }],
+      per_speaker: [{
+        speaker_id: 'speaker_0',
+        talk_ms: 1_500,
+        window_count: 1,
+        valence: 0.1,
+        arousal: 0.3,
+        dominance: 0.5,
+        identity: { person_id: 'not-part-of-the-consumer-view' },
+      }],
+    });
+    const client = new ProsodyClient('key');
+
+    const conversation = await client.conversations.analyze(Buffer.from('audio'));
+
+    expect(conversation.getTranscript()).toBe('hello');
+    expect(conversation.getTurn(0)?.speaker_id).toBe('speaker_0');
+    expect(conversation.getTurn(0)?.text).toBe('hello');
+    expect(conversation.getSpeakerProfile('speaker_0')?.talk_ms).toBe(1_500);
+    expect(conversation.getIdentity('speaker_0')?.person_id).toBe(
+      'not-part-of-the-consumer-view',
+    );
+  });
 });
 
 // ──────────────────────────── analyzeBase64 ─────────────────────────
@@ -111,6 +150,50 @@ describe('analyzeBase64', () => {
     expect(body.audio_base64).toBe('dGVzdA==');
     expect(body.session_id).toBe('sess-2');
     expect(body.vertical).toBeUndefined();
+  });
+});
+
+// ─────────────────────────── Speaker identity ──────────────────────
+
+describe('speaker identity', () => {
+  it('lists the tenant speaker directory', async () => {
+    const fetch = mockFetchOk({ speakers: [], memory_total: 0, memory_enabled: false });
+    const client = new ProsodyClient('key');
+    await client.listSpeakers(25);
+    expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=25');
+  });
+
+  it('keeps organization identity under its own namespace', async () => {
+    const fetch = mockFetchOk({ speakers: [], memory_total: 0, memory_enabled: false });
+    const client = new ProsodyClient('key');
+    await client.organization.speakers.list(10);
+    expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=10');
+  });
+
+  it('previews and confirms an operator-mapped enrollment', async () => {
+    const fetch = mockFetchOk({
+      preview_sha256: 'sha',
+      clusters: [{ speaker_id: 'speaker_0', duration_ms: 3000, segments: [] }],
+      requires_explicit_mapping: true,
+    });
+    const client = new ProsodyClient('key');
+    await client.previewSpeakerEnrollment(Buffer.from('audio'));
+    expect(fetch.mock.calls[0][0]).toBe(
+      'https://api.prosodyai.app/v1/voice/enrollments/preview',
+    );
+
+    await client.confirmSpeakerEnrollment(Buffer.from('audio'), 'sha', [{
+      speaker_id: 'speaker_0',
+      display_name: 'Jacob',
+    }]);
+    const [url, init] = fetch.mock.calls[1];
+    expect(url).toBe('https://api.prosodyai.app/v1/voice/enrollments/confirm');
+    const body = init.body as FormData;
+    expect(body.get('preview_sha256')).toBe('sha');
+    expect(JSON.parse(String(body.get('mapping_json')))).toEqual([{
+      speaker_id: 'speaker_0',
+      display_name: 'Jacob',
+    }]);
   });
 });
 

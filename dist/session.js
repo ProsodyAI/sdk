@@ -1,7 +1,12 @@
-export const PROSODY_EVENT_TOPIC = 'prosodyai.events';
+import { AcousticWindow } from './step.js';
+/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+export const PROSODY_EVENT_TOPIC = 'prosody.events.v1';
 const PROSODY_EVENT_TYPES = new Set([
     'directive',
     'transcript_update',
+    'speaker_update',
+    'speaker_cluster_update',
+    'speaker_profiles',
     'agent_steering',
     'insights_update',
     'session_end',
@@ -20,10 +25,14 @@ export function parseProsodyEvent(input) {
     if (typeof sessionId !== 'string' || !sessionId) {
         throw new Error('Prosody event missing session_id');
     }
-    if (typeof generation !== 'number' || !Number.isInteger(generation) || generation < 0) {
+    // generation/seq are optional on the API wire today; when present they must
+    // be non-negative integers so clients can drop stale LiveKit republishes.
+    if (generation !== undefined
+        && (typeof generation !== 'number' || !Number.isInteger(generation) || generation < 0)) {
         throw new Error('Prosody event generation must be a non-negative integer');
     }
-    if (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0) {
+    if (seq !== undefined
+        && (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0)) {
         throw new Error('Prosody event seq must be a non-negative integer');
     }
     if (typeof type !== 'string' || !PROSODY_EVENT_TYPES.has(type)) {
@@ -84,6 +93,10 @@ export class ProsodySession {
         }
     };
     acceptSequence(event) {
+        // API wire may omit ordering fields; accept in arrival order.
+        if (event.generation === undefined || event.seq === undefined) {
+            return true;
+        }
         if (this.currentGeneration !== null
             && event.generation < this.currentGeneration) {
             return false;
@@ -99,11 +112,27 @@ export class ProsodySession {
     }
     dispatch(event) {
         switch (event.type) {
-            case 'directive':
+            case 'directive': {
                 this.options.onDirective?.(event);
+                const window = AcousticWindow.fromDirective(event);
+                this.options.onAcousticWindow?.(window);
+                this.options.onRecurrentStep?.(window);
+                this.options.conversation?.apply(event);
                 break;
+            }
             case 'transcript_update':
                 this.options.onTranscriptUpdate?.(event);
+                this.options.conversation?.apply(event);
+                break;
+            case 'speaker_update':
+                this.options.onSpeakerUpdate?.(event);
+                break;
+            case 'speaker_cluster_update':
+                this.options.onSpeakerClusterUpdate?.(event);
+                break;
+            case 'speaker_profiles':
+                this.options.onSpeakerProfiles?.(event);
+                this.options.conversation?.apply(event);
                 break;
             case 'agent_steering':
                 this.options.onSteering?.(event);

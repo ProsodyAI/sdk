@@ -20,6 +20,16 @@ export type {
   ProsodyTimelinePoint,
   ProsodySummary,
   PerSpeakerAnalysis,
+  DiarizedSpeaker,
+  SpeakerIdentity,
+  SpeakerProfile,
+  SpeakerDirectoryEntry,
+  SpeakerDirectoryResult,
+  VoiceEnrollmentSegment,
+  VoiceEnrollmentCluster,
+  VoiceEnrollmentPreview,
+  VoiceEnrollmentMapping,
+  VoiceEnrollmentResult,
   CallInsight,
   AnalysisAlert,
   RecommendedAction,
@@ -40,12 +50,16 @@ export type {
   AgentModulation,
   ForwardPrediction,
   DiarizationSegment,
+  SpeakerMerge,
   ProsodyEmbedding,
   ProsodyEventType,
   ProsodyEventEnvelope,
   DirectiveEvent,
   TranscriptUpdateSegment,
   TranscriptUpdateEvent,
+  SpeakerUpdateEvent,
+  SpeakerClusterUpdateEvent,
+  SpeakerProfilesEvent,
   AgentSteeringEvent,
   InsightsUpdateEvent,
   SessionDiagnostic,
@@ -72,13 +86,53 @@ export {
   ConnectionError,
 } from './errors.js';
 
-export { parseAnalysisResult, acousticWindows, acousticSeries } from './analysis.js';
+export {
+  parseAnalysisResult,
+  ConversationAnalysis,
+  type AcousticFeaturePoint,
+  type AcousticDeltaPoint,
+  acousticWindows,
+  acousticSeries,
+} from './analysis.js';
+export {
+  AcousticWindow,
+  RecurrentStep,
+  type AcousticFeatureName,
+  type AcousticDeltaName,
+  type AcousticFrameName,
+  type AcousticFramePoint,
+  type AffectVad,
+  type PitchReading,
+  type LevelReading,
+  type VoicingReading,
+} from './step.js';
+export {
+  Conversation,
+  vocalFeaturesFromWindow,
+  vocalFeaturesFromState,
+  mergeTranscriptUpdateSegments,
+  buildTurnsFromSegments,
+  type ConversationTurn,
+  type VocalFeatures,
+} from './conversation.js';
 export { ProsodyClient } from './client.js';
 export {
   PROSODY_EVENT_TOPIC,
   ProsodySession,
   parseProsodyEvent,
 } from './session.js';
+export {
+  ProsodyRealtimeStream,
+  realtimeWsUrl,
+  type ProsodyRealtimeConfig,
+  type ProsodyRealtimeHandlers,
+  type RealtimeEncoding,
+} from './realtime.js';
 export { createWavBuffer } from './wav.js';
+
+export type {
+  RealtimeSessionCreateOptions,
+  RealtimeSessionCredentials,
+} from './types.js';
 
 export { ProsodyClient as default } from './client.js';

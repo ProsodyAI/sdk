@@ -1,6 +1,8 @@
 # @prosodyai/sdk
 
-TypeScript client for ProsodyAI batch analysis and LiveKit room events.
+TypeScript SDK for ProsodyAI. The product object for integrators is
+**`Conversation`**: diarized transcript turns plus gated vocal features, live
+and batch.
 
 ## Install
 
@@ -8,88 +10,88 @@ TypeScript client for ProsodyAI batch analysis and LiveKit room events.
 npm install @prosodyai/sdk
 ```
 
-The package is public. Bring your own compatible `livekit-client` version when
-receiving live session events.
+## Analyze a recording
 
-## Batch analysis
+Every request requires a `psk_*` API key.
 
 ```typescript
 import { ProsodyClient } from '@prosodyai/sdk';
 
-const client = new ProsodyClient({
-  apiKey: process.env.PROSODYAI_API_KEY!,
+const prosody = new ProsodyClient({
+  apiKey: process.env.PROSODY_API_KEY!,
 });
 
-const result = await client.analyze('./interview.wav');
-console.log(result.prosody.valence, result.prosody.arousal);
-console.log(result.prosody_summary, result.sequence_signals);
-for (const turn of result.turns ?? []) {
-  console.log(turn.speaker_id, turn.text, turn.prosody);
+const conversation = await prosody.conversations.analyze('./call.wav');
+
+console.log(conversation.getTranscript());
+
+for (const turn of conversation.getTurns()) {
+  console.log(turn.speaker_id, turn.text, turn.vocal?.f0_median_hz);
 }
+
+console.log(conversation.getVocalFeatures()); // latest window
+console.log(conversation.getSpeakerProfile('speaker_0')?.identity?.person_id);
 ```
 
-`AnalysisResult` mirrors `POST /v1/analyze/audio`, including
-`prosody_summary`, `per_speaker`, `sequence_signals`, `call_insights`, and
-`timings_ms`.
+Diarization is on by default. `speaker_id` is local to the recording;
+`person_id` comes from the organization speaker directory when known.
 
-## LiveKit room sessions
+## Live conversation
 
-ProsodyAI analyzes room audio through its LiveKit participant/sidecar. The SDK
-does not open a second audio WebSocket. It listens for reliable data packets on
-the `prosodyai.events` topic.
+Feed wire events into the same object:
 
 ```typescript
-import { Room } from 'livekit-client';
-import { ProsodySession } from '@prosodyai/sdk';
+import { Conversation, ProsodyRealtimeStream } from '@prosodyai/sdk';
 
-const room = new Room();
-await room.connect(livekitUrl, participantToken);
-
-const prosody = new ProsodySession(room, {
-  sessionId: 'call-123', // shared with the ProsodyAI room participant
-  onDirective: (event) => {
-    console.log(event.prosody, event.agent_modulation);
-  },
-  onTranscriptUpdate: (event) => {
-    // Replace the previous interim segments with the same result_id.
-    console.log(event.result_id, event.is_final, event.segments);
-  },
-  onSteering: (event) => {
-    agent.updateInstructions(event.system_prompt);
-  },
-  onSessionEnd: (event) => {
-    console.log(event.call_insights, event.per_speaker);
-  },
-  onError: console.error,
-}).start();
-
-// Detach the data listener when the room/session UI is disposed.
-prosody.stop();
+const conversation = new Conversation();
+const stream = new ProsodyRealtimeStream(
+  { apiKey: process.env.PROSODY_API_KEY! },
+  { conversation },
+);
+await stream.connect();
+// stream.sendAudio(pcm16Chunk)
+// conversation.getTurns() / getVocalFeatures() update as events arrive
 ```
 
-Every event uses the ordered envelope:
+LiveKit rooms use `ProsodySession` the same way — pass `{ conversation }`.
 
-```json
-{
-  "session_id": "call-123",
-  "generation": 1,
-  "seq": 42,
-  "type": "directive"
+## Acoustic windows
+
+```typescript
+for (const window of conversation.getAcoustics()) {
+  console.log({
+    speaker: window.getSpeakerId(),
+    level: window.getFeature('rms_dbfs'),
+    pitch: window.getFeature('f0_median_hz'),
+    voicing: window.getFeature('voiced_ratio'),
+    levelDelta: window.getDelta('rms_db_change'),
+  });
 }
 ```
 
-`ProsodySession` ignores duplicate/out-of-order sequence numbers and stale
-generations. A higher generation starts a new sequence for the same session.
-The event union includes `directive`, `transcript_update`, `agent_steering`,
-`insights_update`, `session_end`, `warning`, and `error`.
+Measurements come from gated heads over Mimi latents. Pitch fields are `null`
+when the window is unvoiced. Raw latents, recurrent state, and voiceprint
+vectors are not returned.
 
-## Authentication
+## Organization speaker identity
 
-- Batch REST uses `X-API-Key` from `ProsodyClient`.
-- LiveKit room authentication and ProsodyAI participant dispatch are configured
-  by your server; API keys should not be sent through room data packets.
-- The default REST origin is `https://api.prosodyai.app`.
+```typescript
+const directory = await prosody.organization.speakers.list();
+const preview = await prosody.organization.speakers.previewEnrollment('./enroll.wav');
+await prosody.organization.speakers.confirmEnrollment(
+  './enroll.wav',
+  preview.preview_sha256,
+  preview.clusters.map((cluster) => ({
+    speaker_id: cluster.speaker_id,
+    display_name: nameFor(cluster),
+  })),
+);
+```
 
-## Docs
+## Raw API response
 
-[prosodyai.app/docs](https://prosodyai.app/docs) · [Quickstart](https://prosodyai.app/docs/quickstart)
+```typescript
+const result = await prosody.analyze('./call.wav', { diarize: true });
+```
+
+Default origin: `https://api.prosodyai.app`. Auth header: `X-API-Key`.

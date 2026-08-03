@@ -6,15 +6,24 @@ import type {
   ProsodyEventType,
   ServerErrorEvent,
   SessionEndEvent,
+  SpeakerClusterUpdateEvent,
+  SpeakerProfilesEvent,
+  SpeakerUpdateEvent,
   TranscriptUpdateEvent,
   WarningEvent,
 } from './types.js';
+import { AcousticWindow } from './step.js';
+import type { Conversation } from './conversation.js';
 
-export const PROSODY_EVENT_TOPIC = 'prosodyai.events';
+/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+export const PROSODY_EVENT_TOPIC = 'prosody.events.v1';
 
 const PROSODY_EVENT_TYPES: ReadonlySet<ProsodyEventType> = new Set([
   'directive',
   'transcript_update',
+  'speaker_update',
+  'speaker_cluster_update',
+  'speaker_profiles',
   'agent_steering',
   'insights_update',
   'session_end',
@@ -47,7 +56,16 @@ export interface ProsodySessionOptions {
   topic?: string;
   participantIdentity?: string;
   onDirective?: (event: DirectiveEvent) => void;
+  /** Physical measurements and speaker-relative deltas for each directive. */
+  onAcousticWindow?: (window: AcousticWindow) => void;
+  /** @deprecated Use onAcousticWindow. */
+  onRecurrentStep?: (step: AcousticWindow) => void;
+  /** Fold B Conversation — diarized turns + vocal features. */
+  conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
+  onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
+  onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
+  onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
   onSteering?: (event: AgentSteeringEvent) => void;
   onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
   onSessionEnd?: (event: SessionEndEvent) => void;
@@ -73,10 +91,18 @@ export function parseProsodyEvent(input: EventInput): ProsodyEvent {
   if (typeof sessionId !== 'string' || !sessionId) {
     throw new Error('Prosody event missing session_id');
   }
-  if (typeof generation !== 'number' || !Number.isInteger(generation) || generation < 0) {
+  // generation/seq are optional on the API wire today; when present they must
+  // be non-negative integers so clients can drop stale LiveKit republishes.
+  if (
+    generation !== undefined
+    && (typeof generation !== 'number' || !Number.isInteger(generation) || generation < 0)
+  ) {
     throw new Error('Prosody event generation must be a non-negative integer');
   }
-  if (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0) {
+  if (
+    seq !== undefined
+    && (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0)
+  ) {
     throw new Error('Prosody event seq must be a non-negative integer');
   }
   if (typeof type !== 'string' || !PROSODY_EVENT_TYPES.has(type as ProsodyEventType)) {
@@ -150,6 +176,11 @@ export class ProsodySession {
   };
 
   private acceptSequence(event: ProsodyEvent): boolean {
+    // API wire may omit ordering fields; accept in arrival order.
+    if (event.generation === undefined || event.seq === undefined) {
+      return true;
+    }
+
     if (
       this.currentGeneration !== null
       && event.generation < this.currentGeneration
@@ -169,11 +200,27 @@ export class ProsodySession {
 
   private dispatch(event: ProsodyEvent): void {
     switch (event.type) {
-      case 'directive':
+      case 'directive': {
         this.options.onDirective?.(event);
+        const window = AcousticWindow.fromDirective(event);
+        this.options.onAcousticWindow?.(window);
+        this.options.onRecurrentStep?.(window);
+        this.options.conversation?.apply(event);
         break;
+      }
       case 'transcript_update':
         this.options.onTranscriptUpdate?.(event);
+        this.options.conversation?.apply(event);
+        break;
+      case 'speaker_update':
+        this.options.onSpeakerUpdate?.(event);
+        break;
+      case 'speaker_cluster_update':
+        this.options.onSpeakerClusterUpdate?.(event);
+        break;
+      case 'speaker_profiles':
+        this.options.onSpeakerProfiles?.(event);
+        this.options.conversation?.apply(event);
         break;
       case 'agent_steering':
         this.options.onSteering?.(event);
