@@ -11,7 +11,7 @@ const production = JSON.parse(
   ),
 ) as unknown;
 
-describe('Conversation (Fold B for Bob)', () => {
+describe('Conversation', () => {
   it('batch: diarized turns + getVocalFeatures', () => {
     const conversation = Conversation.fromAnalysis(parseAnalysisResult(production));
     const turns = conversation.getTurns();
@@ -23,6 +23,16 @@ describe('Conversation (Fold B for Bob)', () => {
       conversation.getAcoustics().at(-1)?.getPitchHz() ?? NaN,
       1,
     );
+    expect(conversation.getSpeakers()).toEqual([{
+      speaker_id: 'speaker_0',
+      talk_ms: 90_000,
+      turn_count: 1,
+      window_count: 18,
+    }]);
+    expect(conversation.getFeatureSeries('rms_dbfs')).toHaveLength(3);
+    expect(conversation.getFeatureSeries('f0_median_hz', 'speaker_0')).toHaveLength(3);
+    expect(conversation.getDeltas('speaker_0')).toHaveLength(2);
+    expect(conversation.getDeltas('speaker_0')[0].values.rms_db_change).toBeCloseTo(2.18, 1);
   });
 
   it('live: merges transcript_update into diarized turns like the demo', () => {

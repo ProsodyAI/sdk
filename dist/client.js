@@ -8,15 +8,15 @@ import { createWavBuffer } from './wav.js';
  * Organization data-plane client (`psk_*`).
  *
  * Public verbs map to authenticated Prosody API routes. Request-scoped
- * conversation analysis and organization-scoped speaker identity are exposed
- * as separate namespaces.
+ * conversation analysis and persistent speaker identity are exposed as
+ * separate developer resources. The API key owns tenant scope and access.
  */
 export class ProsodyClient {
     opts;
     apiKey;
     baseUrl;
     conversations;
-    organization;
+    speakers;
     constructor(config) {
         const resolved = resolveConfig(config);
         this.apiKey = resolved.apiKey;
@@ -25,12 +25,10 @@ export class ProsodyClient {
         this.conversations = Object.freeze({
             analyze: this.analyzeConversation.bind(this),
         });
-        this.organization = Object.freeze({
-            speakers: Object.freeze({
-                list: this.listSpeakers.bind(this),
-                previewEnrollment: this.previewSpeakerEnrollment.bind(this),
-                confirmEnrollment: this.confirmSpeakerEnrollment.bind(this),
-            }),
+        this.speakers = Object.freeze({
+            list: this.listSpeakers.bind(this),
+            previewEnrollment: this.previewSpeakerEnrollment.bind(this),
+            confirmEnrollment: this.confirmSpeakerEnrollment.bind(this),
         });
     }
     // ──────────────────────────── Analysis ────────────────────────────
@@ -58,7 +56,7 @@ export class ProsodyClient {
         const raw = await postForm('/v1/analyze/audio', this.opts, formData, signal);
         return parseAnalysisResult(raw);
     }
-    /** Analyze one recording into Bob’s Conversation (diarized turns + vocals). */
+    /** Analyze one recording into a diarized conversation with vocal measurements. */
     async analyzeConversation(audio, options, signal) {
         return Conversation.fromAnalysis(await this.analyze(audio, options, signal));
     }

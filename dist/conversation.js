@@ -1,32 +1,21 @@
-import { AcousticWindow } from './step.js';
-import { ConversationAnalysis } from './analysis.js';
+import { AcousticWindow, } from './step.js';
+import { ConversationAnalysis, } from './analysis.js';
 /**
- * Fold B product object for Bob: diarized turns + vocal features.
+ * Developer product object for diarized turns and vocal measurements.
  *
  * Live: feed Prosody wire events via `apply`. Batch: `Conversation.fromAnalysis`.
- * Logic mirrors the demo’s transcript merge / turn builder
- * (`website/.../session-utils.ts`) so Bob and the demo share one spine.
+ * Logic mirrors the demo transcript merge and turn builder so the SDK and demo
+ * share one conversation spine.
  */
 export class Conversation {
     segments = [];
     steps = [];
-    profiles = new Map();
     affectAvailable = false;
     batch = null;
     static fromAnalysis(result) {
         const conversation = new Conversation();
         conversation.batch = new ConversationAnalysis(result);
         conversation.affectAvailable = result.affect_available === true;
-        for (const row of result.per_speaker ?? []) {
-            conversation.profiles.set(row.speaker_id, {
-                speaker_id: row.speaker_id,
-                talk_ms: row.talk_ms,
-                window_count: row.window_count,
-                turn_count: 0,
-                confidence: 0,
-                identity: row.identity ?? null,
-            });
-        }
         return conversation;
     }
     /** Ingest one live Prosody event (`directive`, `transcript_update`, …). */
@@ -48,13 +37,6 @@ export class Conversation {
             this.segments = mergeTranscriptUpdateSegments(this.segments, update.segments ?? [], update.result_id ?? '', Boolean(update.is_final), Boolean(update.speech_final));
             return this;
         }
-        if (type === 'speaker_profiles') {
-            const profiles = event.profiles ?? [];
-            for (const profile of profiles) {
-                this.profiles.set(profile.speaker_id, profile);
-            }
-            return this;
-        }
         return this;
     }
     getTranscript() {
@@ -67,10 +49,7 @@ export class Conversation {
         if (this.batch) {
             return this.batch.getTurns().map((turn) => this.batchTurn(turn));
         }
-        return buildTurnsFromSegments(this.segments, this.steps).map((turn) => ({
-            ...turn,
-            person_id: this.profiles.get(turn.speaker_id)?.identity?.person_id ?? null,
-        }));
+        return buildTurnsFromSegments(this.segments, this.steps);
     }
     getTurn(index) {
         const turns = this.getTurns();
@@ -97,33 +76,85 @@ export class Conversation {
             return null;
         return vocalFeaturesFromState(last.acoustic_state, last.acoustic_change);
     }
-    getSpeakerProfiles() {
-        return [...this.profiles.values()];
-    }
-    getSpeakerProfile(speakerId) {
-        return this.getSpeakerProfiles().find((p) => p.speaker_id === speakerId) ?? null;
-    }
-    getIdentity(speakerId) {
-        return this.getSpeakerProfile(speakerId)?.identity ?? null;
-    }
-    /** All gated recurrent windows (batch timeline or live directives). */
-    getAcoustics() {
+    getSpeakers() {
         if (this.batch)
-            return this.batch.getAcoustics();
+            return this.batch.getSpeakers();
+        const turns = this.getTurns();
+        const windows = this.getAcoustics();
+        const ids = new Set();
+        for (const turn of turns)
+            if (isKnownSpeaker(turn.speaker_id))
+                ids.add(turn.speaker_id);
+        for (const window of windows)
+            if (isKnownSpeaker(window.speakerId))
+                ids.add(window.speakerId);
+        return [...ids].map((speakerId) => ({
+            speaker_id: speakerId,
+            talk_ms: turns
+                .filter((turn) => turn.speaker_id === speakerId)
+                .reduce((total, turn) => total + Math.max(0, turn.end_ms - turn.start_ms), 0),
+            turn_count: turns.filter((turn) => turn.speaker_id === speakerId).length,
+            window_count: windows.filter((window) => window.speakerId === speakerId).length,
+        }));
+    }
+    /** All measured windows, optionally limited to one recording-local speaker. */
+    getAcoustics(speakerId) {
+        if (this.batch)
+            return this.batch.getAcoustics(speakerId);
         return this.steps.map((step) => AcousticWindow.fromLiveStep({
             speakerId: step.speaker_id,
             timestampMs: step.timestamp_ms,
             acousticState: step.acoustic_state,
             acousticChange: step.acoustic_change,
             affectAvailable: this.affectAvailable,
-        }));
+        })).filter((window) => speakerId === undefined || window.speakerId === speakerId);
+    }
+    getAcousticWindow(index) {
+        const windows = this.getAcoustics();
+        if (!Number.isInteger(index) || index < 0 || index >= windows.length)
+            return null;
+        return windows[index] ?? null;
+    }
+    getFeatureSeries(name, speakerId) {
+        if (this.batch)
+            return this.batch.getFeatureSeries(name, speakerId);
+        return this.getAcoustics(speakerId).flatMap((window) => {
+            const value = window.getFeature(name);
+            return value === null ? [] : [{
+                    startMs: window.startMs,
+                    endMs: window.endMs,
+                    speakerId: window.speakerId,
+                    value,
+                }];
+        });
+    }
+    getDeltas(speakerId) {
+        if (this.batch)
+            return this.batch.getDeltas(speakerId);
+        return this.getAcoustics(speakerId).flatMap((window) => {
+            const change = window.getAcousticChange();
+            if (!change?.values)
+                return [];
+            const values = {};
+            for (const [name, value] of Object.entries(change.values)) {
+                if (typeof value === 'number' && Number.isFinite(value)) {
+                    values[name] = value;
+                }
+            }
+            return [{
+                    startMs: window.startMs,
+                    endMs: window.endMs,
+                    speakerId: window.speakerId,
+                    reference: change.reference ?? null,
+                    values,
+                }];
+        });
     }
     batchTurn(turn) {
         const state = turn.prosody?.acoustic_state ?? null;
         const change = turn.prosody?.acoustic_change ?? null;
         return {
             speaker_id: turn.speaker_id,
-            person_id: this.profiles.get(turn.speaker_id)?.identity?.person_id ?? null,
             start_ms: turn.start_ms,
             end_ms: turn.end_ms,
             text: turn.text,
