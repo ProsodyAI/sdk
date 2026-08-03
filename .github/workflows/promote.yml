@@ -1,0 +1,129 @@
+name: Promote green SDK
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+permissions: {}
+
+jobs:
+  promote-dev:
+    name: Promote dev to main
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'dev'
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Create or update the promotion pull request
+        env:
+          GH_TOKEN: ${{ secrets.PROSODYAI_RELEASE_TOKEN }}
+          GREEN_SHA: ${{ github.event.workflow_run.head_sha }}
+          GREEN_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::notice title=Promotion skipped::PROSODYAI_RELEASE_TOKEN is not configured. Open the dev to main pull request manually."
+            exit 0
+          fi
+
+          current_dev_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/dev" --jq '.object.sha')"
+          if [[ "$current_dev_sha" != "$GREEN_SHA" ]]; then
+            echo "::notice title=Stale green run::dev moved from ${GREEN_SHA} to ${current_dev_sha}; waiting for the newer CI run."
+            exit 0
+          fi
+
+          ahead_by="$(gh api "repos/${GITHUB_REPOSITORY}/compare/main...dev" --jq '.ahead_by')"
+          if [[ "$ahead_by" == "0" ]]; then
+            echo "::notice title=Nothing to promote::dev has no commits ahead of main."
+            exit 0
+          fi
+
+          title="Promote dev to main"
+          body="$(printf 'Automated promotion of the exact green dev commit `%s`.\n\nCI: %s' "$GREEN_SHA" "$GREEN_RUN_URL")"
+          pr_number="$(
+            gh api --method GET "repos/${GITHUB_REPOSITORY}/pulls" \
+              -f state=open \
+              -f head="${GITHUB_REPOSITORY_OWNER}:dev" \
+              -f base=main \
+              --jq '.[0].number // empty'
+          )"
+
+          final_dev_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/dev" --jq '.object.sha')"
+          if [[ "$final_dev_sha" != "$GREEN_SHA" ]]; then
+            echo "::notice title=Dev advanced during promotion::dev moved from ${GREEN_SHA} to ${final_dev_sha}; waiting for the newer CI run."
+            exit 0
+          fi
+
+          if [[ -z "$pr_number" ]]; then
+            pr_number="$(
+              gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls" \
+                -f title="$title" \
+                -f head=dev \
+                -f base=main \
+                -f body="$body" \
+                --jq '.number'
+            )"
+            echo "Created pull request #${pr_number}."
+          else
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/${pr_number}" \
+              -f title="$title" \
+              -f body="$body" \
+              >/dev/null
+            echo "Updated pull request #${pr_number}."
+          fi
+
+  notify-root:
+    name: Notify root repository
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Dispatch the exact green main SHA
+        env:
+          GH_TOKEN: ${{ secrets.PROSODYAI_ROOT_DISPATCH_TOKEN }}
+          SDK_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::notice title=Root dispatch skipped::PROSODYAI_ROOT_DISPATCH_TOKEN is not configured. The root repository's scheduled fallback will reconcile the SDK gitlink."
+            exit 0
+          fi
+
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg sha "$SDK_SHA" \
+            --arg run_id "$SOURCE_RUN_ID" \
+            --arg run_url "$SOURCE_RUN_URL" \
+            '{
+              event_type: "prosodyai_sdk_main_updated",
+              client_payload: {
+                repository: $repository,
+                ref: "refs/heads/main",
+                sha: $sha,
+                workflow_run_id: $run_id,
+                workflow_run_url: $run_url
+              }
+            }' \
+          | gh api --method POST \
+              "repos/ProsodyAI/prosodyai/dispatches" \
+              --input -
