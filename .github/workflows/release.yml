@@ -1,0 +1,126 @@
+name: Release SDK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to publish
+        required: true
+        type: string
+      publish:
+        description: Publish this tag to npm
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    if: >-
+      ${{
+        vars.NPM_PUBLISH_ENABLED == 'true' &&
+        (
+          github.event_name == 'push' ||
+          (inputs.publish == true && github.ref == 'refs/heads/main')
+        )
+      }}
+    runs-on: ubuntu-latest
+    environment: npm
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Use an npm release with trusted publishing support
+        run: npm install --global 'npm@^11.5.1'
+
+      - name: Validate the tag, package version, and main ancestry
+        run: |
+          set -euo pipefail
+
+          package_version="$(node -p "require('./package.json').version")"
+          expected_tag="v${package_version}"
+          if [[ "$RELEASE_TAG" != "$expected_tag" ]]; then
+            echo "::error title=Version mismatch::Tag ${RELEASE_TAG} must exactly match package version ${expected_tag}."
+            exit 1
+          fi
+
+          tag_sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+          head_sha="$(git rev-parse HEAD)"
+          if [[ "$tag_sha" != "$head_sha" ]]; then
+            echo "::error title=Wrong checkout::Tag ${RELEASE_TAG} resolves to ${tag_sha}, not ${head_sha}."
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$head_sha" origin/main; then
+            echo "::error title=Unmerged release::Tag ${RELEASE_TAG} is not on main."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify generated output
+        run: git diff --exit-code -- dist
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Verify package contents
+        run: npm pack --dry-run
+
+      - name: Refuse an existing package version
+        run: |
+          set -euo pipefail
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+            echo "::error title=Version already published::${package_name}@${package_version} already exists on npm."
+            exit 1
+          fi
+
+      - name: Require the published install path
+        run: |
+          set -euo pipefail
+          if grep -Fq 'The npm package is not published yet' README.md; then
+            echo "::error title=Stale installation docs::README.md still says the npm package is unpublished."
+            exit 1
+          fi
+          if ! grep -Fq 'npm install @prosodyai/sdk' README.md; then
+            echo "::error title=Missing installation docs::README.md must contain the public npm install command."
+            exit 1
+          fi
+
+      - name: Publish with provenance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
