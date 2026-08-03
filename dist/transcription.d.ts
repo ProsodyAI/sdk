@@ -89,16 +89,20 @@ export interface Prosody {
     change: ProsodyChange | null;
 }
 /**
- * A voice in one recording or session.
+ * One voice.
+ *
+ * `id` is the identifier the API minted for this voice — a UUID that is stable
+ * for the same voice across recordings and sessions in your organization.
+ * Everything else in the response keys off it: turns, acoustic windows,
+ * trajectories, deltas.
  *
  * Turns hold the same instance the result lists, so
- * `turn.speaker === transcription.speakers[0]` holds. Scope is the recording —
- * a `Speaker` is not a person across calls.
+ * `turn.speaker === transcription.speakers[0]` holds.
  */
 export declare class Speaker {
-    /** Wire id (`speaker_0`), for correlating with raw API payloads. */
+    /** Speaker UUID. Stable for this voice across sessions. */
     readonly id: string;
-    /** Display label (`Speaker 1`), or `Unknown speaker` when unattributed. */
+    /** Display label (`Speaker 1`), ordered by first appearance in this result. */
     readonly label: string;
     readonly talkMs: number;
     readonly turnCount: number;
@@ -141,7 +145,7 @@ export interface Transcription {
     text: string;
     turns: TranscribeTurn[];
     speakers: Speaker[];
-    /** Look up a speaker by wire id. */
+    /** Look up a speaker by id. */
     getSpeaker(id: string): Speaker | undefined;
     /** Turns belonging to one speaker. */
     turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];

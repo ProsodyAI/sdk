@@ -173,7 +173,7 @@ export interface Transcription {
   text: string;
   turns: TranscribeTurn[];
   speakers: Speaker[];
-  /** Look up a speaker by wire id. */
+  /** Look up a speaker by id. */
   getSpeaker(id: string): Speaker | undefined;
   /** Turns belonging to one speaker. */
   turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
@@ -182,8 +182,6 @@ export interface Transcription {
 
 function speakerLabel(id: string, index: number): string {
   if (id === 'unknown') return 'Unknown speaker';
-  const match = /^speaker_(\d+)$/.exec(id);
-  if (match) return `Speaker ${Number(match[1]) + 1}`;
   return index >= 0 ? `Speaker ${index + 1}` : id;
 }
 
@@ -268,7 +266,18 @@ export function transcriptionFromConversation(
   const includeProsody = options?.prosody !== false;
   const rawTurns = conversation.getTurns();
 
-  const speakers = conversation.getSpeakers().map((entry, index) => new Speaker({
+  // Labels number speakers by when they first talk, not by the order the
+  // roll-up happens to list them in.
+  const firstHeard = new Map<string, number>();
+  for (const turn of rawTurns) {
+    if (!firstHeard.has(turn.speaker_id)) firstHeard.set(turn.speaker_id, turn.start_ms);
+  }
+  const ordered = [...conversation.getSpeakers()].sort((a, b) => (
+    (firstHeard.get(a.speaker_id) ?? Number.MAX_SAFE_INTEGER)
+    - (firstHeard.get(b.speaker_id) ?? Number.MAX_SAFE_INTEGER)
+  ));
+
+  const speakers = ordered.map((entry, index) => new Speaker({
     id: entry.speaker_id,
     label: speakerLabel(entry.speaker_id, index),
     talkMs: entry.talk_ms,

@@ -1,14 +1,18 @@
 /**
- * A voice in one recording or session.
+ * One voice.
+ *
+ * `id` is the identifier the API minted for this voice — a UUID that is stable
+ * for the same voice across recordings and sessions in your organization.
+ * Everything else in the response keys off it: turns, acoustic windows,
+ * trajectories, deltas.
  *
  * Turns hold the same instance the result lists, so
- * `turn.speaker === transcription.speakers[0]` holds. Scope is the recording —
- * a `Speaker` is not a person across calls.
+ * `turn.speaker === transcription.speakers[0]` holds.
  */
 export class Speaker {
-    /** Wire id (`speaker_0`), for correlating with raw API payloads. */
+    /** Speaker UUID. Stable for this voice across sessions. */
     id;
-    /** Display label (`Speaker 1`), or `Unknown speaker` when unattributed. */
+    /** Display label (`Speaker 1`), ordered by first appearance in this result. */
     label;
     talkMs;
     turnCount;
@@ -44,9 +48,6 @@ export class Speaker {
 function speakerLabel(id, index) {
     if (id === 'unknown')
         return 'Unknown speaker';
-    const match = /^speaker_(\d+)$/.exec(id);
-    if (match)
-        return `Speaker ${Number(match[1]) + 1}`;
     return index >= 0 ? `Speaker ${index + 1}` : id;
 }
 function statOf(windows, name) {
@@ -124,7 +125,16 @@ export function prosodyFromVocalFeatures(vocal) {
 export function transcriptionFromConversation(conversation, options) {
     const includeProsody = options?.prosody !== false;
     const rawTurns = conversation.getTurns();
-    const speakers = conversation.getSpeakers().map((entry, index) => new Speaker({
+    // Labels number speakers by when they first talk, not by the order the
+    // roll-up happens to list them in.
+    const firstHeard = new Map();
+    for (const turn of rawTurns) {
+        if (!firstHeard.has(turn.speaker_id))
+            firstHeard.set(turn.speaker_id, turn.start_ms);
+    }
+    const ordered = [...conversation.getSpeakers()].sort((a, b) => ((firstHeard.get(a.speaker_id) ?? Number.MAX_SAFE_INTEGER)
+        - (firstHeard.get(b.speaker_id) ?? Number.MAX_SAFE_INTEGER)));
+    const speakers = ordered.map((entry, index) => new Speaker({
         id: entry.speaker_id,
         label: speakerLabel(entry.speaker_id, index),
         talkMs: entry.talk_ms,
