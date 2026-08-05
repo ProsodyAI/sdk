@@ -126,9 +126,11 @@ export class ProsodySession {
                 break;
             case 'speaker_update':
                 this.options.onSpeakerUpdate?.(event);
+                this.options.conversation?.apply(event);
                 break;
             case 'speaker_cluster_update':
                 this.options.onSpeakerClusterUpdate?.(event);
+                this.options.conversation?.apply(event);
                 break;
             case 'speaker_profiles':
                 this.options.onSpeakerProfiles?.(event);
@@ -142,6 +144,7 @@ export class ProsodySession {
                 break;
             case 'session_end':
                 this.options.onSessionEnd?.(event);
+                this.options.conversation?.apply(event);
                 break;
             case 'warning':
                 this.options.onWarning?.(event);

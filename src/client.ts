@@ -400,7 +400,10 @@ export class ProsodyClient {
     return postJSON<RealtimeSessionCredentials>(
       '/v1/realtime/sessions',
       this.opts,
-      { participant_name: options.participantName },
+      {
+        participant_name: options.participantName,
+        agent_voice: options.agentVoice,
+      },
       signal,
     );
   }

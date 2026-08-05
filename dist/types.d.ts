@@ -35,7 +35,7 @@ export interface ProsodySignals {
     expressiveness?: number;
     [signal: string]: number | undefined;
 }
-/** Why the serving checkpoint is allowed to publish a measurement head. */
+/** Provenance for an acoustic measurement. */
 export interface AcousticProvenance {
     kind?: string;
     feature_version?: string;
@@ -68,7 +68,7 @@ export interface AcousticStateMasks {
     spectral_tilt_available?: boolean;
     voiced_mask?: boolean[];
 }
-/** Per-Mimi-frame trajectory (12.5 Hz). Absent in the batch report. */
+/** Per-frame trajectory. Absent in the batch report. */
 export interface AcousticStateFrames {
     frame_rate_hz?: number;
     rms_dbfs?: number[];
@@ -331,8 +331,8 @@ export interface AnalysisResult {
     text: string;
     prosody: ProsodyFeatures;
     /**
-     * False when the serving checkpoint publishes no human-gated affect, which
-     * makes `prosody.valence/arousal/dominance` defaults rather than readings.
+     * False when affect is not available for this result, which makes
+     * `prosody.valence/arousal/dominance` defaults rather than readings.
      * The measurements are `acoustic_state` on `turns` and `prosody_timeline`.
      */
     affect_available?: boolean;
@@ -485,6 +485,8 @@ export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
 /** Media-plane mint response from `POST /v1/realtime/sessions`. */
 export interface RealtimeSessionCreateOptions {
     participantName?: string;
+    /** Worker path: moshi (Jarvis/Moshi, default) or voxcpm (targeted VoxCPM). */
+    agentVoice?: 'moshi' | 'voxcpm';
 }
 export interface RealtimeSessionCredentials {
     session_id: string;
@@ -501,7 +503,7 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
     /**
-     * False when the serving checkpoint publishes no human-gated affect.
+     * False when affect is not available for this session.
      * Do not treat valence/arousal/dominance as measurements when false.
      */
     affect_available?: boolean;
@@ -594,7 +596,7 @@ export interface SpeakerClusterUpdateEvent extends ProsodyEventEnvelope<'speaker
     merge_conflicts: Array<Record<string, unknown>>;
 }
 /**
- * Rolling speaker lanes with cross-session identity attached.
+ * Rolling speaker lanes with identity attached.
  * Emitted again as the model accumulates enough voice evidence to resolve a
  * stored person.
  */

@@ -89,10 +89,9 @@ export interface Prosody {
     change: ProsodyChange | null;
 }
 /**
- * One voice.
+ * One voice in this result.
  *
- * `id` is the identifier the API minted for this voice — a UUID that is stable
- * for the same voice across recordings and sessions in your organization.
+ * `id` is the identifier the API minted for this voice within this call.
  * Everything else in the response keys off it: turns, acoustic windows,
  * trajectories, deltas.
  *
@@ -100,7 +99,7 @@ export interface Prosody {
  * `turn.speaker === transcription.speakers[0]` holds.
  */
 export declare class Speaker {
-    /** Speaker UUID. Stable for this voice across sessions. */
+    /** Speaker id, stable within this call. */
     readonly id: string;
     /** Display label (`Speaker 1`), ordered by first appearance in this result. */
     readonly label: string;

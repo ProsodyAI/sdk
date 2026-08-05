@@ -1,86 +1,126 @@
 # @prosodyai/sdk
 
-TypeScript SDK shaped like a transcription client: `transcribe(audio, { prosody })`
-returns diarized turns with optional vocal measurement on each turn.
+TypeScript client for recorded transcription, realtime acoustic analysis, and
+LiveKit event delivery.
 
-Live uses `listen(...)` (same socket as `realtime`). Persistent speaker identity
-is a separate resource under `client.speakers`.
-
-## Install
+## Installation
 
 ```bash
-npm install github:ProsodyAI/sdk#main
+npm install @prosodyai/sdk
 ```
-
-You need a `psk_*` API key to use the client. Create one under **Organization →
-API keys** in the [dashboard](https://prosodyai.app/login), then:
 
 ```bash
 export PROSODY_API_KEY=psk_...
 ```
 
-## Transports
+Create organization keys at [prosodyai.app](https://prosodyai.app/login).
 
-| Path | What it is | Entry |
-| --- | --- | --- |
-| REST | Analyze a recording | `client.transcribe(audio, { prosody: true })` |
-| Realtime WebSocket | You send PCM/Opus to `WS /v1/stream/realtime` | `client.realtime.session()` |
-| LiveKit | WebRTC media; Prosody events on the room data topic | `client.livekit.createSession()` + `client.livekit.attach(room, …)` |
-
-LiveKit is **not** a Prosody WebSocket. Browser media goes through LiveKit;
-the analysis WebSocket is for workers (and the mic/file demo that pumps PCM
-directly). The Python `livekit-plugins-prosodyai` package bridges a LiveKit
-track into that WebSocket on the agent process.
-
-## Transcribe a recording
+## Recorded audio
 
 ```typescript
 import { ProsodyClient } from '@prosodyai/sdk';
 
-const client = new ProsodyClient({
+const prosody = new ProsodyClient({
   apiKey: process.env.PROSODY_API_KEY!,
 });
 
-const result = await client.transcribe('./call.wav', { prosody: true });
-
-console.log(result.text);
-console.log(result.speakers);
+const result = await prosody.transcribe('./call.wav');
 
 for (const turn of result.turns) {
-  console.log(turn.speaker, turn.text, turn.prosody?.f0_median_hz);
-}
-
-const conversation = result.conversation;
-console.log(conversation.getVocalFeatures());
-console.log(conversation.getFeatureSeries('f0_median_hz', 'speaker_0'));
-console.log(conversation.getDeltas('speaker_0'));
-```
-
-Diarization and `prosody` both default to true. Speakers are local to the recording.
-
-## Acoustic windows
-
-```typescript
-for (const window of conversation.getAcoustics()) {
   console.log({
-    speaker: window.getSpeakerId(),
-    level: window.getFeature('rms_dbfs'),
-    pitch: window.getFeature('f0_median_hz'),
-    voicing: window.getFeature('voiced_ratio'),
-    levelDelta: window.getDelta('rms_db_change'),
+    speakerId: turn.speaker.id,
+    speaker: turn.speaker.label,
+    startMs: turn.startMs,
+    endMs: turn.endMs,
+    text: turn.text,
+    pitchHz: turn.prosody?.pitchHz,
+    loudnessDbfs: turn.prosody?.loudnessDbfs,
+    loudnessChangeDb: turn.prosody?.change?.loudnessDb,
   });
 }
 ```
 
-Measurements come from gated heads over Mimi latents. Pitch fields are `null`
-when the window is unvoiced. Raw latents, recurrent state, and voiceprint
-vectors are not returned.
+`transcribe` accepts a local path, an HTTPS URL, or a Node.js `Buffer`.
+Diarization and prosody measurement are enabled by default.
 
-## Persistent speaker identity
+## Speaker
+
+```typescript
+const [speaker] = result.speakers;
+
+speaker.id;                          // stable within this call
+speaker.label;                       // display label ("Speaker 1")
+speaker.talkSeconds;
+speaker.voice.pitchHz?.median;
+speaker.voice.loudnessDbfs?.median;
+
+result.getSpeaker(speaker.id);
+result.turnsBySpeaker(speaker);
+```
+
+`speaker.id` is recording-local. Durable cross-session identity is a separate
+resource — see [Speaker directory](#speaker-directory-and-enrollment).
+
+## Realtime WebSocket
+
+```typescript
+const session = prosody.realtime.session({
+  encoding: 'pcm16',
+  sampleRate: 16_000,
+  onUpdate: (current) => render(current.snapshot()),
+});
+
+await session.start();
+session.send(pcmChunk);
+await session.stop();
+```
+
+Use `waitForFrame()` to pace file replay:
+
+```typescript
+for (const chunk of chunks) {
+  session.send(chunk);
+  await session.waitForFrame();
+}
+```
+
+## LiveKit
+
+```typescript
+// Trusted server
+const credentials = await prosody.livekit.createSession({
+  participantName: 'caller',
+});
+
+// Browser, after Room.connect(...)
+const session = prosody.livekit.attach(room, {
+  sessionId: credentials.session_id,
+  onAcousticWindow: (window) => render(window),
+});
+```
+
+LiveKit carries WebRTC media. Analysis events arrive on `prosody.events.v1`.
+
+## Low-level conversation data
+
+`result.conversation` exposes ordered acoustic windows, trajectories, and
+speaker-relative deltas:
+
+```typescript
+const windows = result.conversation.getAcoustics(speaker.id);
+const pitch = result.conversation.getFeatureSeries(
+  'f0_median_hz',
+  speaker.id,
+);
+const changes = result.conversation.getDeltas(speaker.id);
+```
+
+## Speaker directory and enrollment
 
 ```typescript
 const directory = await prosody.speakers.list();
 const preview = await prosody.speakers.previewEnrollment('./enroll.wav');
+
 await prosody.speakers.confirmEnrollment(
   './enroll.wav',
   preview.preview_sha256,
@@ -91,13 +131,15 @@ await prosody.speakers.confirmEnrollment(
 );
 ```
 
-The API key controls data scope and whether persistent identity is available.
-Raw speaker-profile vectors are not returned.
+Enrollment uses a preview-confirm transaction. Preview returns the detected
+lanes; confirm persists the supplied mappings. This is where durable,
+cross-session `person_id` identity comes from — distinct from the
+recording-local `speaker.id` on a `Transcription`.
 
-## Raw API response
+## Documentation
 
-```typescript
-const result = await prosody.analyze('./call.wav', { diarize: true });
-```
-
-Default origin: `https://api.prosodyai.app`. Auth header: `X-API-Key`.
+- [Quickstart](https://prosodyai.app/docs/quickstart)
+- [ProsodyClient](https://prosodyai.app/docs/reference)
+- [Speaker](https://prosodyai.app/docs/reference/speaker)
+- [Prosody](https://prosodyai.app/docs/reference/prosody)
+- [LiveSession](https://prosodyai.app/docs/reference/live-session)

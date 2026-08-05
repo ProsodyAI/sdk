@@ -239,7 +239,10 @@ export class ProsodyClient {
      * Server-side only — holds `psk_*`.
      */
     async createRealtimeSession(options = {}, signal) {
-        return postJSON('/v1/realtime/sessions', this.opts, { participant_name: options.participantName }, signal);
+        return postJSON('/v1/realtime/sessions', this.opts, {
+            participant_name: options.participantName,
+            agent_voice: options.agentVoice,
+        }, signal);
     }
     async health(signal) {
         return requestJSON('GET', '/health', this.opts, null, undefined, signal);

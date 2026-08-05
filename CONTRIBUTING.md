@@ -31,8 +31,7 @@ request manually.
 
 Publishing is separate from merging. To release:
 
-1. Update `package.json` to the intended version and change the README install
-   command from GitHub to `npm install @prosodyai/sdk`.
+1. Update `package.json` to the intended version.
 2. Merge those changes through `dev`.
 3. Create and push `v<package-version>` at that commit on `main`.
 4. Approve the `npm` environment deployment when the release workflow pauses.
