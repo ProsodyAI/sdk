@@ -1,14 +1,11 @@
 import { AcousticWindow } from './step.js';
-/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+/** Default LiveKit data topic matching API `livekit_event_topic`. */
 export const PROSODY_EVENT_TOPIC = 'prosody.events.v1';
 const PROSODY_EVENT_TYPES = new Set([
     'directive',
     'transcript_update',
     'speaker_update',
-    'speaker_cluster_update',
     'speaker_profiles',
-    'agent_steering',
-    'insights_update',
     'session_end',
     'warning',
     'error',
@@ -128,19 +125,9 @@ export class ProsodySession {
                 this.options.onSpeakerUpdate?.(event);
                 this.options.conversation?.apply(event);
                 break;
-            case 'speaker_cluster_update':
-                this.options.onSpeakerClusterUpdate?.(event);
-                this.options.conversation?.apply(event);
-                break;
             case 'speaker_profiles':
                 this.options.onSpeakerProfiles?.(event);
                 this.options.conversation?.apply(event);
-                break;
-            case 'agent_steering':
-                this.options.onSteering?.(event);
-                break;
-            case 'insights_update':
-                this.options.onInsightsUpdate?.(event);
                 break;
             case 'session_end':
                 this.options.onSessionEnd?.(event);

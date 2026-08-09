@@ -26,7 +26,7 @@ export type {
   SpeakerDirectoryEntry,
   SpeakerDirectoryResult,
   VoiceEnrollmentSegment,
-  VoiceEnrollmentCluster,
+  VoiceEnrollmentLane,
   VoiceEnrollmentPreview,
   VoiceEnrollmentMapping,
   VoiceEnrollmentResult,
@@ -46,10 +46,7 @@ export type {
   PCMOptions,
   ModulationMode,
   ModulationTts,
-  AgentModulation,
-  ForwardPrediction,
   DiarizationSegment,
-  SpeakerMerge,
   ProsodyEmbedding,
   ProsodyEventType,
   ProsodyEventEnvelope,
@@ -57,10 +54,7 @@ export type {
   TranscriptUpdateSegment,
   TranscriptUpdateEvent,
   SpeakerUpdateEvent,
-  SpeakerClusterUpdateEvent,
   SpeakerProfilesEvent,
-  AgentSteeringEvent,
-  InsightsUpdateEvent,
   SessionDiagnostic,
   SessionEndEvent,
   WarningEvent,
@@ -134,7 +128,6 @@ export {
 } from './transcription.js';
 export {
   applySpeakerUpdateToSegments,
-  speakerAfterMerges,
 } from './conversation.js';
 export {
   PROSODY_EVENT_TOPIC,

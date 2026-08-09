@@ -39,7 +39,6 @@
         "valence": 0.2769,
         "arousal": 0.5856,
         "dominance": 0.7178,
-        "confidence": 0.6307,
         "signals": null,
         "acoustic_state": {
           "values": {
@@ -53,8 +52,7 @@
             "pause_ratio": 0.05097,
             "clipping_ratio": 0.00096,
             "voice_onset_rate_hz": 0.66201,
-            "tempo_syllables_per_second": null,
-            "turn_boundary_probability": null
+            "tempo_syllables_per_second": null
           },
           "masks": {
             "f0_available": true,
@@ -170,8 +168,7 @@
           "pause_ratio": 0.05097,
           "clipping_ratio": 0.00096,
           "voice_onset_rate_hz": 0.66201,
-          "tempo_syllables_per_second": null,
-          "turn_boundary_probability": null
+          "tempo_syllables_per_second": null
         },
         "masks": {
           "f0_available": true,
@@ -270,8 +267,7 @@
           "pause_ratio": 0.0787,
           "clipping_ratio": 0.00091,
           "voice_onset_rate_hz": 0.63816,
-          "tempo_syllables_per_second": null,
-          "turn_boundary_probability": null
+          "tempo_syllables_per_second": null
         },
         "masks": {
           "f0_available": true,
@@ -388,8 +384,7 @@
           "pause_ratio": 0.11909,
           "clipping_ratio": 0.00103,
           "voice_onset_rate_hz": 0.76402,
-          "tempo_syllables_per_second": null,
-          "turn_boundary_probability": null
+          "tempo_syllables_per_second": null
         },
         "masks": {
           "f0_available": true,
@@ -559,8 +554,7 @@
         "valence": 0.3497,
         "arousal": 0.0335,
         "dominance": 0.0577
-      },
-      "confidence": 1.0
+      }
     }
   ]
 }

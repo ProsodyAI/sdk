@@ -28,9 +28,9 @@ export interface LiveSessionOptions {
 /**
  * Live analysis over the **Prosody WebSocket** (`WS /v1/stream/realtime`).
  *
- * This is not LiveKit and not WebRTC. You open a session, send PCM/Opus bytes,
- * and build a {@link Conversation} from wire events. Use
- * {@link ProsodyClient.livekit} when media rides a LiveKit room.
+ * Opens a direct API session, sends PCM or Opus bytes, and builds a
+ * {@link Conversation} from wire events. LiveKit media uses
+ * {@link ProsodyClient.livekit}.
  *
  * Apps (including the website demo) supply audio; this class owns start/stop,
  * frame pacing, and the conversation spine.
@@ -74,7 +74,7 @@ export declare class LiveSession {
     }): Promise<SessionEndEvent | null>;
     /** Immediate close without waiting for session_end. */
     close(): void;
-    /** Current turns with optional `prosody` — same shape as batch `transcribe`. */
+    /** Current turns with the same optional prosody shape as batch transcription. */
     snapshot(options?: TranscribeOptions): Transcription;
     private emitUpdate;
     private releaseFrameWaiters;

@@ -1,7 +1,7 @@
-import type { AgentSteeringEvent, DirectiveEvent, InsightsUpdateEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerClusterUpdateEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
+import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
 import { AcousticWindow } from './step.js';
 import type { Conversation } from './conversation.js';
-/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+/** Default LiveKit data topic matching API `livekit_event_topic`. */
 export declare const PROSODY_EVENT_TOPIC = "prosody.events.v1";
 export interface LiveKitParticipantLike {
     identity?: string;
@@ -28,10 +28,7 @@ export interface ProsodySessionOptions {
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
-    onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
     onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
-    onSteering?: (event: AgentSteeringEvent) => void;
-    onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;
     onWarning?: (event: WarningEvent) => void;
     onServerError?: (event: ServerErrorEvent) => void;

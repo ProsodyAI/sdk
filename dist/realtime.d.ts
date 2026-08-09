@@ -1,4 +1,4 @@
-import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerClusterUpdateEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent, AgentSteeringEvent, InsightsUpdateEvent } from './types.js';
+import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
 import { AcousticWindow } from './step.js';
 import type { Conversation } from './conversation.js';
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
@@ -29,10 +29,7 @@ export interface ProsodyRealtimeHandlers {
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
-    onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
     onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
-    onSteering?: (event: AgentSteeringEvent) => void;
-    onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;
     /** Fired on `frame_ack` (and after directives) for paced file replay. */
     onFrameAck?: (event: Record<string, unknown>) => void;
@@ -45,9 +42,9 @@ export interface ProsodyRealtimeHandlers {
 /**
  * Lower-level live analysis client for `WS /v1/stream/realtime`.
  *
- * Holds a developer `psk_*` key. Use it from a trusted server or Node worker,
- * not from an untrusted browser page. Browser LiveKit clients should mint a
- * room and consume republished events with `ProsodySession` instead.
+ * Trusted servers and Node workers supply a developer `psk_*` key. Browser
+ * LiveKit clients mint a room and consume republished events with
+ * `ProsodySession`.
  */
 export declare class ProsodyRealtimeStream {
     private readonly config;

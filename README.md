@@ -124,9 +124,9 @@ const preview = await prosody.speakers.previewEnrollment('./enroll.wav');
 await prosody.speakers.confirmEnrollment(
   './enroll.wav',
   preview.preview_sha256,
-  preview.clusters.map((cluster) => ({
-    speaker_id: cluster.speaker_id,
-    display_name: nameFor(cluster),
+  preview.lanes.map((lane) => ({
+    speaker_id: lane.speaker_id,
+    display_name: nameFor(lane),
   })),
 );
 ```

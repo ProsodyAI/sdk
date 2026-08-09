@@ -3,13 +3,10 @@ import type {
   ProsodyEvent,
   ServerErrorEvent,
   SessionEndEvent,
-  SpeakerClusterUpdateEvent,
   SpeakerProfilesEvent,
   SpeakerUpdateEvent,
   TranscriptUpdateEvent,
   WarningEvent,
-  AgentSteeringEvent,
-  InsightsUpdateEvent,
 } from './types.js';
 import { parseProsodyEvent } from './session.js';
 import { AcousticWindow } from './step.js';
@@ -45,10 +42,7 @@ export interface ProsodyRealtimeHandlers {
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
-  onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
   onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
-  onSteering?: (event: AgentSteeringEvent) => void;
-  onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
   onSessionEnd?: (event: SessionEndEvent) => void;
   /** Fired on `frame_ack` (and after directives) for paced file replay. */
   onFrameAck?: (event: Record<string, unknown>) => void;
@@ -62,9 +56,9 @@ export interface ProsodyRealtimeHandlers {
 /**
  * Lower-level live analysis client for `WS /v1/stream/realtime`.
  *
- * Holds a developer `psk_*` key. Use it from a trusted server or Node worker,
- * not from an untrusted browser page. Browser LiveKit clients should mint a
- * room and consume republished events with `ProsodySession` instead.
+ * Trusted servers and Node workers supply a developer `psk_*` key. Browser
+ * LiveKit clients mint a room and consume republished events with
+ * `ProsodySession`.
  */
 export class ProsodyRealtimeStream {
   private readonly config: ProsodyRealtimeConfig;
@@ -150,10 +144,7 @@ export class ProsodyRealtimeStream {
             || payload.type === 'directive'
             || payload.type === 'transcript_update'
             || payload.type === 'speaker_update'
-            || payload.type === 'speaker_cluster_update'
             || payload.type === 'speaker_profiles'
-            || payload.type === 'agent_steering'
-            || payload.type === 'insights_update'
             || payload.type === 'session_end'
           ) {
             // Wire events may omit generation/seq; parseProsodyEvent allows that.
@@ -260,19 +251,9 @@ export class ProsodyRealtimeStream {
         this.handlers.onSpeakerUpdate?.(event);
         this.handlers.conversation?.apply(event);
         break;
-      case 'speaker_cluster_update':
-        this.handlers.onSpeakerClusterUpdate?.(event);
-        this.handlers.conversation?.apply(event);
-        break;
       case 'speaker_profiles':
         this.handlers.onSpeakerProfiles?.(event);
         this.handlers.conversation?.apply(event);
-        break;
-      case 'agent_steering':
-        this.handlers.onSteering?.(event);
-        break;
-      case 'insights_update':
-        this.handlers.onInsightsUpdate?.(event);
         break;
       case 'session_end':
         this.handlers.onSessionEnd?.(event);

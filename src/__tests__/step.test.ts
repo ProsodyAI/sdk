@@ -98,22 +98,12 @@ describe('AcousticWindow consumer accessors', () => {
       text: '',
       frames_processed: 8,
       timings_ms: {},
-      is_overlap: false,
       speaker_changed: false,
-      speech_ratio: 1,
-      speaker_activity_available: true,
       num_speakers: 1,
       diar_segments: [],
       phonemes: [],
       ipa_transcript: '',
       prosody_embedding: null,
-      forward_prediction: null,
-      modulation_mode: 'normal',
-      is_escalating: false,
-      is_interrupting: false,
-      should_yield: false,
-      is_steering: false,
-      tts_speed: 1,
     } as DirectiveEvent;
 
     const window = AcousticWindow.fromDirective(directive);
@@ -141,12 +131,10 @@ describe('AcousticWindow consumer accessors', () => {
           f0_hz: [null, 180],
         },
       },
-      text: '', frames_processed: 2, timings_ms: {}, is_overlap: false,
-      speaker_changed: false, speech_ratio: 1, speaker_activity_available: true,
+      text: '', frames_processed: 2, timings_ms: {},
+      speaker_changed: false,
       num_speakers: 1, diar_segments: [], phonemes: [], ipa_transcript: '',
-      prosody_embedding: null, forward_prediction: null, modulation_mode: 'normal',
-      is_escalating: false, is_interrupting: false, should_yield: false,
-      is_steering: false, tts_speed: 1,
+      prosody_embedding: null,
     } as DirectiveEvent);
 
     expect(window.getFrameSeries('f0_hz')).toEqual([

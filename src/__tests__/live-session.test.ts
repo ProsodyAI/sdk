@@ -128,7 +128,6 @@ describe('LiveSession', () => {
           text: 'hello',
           segments: [],
           dominant_emotion: '',
-          avg_confidence: 1,
           avg_valence: 0,
           avg_arousal: 0,
           avg_dominance: 0,

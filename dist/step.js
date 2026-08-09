@@ -1,9 +1,8 @@
 /**
  * One gated ProsodySSM recurrent step, as a consumer sees it.
  *
- * Backed by live `directive` or a batch `prosody_timeline` window — not by
- * inventing fields. Raw Mimi latents and recurrent state tensors stay off this
- * object.
+ * Built from a live `directive` or batch `prosody_timeline` window. Raw Mimi
+ * latents and recurrent state tensors remain internal.
  */
 export class AcousticWindow {
     speakerId;
@@ -136,12 +135,12 @@ export class AcousticWindow {
     }
     getVoicing() {
         const values = this.state?.values;
-        const frames = this.state?.frames?.voiced_probability;
+        const mask = this.state?.masks?.voiced_mask;
         return {
             voicedRatio: finiteOrNull(values?.voiced_ratio),
             pauseRatio: finiteOrNull(values?.pause_ratio),
             onsetRateHz: finiteOrNull(values?.voice_onset_rate_hz),
-            frameVoicedProbability: Array.isArray(frames) ? [...frames] : null,
+            frameVoiced: Array.isArray(mask) ? [...mask] : null,
         };
     }
     getTilt() {
@@ -150,8 +149,7 @@ export class AcousticWindow {
         return finiteOrNull(this.state?.values?.spectral_tilt_db_per_octave);
     }
     /**
-     * Affect VAD only when the checkpoint says it is a measurement.
-     * Never treat defaults as product when `affectAvailable` is false.
+     * Return V/A/D when the checkpoint marks affect as a trained measurement.
      */
     getVad() {
         return this.affectAvailable ? this.affect : null;

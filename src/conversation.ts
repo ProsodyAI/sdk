@@ -7,8 +7,6 @@ import type {
   DirectiveEvent,
   ProsodyEvent,
   SessionEndEvent,
-  SpeakerClusterUpdateEvent,
-  SpeakerMerge,
   SpeakerUpdateEvent,
   TranscriptUpdateEvent,
   TranscriptUpdateSegment,
@@ -130,12 +128,6 @@ export class Conversation {
           speakerId,
         );
       }
-      this.applySpeakerMerges(update.speaker_merges);
-      return this;
-    }
-    if (type === 'speaker_cluster_update') {
-      const update = event as SpeakerClusterUpdateEvent;
-      this.applySpeakerMerges(update.speaker_merges);
       return this;
     }
     if (type === 'session_end') {
@@ -281,21 +273,6 @@ export class Conversation {
     });
   }
 
-  private applySpeakerMerges(rawMerges: SpeakerMerge[] | undefined | null): void {
-    const merges = (rawMerges ?? []).filter(
-      (item) => item?.source_speaker_id && item?.target_speaker_id,
-    );
-    if (!merges.length) return;
-    this.segments = this.segments.map((segment) => ({
-      ...segment,
-      speaker_id: speakerAfterMerges(segment.speaker_id, merges),
-    }));
-    this.steps = this.steps.map((step) => ({
-      ...step,
-      speaker_id: speakerAfterMerges(step.speaker_id, merges),
-    }));
-  }
-
   private batchTurn(turn: AnalysisTurn): ConversationTurn {
     const state = turn.prosody?.acoustic_state ?? null;
     const change = turn.prosody?.acoustic_change ?? null;
@@ -370,20 +347,6 @@ export function applySpeakerUpdateToSegments(
     return { ...segment, speaker_id: resolved };
   });
   return changed ? next : segments;
-}
-
-export function speakerAfterMerges(speakerId: string, merges: SpeakerMerge[]): string {
-  let current = normalizeSpeakerId(speakerId);
-  const seen = new Set<string>();
-  while (!seen.has(current)) {
-    seen.add(current);
-    const merge = merges.find(
-      (item) => normalizeSpeakerId(item.source_speaker_id) === current,
-    );
-    if (!merge?.target_speaker_id) break;
-    current = normalizeSpeakerId(merge.target_speaker_id);
-  }
-  return current;
 }
 
 /** Port of demo `mergeTranscriptUpdateSegments`. */
@@ -488,7 +451,7 @@ function resolveLiveSpeakers(
   return resolved;
 }
 
-/** Port of demo `buildTurnsFromSegments` — speaker_id owns cuts; attach vocal. */
+/** Build speaker-owned turns and attach overlapping vocal measurements. */
 export function buildTurnsFromSegments(
   segments: LiveSegment[],
   steps: StepAnchor[],

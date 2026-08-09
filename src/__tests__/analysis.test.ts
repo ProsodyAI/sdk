@@ -38,12 +38,11 @@ describe('parseAnalysisResult', () => {
           valence: 0.42,
           arousal: 0.36,
           dominance: 0.58,
-          confidence: 0.81,
           signals: { rapport: 0.82 },
         },
       }],
       diarization: {
-        model: 'ecapa-embedding-clustering',
+        model: 'prosody-speaker-tracker',
         num_speakers: 2,
         speakers: ['speaker_0', 'speaker_1'],
         turns: [],

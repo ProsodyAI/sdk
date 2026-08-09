@@ -41,10 +41,8 @@ export interface AcousticProvenance {
     feature_version?: string;
 }
 /**
- * What the waveform measured over one window. These are the trained heads:
- * physical quantities with units, not inferred labels. A value is `null` when
- * the window could not support it (e.g. `f0_median_hz` with no voiced frames);
- * check `masks` before reading.
+ * Trained physical measurements over one waveform window. A value is `null`
+ * when the window cannot support it. Check `masks` before reading.
  */
 export interface AcousticStateValues {
     rms_dbfs?: number | null;
@@ -58,7 +56,6 @@ export interface AcousticStateValues {
     clipping_ratio?: number | null;
     voice_onset_rate_hz?: number | null;
     tempo_syllables_per_second?: number | null;
-    turn_boundary_probability?: number | null;
     [feature: string]: number | null | undefined;
 }
 export interface AcousticStateMasks {
@@ -72,11 +69,9 @@ export interface AcousticStateMasks {
 export interface AcousticStateFrames {
     frame_rate_hz?: number;
     rms_dbfs?: number[];
-    /** `null` on unvoiced frames rather than a floor value. */
+    /** `null` on unvoiced frames. */
     f0_hz?: (number | null)[];
     spectral_tilt_db_per_octave?: (number | null)[];
-    voiced_probability?: number[];
-    voice_activity_boundary_probability?: number[];
 }
 export interface AcousticState {
     values?: AcousticStateValues;
@@ -98,8 +93,7 @@ export interface AcousticChangeValues {
     [feature: string]: number | null | undefined;
 }
 /**
- * How delivery moved against the same speaker's previous window, which is what
- * makes "louder" mean louder than that person rather than a population.
+ * Delivery movement against the same speaker's previous measured window.
  */
 export interface AcousticChange {
     values?: AcousticChangeValues;
@@ -111,7 +105,6 @@ export interface TurnProsody {
     valence: number;
     arousal: number;
     dominance: number;
-    confidence: number;
     signals?: ProsodySignals | Record<string, number> | null;
     /** The trained measurement for the window covering this turn. */
     acoustic_state?: AcousticState | null;
@@ -138,7 +131,6 @@ export interface KPIPredictionResult {
     kpi_name: string;
     kpi_type: 'SCALAR' | 'BINARY' | 'CATEGORICAL';
     predicted_value: any;
-    confidence: number;
     trajectory?: string;
     impact_factors?: KPIImpactFactor[];
     recommended_actions?: KPIRecommendedAction[];
@@ -197,7 +189,7 @@ export interface PerSpeakerAnalysis {
     identity?: SpeakerIdentity | null;
 }
 /**
- * One recording-local diarizer lane. This consumer type deliberately carries
+ * One recording-local identity lane. This consumer type deliberately carries
  * no voiceprint, embedding, person ID, or cross-conversation identity.
  */
 export interface DiarizedSpeaker {
@@ -216,9 +208,6 @@ export interface SpeakerIdentity {
     person_id?: string | null;
     display_name?: string | null;
     is_returning?: boolean;
-    person_match_sim?: number | null;
-    /** In-session diarizer similarity, distinct from `person_match_sim`. */
-    match_sim?: number | null;
     name_source?: string | null;
 }
 /** Rolling state for one speaker in the current conversation. */
@@ -227,7 +216,6 @@ export interface SpeakerProfile {
     talk_ms: number;
     window_count: number;
     turn_count: number;
-    confidence: number;
     identity?: SpeakerIdentity | null;
     baseline?: Record<string, unknown> | null;
     range?: Record<string, unknown> | null;
@@ -262,14 +250,14 @@ export interface VoiceEnrollmentSegment {
     end_ms: number;
     text: string;
 }
-export interface VoiceEnrollmentCluster {
+export interface VoiceEnrollmentLane {
     speaker_id: string;
     duration_ms: number;
     segments: VoiceEnrollmentSegment[];
 }
 export interface VoiceEnrollmentPreview {
     preview_sha256: string;
-    clusters: VoiceEnrollmentCluster[];
+    lanes: VoiceEnrollmentLane[];
     requires_explicit_mapping: boolean;
 }
 export interface VoiceEnrollmentMapping {
@@ -310,7 +298,6 @@ export interface DiarizationTurn {
     start_ms: number;
     end_ms: number;
     speaker: string;
-    score?: number;
 }
 export interface DiarizationResult {
     model?: string;
@@ -331,9 +318,7 @@ export interface AnalysisResult {
     text: string;
     prosody: ProsodyFeatures;
     /**
-     * False when affect is not available for this result, which makes
-     * `prosody.valence/arousal/dominance` defaults rather than readings.
-     * The measurements are `acoustic_state` on `turns` and `prosody_timeline`.
+     * Marks `prosody.valence/arousal/dominance` as trained measurements when true.
      */
     affect_available?: boolean;
     signals?: ProsodySignals | null;
@@ -356,13 +341,14 @@ export interface TranscriptSegment {
     end_ms: number;
     text: string;
     speaker_id: string;
-    emotion: string;
-    confidence: number;
     valence: number;
     arousal: number;
     dominance: number;
-    signals?: Record<string, number> | null;
-    sequence_signals?: Record<string, number> | null;
+    affect_available: boolean;
+    acoustic_state?: AcousticState | null;
+    acoustic_change?: AcousticChange | null;
+    sequence_frames?: Record<string, number[]>;
+    speech_final?: boolean;
 }
 export interface TranscriptTurn {
     start_ms: number;
@@ -370,26 +356,15 @@ export interface TranscriptTurn {
     speaker_id: string;
     text: string;
     segments: TranscriptSegment[];
-    dominant_emotion: string;
-    avg_confidence: number;
-    avg_valence: number;
-    avg_arousal: number;
-    avg_dominance: number;
-    prosody: TurnProsody;
 }
 export interface SessionTranscript {
     session_id: string;
     duration_seconds: number;
     turns: TranscriptTurn[];
     segments: TranscriptSegment[];
-    steering_events: AgentSteeringEvent[];
     prosody_timeline: ProsodyTimelinePoint[];
-    prosody_summary: ProsodySummary | null;
     per_speaker: PerSpeakerAnalysis[];
-    sequence_signals: Record<string, number> | null;
-    call_insights: CallInsight[];
-    alerts: AnalysisAlert[];
-    recommended_actions: RecommendedAction[];
+    diarization?: DiarizationResult | null;
 }
 export interface AnalysisOptions {
     language?: string;
@@ -428,36 +403,10 @@ export interface ModulationTts {
     pre_pause_ms: number;
     stop?: boolean;
 }
-export interface AgentModulation {
-    mode: ModulationMode;
-    intensity: number;
-    tts: ModulationTts;
-    system_prompt_fragment: string;
-    should_yield: boolean;
-    recommended_tone: string;
-}
-export interface ForwardPrediction {
-    will_escalate: number;
-    escalation_onset: number;
-    churn_risk: number;
-    final_csat: number;
-    resolution_prob: number;
-    sentiment_forecast: number;
-    recommended_tone: string;
-    tone_confidence: number;
-    prediction_confidence: number;
-    utterances_seen: number;
-}
 export interface DiarizationSegment {
     start_ms: number;
     end_ms: number;
     speaker: string;
-    score: number;
-}
-export interface SpeakerMerge {
-    source_speaker_id?: string | null;
-    target_speaker_id?: string | null;
-    similarity?: number | null;
 }
 export interface ProsodyEmbedding {
     log_mel_means?: number[];
@@ -471,7 +420,7 @@ export interface ProsodyEmbedding {
     energy_mean?: number;
     energy_std?: number;
 }
-export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_cluster_update' | 'speaker_profiles' | 'agent_steering' | 'insights_update' | 'session_end' | 'warning' | 'error';
+export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_profiles' | 'session_end' | 'warning' | 'error';
 /**
  * Live analysis event. `generation` / `seq` are optional on the API wire; when
  * a publisher includes them, clients may use them to drop stale packets.
@@ -485,8 +434,6 @@ export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
 /** Media-plane mint response from `POST /v1/realtime/sessions`. */
 export interface RealtimeSessionCreateOptions {
     participantName?: string;
-    /** Worker path: moshi (Jarvis/Moshi, default) or voxcpm (targeted VoxCPM). */
-    agentVoice?: 'moshi' | 'voxcpm';
 }
 export interface RealtimeSessionCredentials {
     session_id: string;
@@ -503,8 +450,7 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
     /**
-     * False when affect is not available for this session.
-     * Do not treat valence/arousal/dominance as measurements when false.
+     * Marks valence, arousal, and dominance as trained measurements when true.
      */
     affect_available?: boolean;
     prosody: Pick<ProsodyFeatures, 'valence' | 'arousal' | 'dominance'>;
@@ -516,39 +462,14 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     frames_processed: number;
     timestamp_ms: number;
     speaker_id: string;
-    is_overlap: boolean;
     speaker_changed: boolean;
-    speech_ratio: number;
-    speaker_activity_available: boolean;
     num_speakers: number;
     diar_segments: DiarizationSegment[];
-    diarizer_confidence?: number;
-    agent_similarity?: number | null;
     is_agent?: boolean;
-    speaker_merges?: Array<{
-        source_speaker_id: string;
-        target_speaker_id: string;
-        similarity: number;
-    }>;
-    speaker_merge_conflicts?: Array<Record<string, unknown>>;
     phonemes: string[];
     ipa_transcript: string;
-    /** Contour dict for spectrogram UI, not the 256-d retrieval vector. */
+    /** Acoustic contour data for spectrogram rendering. */
     prosody_embedding: ProsodyEmbedding | null;
-    forward_prediction: ForwardPrediction | null;
-    kpi_predictions?: KPIPredictionResult[];
-    alerts?: AnalysisAlert[];
-    recommended_actions?: RecommendedAction[];
-    agent_modulation?: AgentModulation | null;
-    modulation_mode: ModulationMode;
-    is_escalating: boolean;
-    is_interrupting: boolean;
-    should_yield: boolean;
-    is_steering: boolean;
-    tts_speed: number;
-    will_escalate?: number | null;
-    escalation_onset?: number | null;
-    recommended_tone?: string | null;
 }
 /**
  * Segments sharing a result_id replace the prior interim version. A final
@@ -573,27 +494,16 @@ export interface TranscriptUpdateEvent extends ProsodyEventEnvelope<'transcript_
     speech_final: boolean;
     segments: TranscriptUpdateSegment[];
 }
-/** Diarizer attribution for one live interval. */
+/** Committed identity-lane attribution for one live interval. */
 export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update'> {
     start_ms: number;
     end_ms: number;
     speaker_id: string;
     dominant_speaker_id?: string | null;
     speaker_changed: boolean;
-    is_overlap: boolean;
     num_speakers: number;
     backend?: string | null;
-    speech_ratio: number;
-    diarizer_confidence: number;
-    agent_similarity?: number | null;
     is_agent: boolean;
-    speaker_merges: SpeakerMerge[];
-    merge_conflicts: Array<Record<string, unknown>>;
-}
-/** Relabel prior speaker IDs after the diarizer merges two provisional clusters. */
-export interface SpeakerClusterUpdateEvent extends ProsodyEventEnvelope<'speaker_cluster_update'> {
-    speaker_merges: SpeakerMerge[];
-    merge_conflicts: Array<Record<string, unknown>>;
 }
 /**
  * Rolling speaker lanes with identity attached.
@@ -604,43 +514,17 @@ export interface SpeakerProfilesEvent extends ProsodyEventEnvelope<'speaker_prof
     profiles: SpeakerProfile[];
     timestamp_ms?: number | null;
 }
-export interface AgentSteeringEvent extends ProsodyEventEnvelope<'agent_steering'> {
-    previous_mode: ModulationMode;
-    mode: ModulationMode;
-    intensity: number;
-    reason: string;
-    tts: ModulationTts;
-    system_prompt: string;
-    should_yield: boolean;
-    timestamp_ms: number;
-    recommended_tone: string;
-}
-export interface InsightsUpdateEvent extends ProsodyEventEnvelope<'insights_update'> {
-    call_insights: CallInsight[];
-    alerts: AnalysisAlert[];
-    recommended_actions: RecommendedAction[];
-    timestamp_ms: number;
-}
 export interface SessionDiagnostic {
-    bytes_received: number;
-    chunks_received: number;
-    chunks_all_zero: number;
-    chunks_gated_silent: number;
-    samples_nonzero: number;
-    frames_processed: number;
-    audio_silent: boolean;
-    input_sample_rate: number;
-    input_encoding: string;
+    bytes_received?: number;
+    chunks_received?: number;
+    audio_silent?: boolean;
 }
 export interface SessionEndEvent extends ProsodyEventEnvelope<'session_end'> {
     frames_processed: number;
     transcript: SessionTranscript;
-    call_insights: CallInsight[];
-    sequence_signals: Record<string, number> | null;
-    alerts: AnalysisAlert[];
-    recommended_actions: RecommendedAction[];
-    prosody_timeline: ProsodyTimelinePoint[];
-    per_speaker: PerSpeakerAnalysis[];
+    prosody_timeline?: ProsodyTimelinePoint[] | null;
+    per_speaker?: PerSpeakerAnalysis[] | null;
+    synthesis_references?: Array<Record<string, unknown>>;
     diagnostic?: SessionDiagnostic;
 }
 export interface WarningEvent extends ProsodyEventEnvelope<'warning'> {
@@ -652,4 +536,4 @@ export interface ServerErrorEvent extends ProsodyEventEnvelope<'error'> {
     code?: string;
     message: string;
 }
-export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | SpeakerUpdateEvent | SpeakerClusterUpdateEvent | SpeakerProfilesEvent | AgentSteeringEvent | InsightsUpdateEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;
+export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | SpeakerUpdateEvent | SpeakerProfilesEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;

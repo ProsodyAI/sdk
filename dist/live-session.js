@@ -4,9 +4,9 @@ import { transcriptionFromConversation, } from './transcription.js';
 /**
  * Live analysis over the **Prosody WebSocket** (`WS /v1/stream/realtime`).
  *
- * This is not LiveKit and not WebRTC. You open a session, send PCM/Opus bytes,
- * and build a {@link Conversation} from wire events. Use
- * {@link ProsodyClient.livekit} when media rides a LiveKit room.
+ * Opens a direct API session, sends PCM or Opus bytes, and builds a
+ * {@link Conversation} from wire events. LiveKit media uses
+ * {@link ProsodyClient.livekit}.
  *
  * Apps (including the website demo) supply audio; this class owns start/stop,
  * frame pacing, and the conversation spine.
@@ -95,7 +95,6 @@ export class LiveSession {
             },
             onTranscriptUpdate: () => this.emitUpdate(),
             onSpeakerUpdate: () => this.emitUpdate(),
-            onSpeakerClusterUpdate: () => this.emitUpdate(),
             onSpeakerProfiles: (event) => {
                 if (event.profiles?.length)
                     this._speakerProfiles = event.profiles;
@@ -208,7 +207,7 @@ export class LiveSession {
         this.resolveSessionEnd(this._sessionEnd);
         this.emitUpdate();
     }
-    /** Current turns with optional `prosody` — same shape as batch `transcribe`. */
+    /** Current turns with the same optional prosody shape as batch transcription. */
     snapshot(options) {
         return transcriptionFromConversation(this._conversation, options);
     }

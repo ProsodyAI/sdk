@@ -241,7 +241,6 @@ export class ProsodyClient {
     async createRealtimeSession(options = {}, signal) {
         return postJSON('/v1/realtime/sessions', this.opts, {
             participant_name: options.participantName,
-            agent_voice: options.agentVoice,
         }, signal);
     }
     async health(signal) {

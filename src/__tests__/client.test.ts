@@ -115,7 +115,6 @@ describe('analyze', () => {
           valence: 0.1,
           arousal: 0.3,
           dominance: 0.5,
-          confidence: 0.9,
         },
       }],
       per_speaker: [{
@@ -275,7 +274,7 @@ describe('speaker identity', () => {
   it('previews and confirms an operator-mapped enrollment', async () => {
     const fetch = mockFetchOk({
       preview_sha256: 'sha',
-      clusters: [{ speaker_id: 'speaker_0', duration_ms: 3000, segments: [] }],
+      lanes: [{ speaker_id: 'speaker_0', duration_ms: 3000, segments: [] }],
       requires_explicit_mapping: true,
     });
     const client = new ProsodyClient('key');

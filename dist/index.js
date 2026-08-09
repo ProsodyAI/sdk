@@ -5,7 +5,7 @@ export { Conversation, vocalFeaturesFromWindow, vocalFeaturesFromState, mergeTra
 export { ProsodyClient } from './client.js';
 export { LiveSession, } from './live-session.js';
 export { transcriptionFromConversation, prosodyFromVocalFeatures, Speaker, } from './transcription.js';
-export { applySpeakerUpdateToSegments, speakerAfterMerges, } from './conversation.js';
+export { applySpeakerUpdateToSegments, } from './conversation.js';
 export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './session.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, } from './realtime.js';
 export { createWavBuffer } from './wav.js';

@@ -1,12 +1,9 @@
 import type {
-  AgentSteeringEvent,
   DirectiveEvent,
-  InsightsUpdateEvent,
   ProsodyEvent,
   ProsodyEventType,
   ServerErrorEvent,
   SessionEndEvent,
-  SpeakerClusterUpdateEvent,
   SpeakerProfilesEvent,
   SpeakerUpdateEvent,
   TranscriptUpdateEvent,
@@ -15,17 +12,14 @@ import type {
 import { AcousticWindow } from './step.js';
 import type { Conversation } from './conversation.js';
 
-/** Default LiveKit data topic — matches api `livekit_event_topic`. */
+/** Default LiveKit data topic matching API `livekit_event_topic`. */
 export const PROSODY_EVENT_TOPIC = 'prosody.events.v1';
 
 const PROSODY_EVENT_TYPES: ReadonlySet<ProsodyEventType> = new Set([
   'directive',
   'transcript_update',
   'speaker_update',
-  'speaker_cluster_update',
   'speaker_profiles',
-  'agent_steering',
-  'insights_update',
   'session_end',
   'warning',
   'error',
@@ -64,10 +58,7 @@ export interface ProsodySessionOptions {
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
-  onSpeakerClusterUpdate?: (event: SpeakerClusterUpdateEvent) => void;
   onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
-  onSteering?: (event: AgentSteeringEvent) => void;
-  onInsightsUpdate?: (event: InsightsUpdateEvent) => void;
   onSessionEnd?: (event: SessionEndEvent) => void;
   onWarning?: (event: WarningEvent) => void;
   onServerError?: (event: ServerErrorEvent) => void;
@@ -216,19 +207,9 @@ export class ProsodySession {
         this.options.onSpeakerUpdate?.(event);
         this.options.conversation?.apply(event);
         break;
-      case 'speaker_cluster_update':
-        this.options.onSpeakerClusterUpdate?.(event);
-        this.options.conversation?.apply(event);
-        break;
       case 'speaker_profiles':
         this.options.onSpeakerProfiles?.(event);
         this.options.conversation?.apply(event);
-        break;
-      case 'agent_steering':
-        this.options.onSteering?.(event);
-        break;
-      case 'insights_update':
-        this.options.onInsightsUpdate?.(event);
         break;
       case 'session_end':
         this.options.onSessionEnd?.(event);

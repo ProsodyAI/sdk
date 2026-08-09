@@ -53,12 +53,6 @@ export class Conversation {
             if (isKnownSpeaker(speakerId)) {
                 this.segments = applySpeakerUpdateToSegments(this.segments, startMs, endMs, speakerId);
             }
-            this.applySpeakerMerges(update.speaker_merges);
-            return this;
-        }
-        if (type === 'speaker_cluster_update') {
-            const update = event;
-            this.applySpeakerMerges(update.speaker_merges);
             return this;
         }
         if (type === 'session_end') {
@@ -206,19 +200,6 @@ export class Conversation {
                 }];
         });
     }
-    applySpeakerMerges(rawMerges) {
-        const merges = (rawMerges ?? []).filter((item) => item?.source_speaker_id && item?.target_speaker_id);
-        if (!merges.length)
-            return;
-        this.segments = this.segments.map((segment) => ({
-            ...segment,
-            speaker_id: speakerAfterMerges(segment.speaker_id, merges),
-        }));
-        this.steps = this.steps.map((step) => ({
-            ...step,
-            speaker_id: speakerAfterMerges(step.speaker_id, merges),
-        }));
-    }
     batchTurn(turn) {
         const state = turn.prosody?.acoustic_state ?? null;
         const change = turn.prosody?.acoustic_change ?? null;
@@ -283,18 +264,6 @@ export function applySpeakerUpdateToSegments(segments, startMs, endMs, speakerId
         return { ...segment, speaker_id: resolved };
     });
     return changed ? next : segments;
-}
-export function speakerAfterMerges(speakerId, merges) {
-    let current = normalizeSpeakerId(speakerId);
-    const seen = new Set();
-    while (!seen.has(current)) {
-        seen.add(current);
-        const merge = merges.find((item) => normalizeSpeakerId(item.source_speaker_id) === current);
-        if (!merge?.target_speaker_id)
-            break;
-        current = normalizeSpeakerId(merge.target_speaker_id);
-    }
-    return current;
 }
 /** Port of demo `mergeTranscriptUpdateSegments`. */
 export function mergeTranscriptUpdateSegments(current, incoming, resultId, isFinal, speechFinal = false) {
@@ -381,7 +350,7 @@ function resolveLiveSpeakers(segments, steps) {
     }
     return resolved;
 }
-/** Port of demo `buildTurnsFromSegments` — speaker_id owns cuts; attach vocal. */
+/** Build speaker-owned turns and attach overlapping vocal measurements. */
 export function buildTurnsFromSegments(segments, steps) {
     const sorted = resolveLiveSpeakers(segments, steps)
         .map((segment) => ({ ...segment }))

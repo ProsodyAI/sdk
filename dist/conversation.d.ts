@@ -1,4 +1,4 @@
-import type { AcousticState, AcousticChange, AnalysisResult, DiarizedSpeaker, ProsodyEvent, SpeakerMerge, TranscriptUpdateSegment } from './types.js';
+import type { AcousticState, AcousticChange, AnalysisResult, DiarizedSpeaker, ProsodyEvent, TranscriptUpdateSegment } from './types.js';
 import { AcousticWindow, type AcousticFeatureName } from './step.js';
 import { type AcousticDeltaPoint, type AcousticFeaturePoint } from './analysis.js';
 /** Gated vocal measurements from `acoustic_state.values`. */
@@ -65,16 +65,14 @@ export declare class Conversation {
     getAcousticWindow(index: number): AcousticWindow | null;
     getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[];
     getDeltas(speakerId?: string): AcousticDeltaPoint[];
-    private applySpeakerMerges;
     private batchTurn;
 }
 export declare function vocalFeaturesFromWindow(window: AcousticWindow): VocalFeatures | null;
 export declare function vocalFeaturesFromState(state: AcousticState | null | undefined, change?: AcousticChange | null): VocalFeatures | null;
 /** Port of demo `applySpeakerUpdateToSegments`. */
 export declare function applySpeakerUpdateToSegments(segments: LiveSegment[], startMs: number, endMs: number, speakerId: string): LiveSegment[];
-export declare function speakerAfterMerges(speakerId: string, merges: SpeakerMerge[]): string;
 /** Port of demo `mergeTranscriptUpdateSegments`. */
 export declare function mergeTranscriptUpdateSegments(current: LiveSegment[], incoming: TranscriptUpdateSegment[], resultId: string, isFinal: boolean, speechFinal?: boolean): LiveSegment[];
-/** Port of demo `buildTurnsFromSegments` — speaker_id owns cuts; attach vocal. */
+/** Build speaker-owned turns and attach overlapping vocal measurements. */
 export declare function buildTurnsFromSegments(segments: LiveSegment[], steps: StepAnchor[]): ConversationTurn[];
 export {};

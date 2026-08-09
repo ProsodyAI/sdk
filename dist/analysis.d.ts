@@ -27,7 +27,7 @@ export declare function parseAnalysisResult(value: unknown): AnalysisResult;
  * Consumer view of one analyzed recording.
  *
  * Accessors over the measured acoustic timeline, transcript, and recording-local
- * diarizer lanes. Persistent identity lives under `client.speakers`.
+ * committed identity lanes. Persistent identity lives under `client.speakers`.
  */
 export declare class ConversationAnalysis {
     private readonly result;
