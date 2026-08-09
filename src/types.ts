@@ -63,7 +63,6 @@ export interface AcousticStateValues {
   clipping_ratio?: number | null;
   voice_onset_rate_hz?: number | null;
   tempo_syllables_per_second?: number | null;
-  turn_boundary_probability?: number | null;
   [feature: string]: number | null | undefined;
 }
 
@@ -82,8 +81,6 @@ export interface AcousticStateFrames {
   /** `null` on unvoiced frames rather than a floor value. */
   f0_hz?: (number | null)[];
   spectral_tilt_db_per_octave?: (number | null)[];
-  voiced_probability?: number[];
-  voice_activity_boundary_probability?: number[];
 }
 
 export interface AcousticState {
@@ -122,7 +119,6 @@ export interface TurnProsody {
   valence: number;
   arousal: number;
   dominance: number;
-  confidence: number;
   signals?: ProsodySignals | Record<string, number> | null;
   /** The trained measurement for the window covering this turn. */
   acoustic_state?: AcousticState | null;
@@ -153,7 +149,6 @@ export interface KPIPredictionResult {
   kpi_name: string;
   kpi_type: 'SCALAR' | 'BINARY' | 'CATEGORICAL';
   predicted_value: any;
-  confidence: number;
   trajectory?: string;
   impact_factors?: KPIImpactFactor[];
   recommended_actions?: KPIRecommendedAction[];
@@ -238,9 +233,6 @@ export interface SpeakerIdentity {
   person_id?: string | null;
   display_name?: string | null;
   is_returning?: boolean;
-  person_match_sim?: number | null;
-  /** In-session diarizer similarity, distinct from `person_match_sim`. */
-  match_sim?: number | null;
   name_source?: string | null;
 }
 
@@ -250,7 +242,6 @@ export interface SpeakerProfile {
   talk_ms: number;
   window_count: number;
   turn_count: number;
-  confidence: number;
   identity?: SpeakerIdentity | null;
   baseline?: Record<string, unknown> | null;
   range?: Record<string, unknown> | null;
@@ -395,7 +386,6 @@ export interface TranscriptSegment {
   text: string;
   speaker_id: string;
   emotion: string;
-  confidence: number;
   valence: number;
   arousal: number;
   dominance: number;
@@ -410,7 +400,6 @@ export interface TranscriptTurn {
   text: string;
   segments: TranscriptSegment[];
   dominant_emotion: string;
-  avg_confidence: number;
   avg_valence: number;
   avg_arousal: number;
   avg_dominance: number;
@@ -497,8 +486,6 @@ export interface ForwardPrediction {
   resolution_prob: number;
   sentiment_forecast: number;
   recommended_tone: string;
-  tone_confidence: number;
-  prediction_confidence: number;
   utterances_seen: number;
 }
 
@@ -506,13 +493,11 @@ export interface DiarizationSegment {
   start_ms: number;
   end_ms: number;
   speaker: string;
-  score: number;
 }
 
 export interface SpeakerMerge {
   source_speaker_id?: string | null;
   target_speaker_id?: string | null;
-  similarity?: number | null;
 }
 
 export interface ProsodyEmbedding {
@@ -554,8 +539,6 @@ export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
 /** Media-plane mint response from `POST /v1/realtime/sessions`. */
 export interface RealtimeSessionCreateOptions {
   participantName?: string;
-  /** Worker path: moshi (Jarvis/Moshi, default) or voxcpm (targeted VoxCPM). */
-  agentVoice?: 'moshi' | 'voxcpm';
 }
 
 export interface RealtimeSessionCredentials {
@@ -593,13 +576,10 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
   speaker_activity_available: boolean;
   num_speakers: number;
   diar_segments: DiarizationSegment[];
-  diarizer_confidence?: number;
-  agent_similarity?: number | null;
   is_agent?: boolean;
   speaker_merges?: Array<{
     source_speaker_id: string;
     target_speaker_id: string;
-    similarity: number;
   }>;
   speaker_merge_conflicts?: Array<Record<string, unknown>>;
   phonemes: string[];
@@ -658,8 +638,6 @@ export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update
   num_speakers: number;
   backend?: string | null;
   speech_ratio: number;
-  diarizer_confidence: number;
-  agent_similarity?: number | null;
   is_agent: boolean;
   speaker_merges: SpeakerMerge[];
   merge_conflicts: Array<Record<string, unknown>>;

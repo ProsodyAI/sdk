@@ -402,7 +402,6 @@ export class ProsodyClient {
       this.opts,
       {
         participant_name: options.participantName,
-        agent_voice: options.agentVoice,
       },
       signal,
     );
