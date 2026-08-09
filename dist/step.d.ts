@@ -98,5 +98,3 @@ export declare class AcousticWindow {
         f0_available: boolean;
     } | null;
 }
-/** @deprecated Use AcousticWindow. */
-export { AcousticWindow as RecurrentStep };

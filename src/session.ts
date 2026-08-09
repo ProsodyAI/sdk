@@ -52,8 +52,6 @@ export interface ProsodySessionOptions {
   onDirective?: (event: DirectiveEvent) => void;
   /** Physical measurements and speaker-relative deltas for each directive. */
   onAcousticWindow?: (window: AcousticWindow) => void;
-  /** @deprecated Use onAcousticWindow. */
-  onRecurrentStep?: (step: AcousticWindow) => void;
   /** Optional conversation object that receives parsed session events. */
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
@@ -195,7 +193,6 @@ export class ProsodySession {
         this.options.onDirective?.(event);
         const window = AcousticWindow.fromDirective(event);
         this.options.onAcousticWindow?.(window);
-        this.options.onRecurrentStep?.(window);
         this.options.conversation?.apply(event);
         break;
       }

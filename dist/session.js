@@ -113,7 +113,6 @@ export class ProsodySession {
                 this.options.onDirective?.(event);
                 const window = AcousticWindow.fromDirective(event);
                 this.options.onAcousticWindow?.(window);
-                this.options.onRecurrentStep?.(window);
                 this.options.conversation?.apply(event);
                 break;
             }

@@ -1,41 +1,12 @@
-import type { AcousticState, AcousticChange, AnalysisResult, DiarizedSpeaker, ProsodyEvent, TranscriptUpdateSegment } from './types.js';
+import type { AnalysisResult, DiarizedSpeaker, ProsodyEvent } from './types.js';
 import { AcousticWindow, type AcousticFeatureName } from './step.js';
 import { type AcousticDeltaPoint, type AcousticFeaturePoint } from './analysis.js';
-/** Gated vocal measurements from `acoustic_state.values`. */
-export interface VocalFeatures {
-    rms_dbfs: number | null;
-    peak_dbfs: number | null;
-    f0_median_hz: number | null;
-    f0_range_semitones: number | null;
-    f0_slope_semitones_per_second: number | null;
-    spectral_tilt_db_per_octave: number | null;
-    voiced_ratio: number | null;
-    pause_ratio: number | null;
-    clipping_ratio: number | null;
-    voice_onset_rate_hz: number | null;
-    /** Speaker-relative deltas; null on first window for that speaker. */
-    change: AcousticChange['values'] | null;
-    f0_available: boolean;
-}
-/** One diarized transcript turn with the covering acoustic measurement. */
-export interface ConversationTurn {
-    speaker_id: string;
-    start_ms: number;
-    end_ms: number;
-    text: string;
-    final?: boolean;
-    vocal?: VocalFeatures | null;
-}
-type LiveSegment = TranscriptUpdateSegment & {
-    speech_final?: boolean;
-    is_final?: boolean;
-};
-type StepAnchor = {
-    speaker_id: string;
-    timestamp_ms: number;
-    acoustic_state: AcousticState | null;
-    acoustic_change: AcousticChange | null;
-};
+import { type ConversationTurn } from './conversation/turn-model.js';
+import { type VocalFeatures } from './conversation/vocal-features.js';
+export type { ConversationTurn } from './conversation/turn-model.js';
+export { vocalFeaturesFromState, vocalFeaturesFromWindow, type VocalFeatures, } from './conversation/vocal-features.js';
+export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 /**
  * Developer product object for diarized turns and vocal measurements.
  *
@@ -67,12 +38,3 @@ export declare class Conversation {
     getDeltas(speakerId?: string): AcousticDeltaPoint[];
     private batchTurn;
 }
-export declare function vocalFeaturesFromWindow(window: AcousticWindow): VocalFeatures | null;
-export declare function vocalFeaturesFromState(state: AcousticState | null | undefined, change?: AcousticChange | null): VocalFeatures | null;
-/** Port of demo `applySpeakerUpdateToSegments`. */
-export declare function applySpeakerUpdateToSegments(segments: LiveSegment[], startMs: number, endMs: number, speakerId: string): LiveSegment[];
-/** Port of demo `mergeTranscriptUpdateSegments`. */
-export declare function mergeTranscriptUpdateSegments(current: LiveSegment[], incoming: TranscriptUpdateSegment[], resultId: string, isFinal: boolean, speechFinal?: boolean): LiveSegment[];
-/** Build speaker-owned turns and attach overlapping vocal measurements. */
-export declare function buildTurnsFromSegments(segments: LiveSegment[], steps: StepAnchor[]): ConversationTurn[];
-export {};

@@ -9,7 +9,7 @@ export interface TranscribeOptions {
     diarize?: boolean;
     /**
      * Attach vocal measurement to each turn (`turn.prosody`).
-     * Defaults to true — that is the product.
+     * Defaults to true: that is the product.
      */
     prosody?: boolean;
 }
@@ -22,7 +22,7 @@ export interface VoiceStat {
     count: number;
 }
 /**
- * A speaker's measured voice — the baseline everything speaker-relative is
+ * A speaker's measured voice: the baseline everything speaker-relative is
  * measured against.
  *
  * These are physical measurements of that voice across the recording. Fields
@@ -42,7 +42,7 @@ export interface VoiceProfile {
     pitchAvailable: boolean;
 }
 /**
- * How this turn moved against the same speaker's preceding audio. Signed —
+ * How this turn moved against the same speaker's preceding audio. Signed:
  * zero is a real reading, `null` means the feature was not measurable.
  */
 export interface ProsodyChange {
@@ -59,8 +59,8 @@ export interface ProsodyChange {
 /**
  * How a turn sounded, in physical units.
  *
- * A field is `null` when the audio did not support the measurement — pitch on
- * a whispered or unvoiced turn, for example.
+ * A field is `null` when the audio did not support the measurement (pitch on
+ * a whispered or unvoiced turn, for example).
  */
 export interface Prosody {
     /** Loudness, dBFS. */
@@ -71,7 +71,7 @@ export interface Prosody {
     pitchHz: number | null;
     /** Pitch movement within the turn, semitones. */
     pitchRangeSemitones: number | null;
-    /** Pitch direction, semitones per second — negative falls, positive rises. */
+    /** Pitch direction, semitones per second: negative falls, positive rises. */
     pitchSlopeSemitonesPerSecond: number | null;
     /** Spectral tilt, dB per octave. Breathy voices tilt steeper. */
     tiltDbPerOctave: number | null;
@@ -81,7 +81,7 @@ export interface Prosody {
     pauseRatio: number | null;
     /** Fraction of samples at the clipping ceiling, 0–1. */
     clippingRatio: number | null;
-    /** Voice onsets per second — how often phonation restarts. */
+    /** Voice onsets per second: how often phonation restarts. */
     voiceOnsetRateHz: number | null;
     /** True when pitch was measurable on this turn. */
     pitchAvailable: boolean;

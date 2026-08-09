@@ -22,8 +22,6 @@ export interface ProsodySessionOptions {
     onDirective?: (event: DirectiveEvent) => void;
     /** Physical measurements and speaker-relative deltas for each directive. */
     onAcousticWindow?: (window: AcousticWindow) => void;
-    /** @deprecated Use onAcousticWindow. */
-    onRecurrentStep?: (step: AcousticWindow) => void;
     /** Optional conversation object that receives parsed session events. */
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;

@@ -16,11 +16,11 @@ export interface AcousticDeltaPoint {
 /**
  * Validate the stable batch envelope.
  *
- * ProsodySSM's product output is `acoustic_state` — measured waveform values
- * per window — which arrives on `prosody_timeline` and on each turn. Valence /
- * arousal / dominance are only readings when `affect_available` is true, so
- * they are never required here: a deployment that publishes measurements and
- * no affect is a correct deployment, not a malformed response.
+ * ProsodySSM's product output is `acoustic_state`, the measured waveform
+ * values per window, which arrives on `prosody_timeline` and on each turn.
+ * Valence / arousal / dominance are only readings when `affect_available` is
+ * true, so they are never required here: a deployment that publishes
+ * measurements and no affect is a correct deployment.
  */
 export declare function parseAnalysisResult(value: unknown): AnalysisResult;
 /**
@@ -56,10 +56,6 @@ export declare class ConversationAnalysis {
     getValence(turnIndex?: number): number | null;
     /** Raw API timeline for consumers that need the wire shape. */
     getTimeline(): ProsodyTimelinePoint[];
-    /** @deprecated Use getAcoustics(). */
-    getRecurrentSteps(): AcousticWindow[];
-    /** @deprecated Use getAcousticWindow(). */
-    getRecurrentStep(index: number): AcousticWindow | null;
 }
 /**
  * The measured windows of a call, in order.
@@ -70,7 +66,7 @@ export declare class ConversationAnalysis {
 export declare function acousticWindows(result: AnalysisResult): ProsodyTimelinePoint[];
 /**
  * Read one measured feature across a call, skipping windows where it was not
- * measurable (unvoiced windows carry `null` f0 rather than a floor value).
+ * measurable (an unvoiced window carries `null` f0, without any floor value).
  */
 export declare function acousticSeries(result: AnalysisResult, feature: keyof NonNullable<AcousticState['values']> & string): {
     start_ms: number;

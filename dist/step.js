@@ -179,8 +179,6 @@ export class AcousticWindow {
         };
     }
 }
-/** @deprecated Use AcousticWindow. */
-export { AcousticWindow as RecurrentStep };
 function finiteOrNull(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

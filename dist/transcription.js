@@ -124,8 +124,7 @@ export function prosodyFromVocalFeatures(vocal) {
 export function transcriptionFromConversation(conversation, options) {
     const includeProsody = options?.prosody !== false;
     const rawTurns = conversation.getTurns();
-    // Labels number speakers by when they first talk, not by the order the
-    // roll-up happens to list them in.
+    // Labels number speakers by when they first talk in the recording.
     const firstHeard = new Map();
     for (const turn of rawTurns) {
         if (!firstHeard.has(turn.speaker_id))

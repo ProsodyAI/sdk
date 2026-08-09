@@ -2,11 +2,11 @@ import { AcousticWindow, } from './step.js';
 /**
  * Validate the stable batch envelope.
  *
- * ProsodySSM's product output is `acoustic_state` — measured waveform values
- * per window — which arrives on `prosody_timeline` and on each turn. Valence /
- * arousal / dominance are only readings when `affect_available` is true, so
- * they are never required here: a deployment that publishes measurements and
- * no affect is a correct deployment, not a malformed response.
+ * ProsodySSM's product output is `acoustic_state`, the measured waveform
+ * values per window, which arrives on `prosody_timeline` and on each turn.
+ * Valence / arousal / dominance are only readings when `affect_available` is
+ * true, so they are never required here: a deployment that publishes
+ * measurements and no affect is a correct deployment.
  */
 export function parseAnalysisResult(value) {
     if (!isRecord(value)) {
@@ -126,11 +126,10 @@ export class ConversationAnalysis {
     getVad() {
         if (this.result.affect_available !== true)
             return null;
-        return {
-            valence: this.result.prosody.valence,
-            arousal: this.result.prosody.arousal,
-            dominance: this.result.prosody.dominance,
-        };
+        const { valence, arousal, dominance } = this.result.prosody;
+        if (valence == null || arousal == null || dominance == null)
+            return null;
+        return { valence, arousal, dominance };
     }
     getValence(turnIndex) {
         if (this.result.affect_available !== true)
@@ -142,14 +141,6 @@ export class ConversationAnalysis {
     /** Raw API timeline for consumers that need the wire shape. */
     getTimeline() {
         return [...(this.result.prosody_timeline ?? [])];
-    }
-    /** @deprecated Use getAcoustics(). */
-    getRecurrentSteps() {
-        return this.getAcoustics();
-    }
-    /** @deprecated Use getAcousticWindow(). */
-    getRecurrentStep(index) {
-        return this.getAcousticWindow(index);
     }
 }
 function recordingSpeakers(result) {
@@ -201,7 +192,7 @@ export function acousticWindows(result) {
 }
 /**
  * Read one measured feature across a call, skipping windows where it was not
- * measurable (unvoiced windows carry `null` f0 rather than a floor value).
+ * measurable (an unvoiced window carries `null` f0, without any floor value).
  */
 export function acousticSeries(result, feature) {
     const series = [];

@@ -174,7 +174,6 @@ export class ProsodyRealtimeStream {
                 this.handlers.onDirective?.(event);
                 const window = AcousticWindow.fromDirective(event);
                 this.handlers.onAcousticWindow?.(window);
-                this.handlers.onRecurrentStep?.(window);
                 this.handlers.conversation?.apply(event);
                 break;
             }

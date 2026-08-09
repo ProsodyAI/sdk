@@ -298,9 +298,6 @@ export class AcousticWindow {
   }
 }
 
-/** @deprecated Use AcousticWindow. */
-export { AcousticWindow as RecurrentStep };
-
 function finiteOrNull(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

@@ -1,6 +1,4 @@
 import type {
-  AcousticState,
-  AcousticChange,
   AnalysisResult,
   AnalysisTurn,
   DiarizedSpeaker,
@@ -9,7 +7,6 @@ import type {
   SessionEndEvent,
   SpeakerUpdateEvent,
   TranscriptUpdateEvent,
-  TranscriptUpdateSegment,
 } from './types.js';
 import {
   AcousticWindow,
@@ -21,45 +18,35 @@ import {
   type AcousticDeltaPoint,
   type AcousticFeaturePoint,
 } from './analysis.js';
+import {
+  isKnownSpeaker,
+  normalizeSpeakerId,
+  type ConversationTurn,
+  type LiveSegment,
+  type StepAnchor,
+} from './conversation/turn-model.js';
+import {
+  vocalFeaturesFromState,
+  vocalFeaturesFromWindow,
+  type VocalFeatures,
+} from './conversation/vocal-features.js';
+import {
+  applySpeakerUpdateToSegments,
+  mergeTranscriptUpdateSegments,
+} from './conversation/transcript-merge.js';
+import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 
-/** Gated vocal measurements from `acoustic_state.values`. */
-export interface VocalFeatures {
-  rms_dbfs: number | null;
-  peak_dbfs: number | null;
-  f0_median_hz: number | null;
-  f0_range_semitones: number | null;
-  f0_slope_semitones_per_second: number | null;
-  spectral_tilt_db_per_octave: number | null;
-  voiced_ratio: number | null;
-  pause_ratio: number | null;
-  clipping_ratio: number | null;
-  voice_onset_rate_hz: number | null;
-  /** Speaker-relative deltas; null on first window for that speaker. */
-  change: AcousticChange['values'] | null;
-  f0_available: boolean;
-}
-
-/** One diarized transcript turn with the covering acoustic measurement. */
-export interface ConversationTurn {
-  speaker_id: string;
-  start_ms: number;
-  end_ms: number;
-  text: string;
-  final?: boolean;
-  vocal?: VocalFeatures | null;
-}
-
-type LiveSegment = TranscriptUpdateSegment & {
-  speech_final?: boolean;
-  is_final?: boolean;
-};
-
-type StepAnchor = {
-  speaker_id: string;
-  timestamp_ms: number;
-  acoustic_state: AcousticState | null;
-  acoustic_change: AcousticChange | null;
-};
+export type { ConversationTurn } from './conversation/turn-model.js';
+export {
+  vocalFeaturesFromState,
+  vocalFeaturesFromWindow,
+  type VocalFeatures,
+} from './conversation/vocal-features.js';
+export {
+  applySpeakerUpdateToSegments,
+  mergeTranscriptUpdateSegments,
+} from './conversation/transcript-merge.js';
+export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 
 /**
  * Developer product object for diarized turns and vocal measurements.
@@ -285,223 +272,4 @@ export class Conversation {
       vocal: state ? vocalFeaturesFromState(state, change) : null,
     };
   }
-}
-
-export function vocalFeaturesFromWindow(window: AcousticWindow): VocalFeatures | null {
-  return vocalFeaturesFromState(window.getAcousticState(), window.getAcousticChange());
-}
-
-export function vocalFeaturesFromState(
-  state: AcousticState | null | undefined,
-  change?: AcousticChange | null,
-): VocalFeatures | null {
-  if (!state?.values) return null;
-  const v = state.values;
-  return {
-    rms_dbfs: finiteOrNull(v.rms_dbfs),
-    peak_dbfs: finiteOrNull(v.peak_dbfs),
-    f0_median_hz: finiteOrNull(v.f0_median_hz),
-    f0_range_semitones: finiteOrNull(v.f0_range_semitones),
-    f0_slope_semitones_per_second: finiteOrNull(v.f0_slope_semitones_per_second),
-    spectral_tilt_db_per_octave: finiteOrNull(v.spectral_tilt_db_per_octave),
-    voiced_ratio: finiteOrNull(v.voiced_ratio),
-    pause_ratio: finiteOrNull(v.pause_ratio),
-    clipping_ratio: finiteOrNull(v.clipping_ratio),
-    voice_onset_rate_hz: finiteOrNull(v.voice_onset_rate_hz),
-    change: change?.values ?? null,
-    f0_available: state.masks?.f0_available === true,
-  };
-}
-
-function normalizeSpeakerId(id: string | undefined | null): string {
-  const value = (id ?? '').trim();
-  return value || 'unknown';
-}
-
-function isKnownSpeaker(id: string | undefined | null): boolean {
-  return normalizeSpeakerId(id) !== 'unknown';
-}
-
-function overlapMs(startA: number, endA: number, startB: number, endB: number): number {
-  return Math.max(0, Math.min(endA, endB) - Math.max(startA, startB));
-}
-
-/** Port of demo `applySpeakerUpdateToSegments`. */
-export function applySpeakerUpdateToSegments(
-  segments: LiveSegment[],
-  startMs: number,
-  endMs: number,
-  speakerId: string,
-): LiveSegment[] {
-  const resolved = normalizeSpeakerId(speakerId);
-  if (!isKnownSpeaker(resolved) || !segments.length) return segments;
-  const spanEnd = Math.max(startMs + 1, endMs);
-  let changed = false;
-  const next = segments.map((segment) => {
-    if (isKnownSpeaker(segment.speaker_id)) return segment;
-    const segEnd = Math.max(segment.start_ms + 1, segment.end_ms);
-    const overlap = overlapMs(segment.start_ms, segEnd, startMs, spanEnd);
-    const duration = Math.max(1, segEnd - segment.start_ms);
-    if (overlap < duration * 0.25 && overlap < 200) return segment;
-    changed = true;
-    return { ...segment, speaker_id: resolved };
-  });
-  return changed ? next : segments;
-}
-
-/** Port of demo `mergeTranscriptUpdateSegments`. */
-export function mergeTranscriptUpdateSegments(
-  current: LiveSegment[],
-  incoming: TranscriptUpdateSegment[],
-  resultId: string,
-  isFinal: boolean,
-  speechFinal = false,
-): LiveSegment[] {
-  const closesSpeech = isFinal && speechFinal;
-  const lastIncomingIndex = incoming.length - 1;
-  const nextSegments: LiveSegment[] = incoming.map((segment, index) => ({
-    ...segment,
-    speaker_id: normalizeSpeakerId(segment.speaker_id),
-    result_id: resultId || segment.result_id,
-    is_final: isFinal,
-    speech_final: closesSpeech && index === lastIncomingIndex,
-  }));
-  if (!resultId) return [...current, ...nextSegments];
-  const existingFinal = current.some(
-    (segment) => segment.result_id === resultId && segment.is_final,
-  );
-  if (existingFinal && !isFinal) return current;
-  const retained = current.filter((segment) => segment.result_id !== resultId);
-  if (!nextSegments.length && closesSpeech && retained.length) {
-    const withEndpoint = [...retained];
-    withEndpoint[withEndpoint.length - 1] = {
-      ...withEndpoint[withEndpoint.length - 1],
-      speech_final: true,
-    };
-    return withEndpoint;
-  }
-  return [...retained, ...nextSegments];
-}
-
-function resolveLiveSpeakers(
-  segments: LiveSegment[],
-  steps: StepAnchor[],
-): LiveSegment[] {
-  if (!segments.length) return segments;
-  const resolved = segments.map((segment) => ({
-    ...segment,
-    speaker_id: normalizeSpeakerId(segment.speaker_id),
-  }));
-
-  for (const segment of resolved) {
-    if (isKnownSpeaker(segment.speaker_id)) continue;
-    const segEnd = Math.max(segment.start_ms + 1, segment.end_ms);
-    const overlapBySpeaker = new Map<string, number>();
-    for (const step of steps) {
-      const speaker = normalizeSpeakerId(step.speaker_id);
-      if (!isKnownSpeaker(speaker)) continue;
-      const overlap = overlapMs(
-        segment.start_ms,
-        segEnd,
-        step.timestamp_ms,
-        step.timestamp_ms + 1000,
-      );
-      if (overlap > 0) {
-        overlapBySpeaker.set(speaker, (overlapBySpeaker.get(speaker) ?? 0) + overlap);
-      }
-    }
-    let bestId = 'unknown';
-    let bestOverlap = 0;
-    for (const [speaker, overlap] of overlapBySpeaker) {
-      if (overlap > bestOverlap) {
-        bestOverlap = overlap;
-        bestId = speaker;
-      }
-    }
-    if (bestOverlap > 0) segment.speaker_id = bestId;
-  }
-
-  for (let index = 0; index < resolved.length;) {
-    if (isKnownSpeaker(resolved[index].speaker_id)) {
-      index += 1;
-      continue;
-    }
-    const runStart = index;
-    while (index < resolved.length && !isKnownSpeaker(resolved[index].speaker_id)) {
-      index += 1;
-    }
-    const left = resolved[runStart - 1];
-    const right = resolved[index];
-    const leftId = left ? normalizeSpeakerId(left.speaker_id) : 'unknown';
-    const rightId = right ? normalizeSpeakerId(right.speaker_id) : 'unknown';
-    const canBridge = (
-      left?.is_final === true
-      && right?.is_final === true
-      && isKnownSpeaker(leftId)
-      && leftId === rightId
-      && resolved.slice(runStart, index).every((segment) => segment.is_final === true)
-    );
-    if (canBridge) {
-      for (let unknownIndex = runStart; unknownIndex < index; unknownIndex += 1) {
-        resolved[unknownIndex].speaker_id = leftId;
-      }
-    }
-  }
-
-  return resolved;
-}
-
-/** Build speaker-owned turns and attach overlapping vocal measurements. */
-export function buildTurnsFromSegments(
-  segments: LiveSegment[],
-  steps: StepAnchor[],
-): ConversationTurn[] {
-  const sorted = resolveLiveSpeakers(segments, steps)
-    .map((segment) => ({ ...segment }))
-    .sort((a, b) => a.start_ms - b.start_ms || a.end_ms - b.end_ms);
-
-  const vocalAt = (startMs: number, endMs: number): VocalFeatures | null => {
-    let best: StepAnchor | null = null;
-    let bestOverlap = 0;
-    for (const step of steps) {
-      const overlap = overlapMs(startMs, endMs, step.timestamp_ms, step.timestamp_ms + 1000);
-      if (overlap > bestOverlap) {
-        bestOverlap = overlap;
-        best = step;
-      }
-    }
-    if (!best?.acoustic_state) return null;
-    return vocalFeaturesFromState(best.acoustic_state, best.acoustic_change);
-  };
-
-  const turns: ConversationTurn[] = [];
-  for (const seg of sorted) {
-    const text = seg.text.trim();
-    if (!text) continue;
-    const speakerId = normalizeSpeakerId(seg.speaker_id);
-    const last = turns[turns.length - 1];
-    const speakerChanged = Boolean(last && last.speaker_id !== speakerId);
-    const unknownInterim = seg.is_final === false && !isKnownSpeaker(speakerId);
-    const shouldStartNew = !last || (speakerChanged && !unknownInterim);
-    if (!shouldStartNew && last) {
-      last.text = `${last.text} ${text}`.trim();
-      last.end_ms = Math.max(last.end_ms, seg.end_ms);
-      last.final = seg.is_final === true;
-      if (!last.vocal) last.vocal = vocalAt(last.start_ms, last.end_ms);
-      continue;
-    }
-    turns.push({
-      speaker_id: speakerId,
-      start_ms: seg.start_ms,
-      end_ms: seg.end_ms,
-      text,
-      final: seg.is_final === true,
-      vocal: vocalAt(seg.start_ms, Math.max(seg.start_ms + 1, seg.end_ms)),
-    });
-  }
-  return turns;
-}
-
-function finiteOrNull(value: number | null | undefined): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

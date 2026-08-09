@@ -24,8 +24,6 @@ export interface ProsodyRealtimeHandlers {
     onConfigAck?: (event: Record<string, unknown>) => void;
     onDirective?: (event: DirectiveEvent) => void;
     onAcousticWindow?: (window: AcousticWindow) => void;
-    /** @deprecated Use onAcousticWindow. */
-    onRecurrentStep?: (step: AcousticWindow) => void;
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
