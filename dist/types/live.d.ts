@@ -133,6 +133,12 @@ export interface SessionDiagnostic {
     bytes_received?: number;
     chunks_received?: number;
     audio_silent?: boolean;
+    /**
+     * The organization has enrolled voiceprints and zero carry the serving
+     * embedding space, so returning voices cannot be recognized until
+     * speakers re-enroll under the serving checkpoint.
+     */
+    known_speaker_space_mismatch?: boolean;
 }
 export interface SessionEndEvent extends ProsodyEventEnvelope<'session_end'> {
     frames_processed: number;
