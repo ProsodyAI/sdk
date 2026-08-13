@@ -25,6 +25,8 @@ export type {
   DiarizationTurn,
   DiarizationResult,
   AnalysisTurn,
+  AnalysisEvent,
+  TurnBoundary,
   AnalysisResult,
   TranscriptionStatus,
   TranscriptSegment,

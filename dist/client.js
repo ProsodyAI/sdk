@@ -89,6 +89,44 @@ export class ProsodyClient {
     async analyzeConversation(audio, options, signal) {
         return Conversation.fromAnalysis(await this.analyze(audio, options, signal));
     }
+    // ────────────────── One-call readouts (batch analysis) ───────────
+    /** Diarized turns with text: who said what, and when. */
+    async getTurns(audio, options, signal) {
+        return (await this.analyzeConversation(audio, options, signal)).getTurns();
+    }
+    /**
+     * The timing skeleton of the conversation: one `{speaker_id, start_ms,
+     * end_ms}` per turn on the model's 80ms frame clock. Carries no text.
+     */
+    async getTurnBoundaries(audio, options, signal) {
+        const result = await this.analyze(audio, options, signal);
+        const diarTurns = result.diarization?.turns;
+        if (diarTurns?.length) {
+            return diarTurns.map((turn) => ({
+                speaker_id: turn.speaker,
+                start_ms: turn.start_ms,
+                end_ms: turn.end_ms,
+            }));
+        }
+        return (result.turns ?? []).map((turn) => ({
+            speaker_id: turn.speaker_id,
+            start_ms: turn.start_ms,
+            end_ms: turn.end_ms,
+        }));
+    }
+    /**
+     * The committed conversation events in commit order: turn boundaries,
+     * barge-ins, and state deltas, each with its retrodictive `frame_ms` on the
+     * 80ms frame clock.
+     */
+    async getEvents(audio, options, signal) {
+        const result = await this.analyze(audio, options, signal);
+        return [...(result.events ?? [])];
+    }
+    /** The recording-local speakers with talk time and turn counts. */
+    async getSpeakers(audio, options, signal) {
+        return (await this.analyzeConversation(audio, options, signal)).getSpeakers();
+    }
     async analyzeBase64(base64Audio, options, signal) {
         const raw = await callJSON(endpoints.analyzeBase64, this.opts, {
             audio_base64: base64Audio,

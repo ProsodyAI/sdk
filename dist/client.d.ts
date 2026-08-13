@@ -1,4 +1,4 @@
-import type { AnalysisOptions, AnalysisResult, PCMOptions, FeedbackCorrectionOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
+import type { AnalysisEvent, AnalysisOptions, AnalysisResult, DiarizedSpeaker, PCMOptions, TurnBoundary, FeedbackCorrectionOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import { Conversation } from './conversation.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
@@ -75,6 +75,21 @@ export declare class ProsodyClient {
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyzeConversation(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<Conversation>;
+    /** Diarized turns with text: who said what, and when. */
+    getTurns(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<import("./conversation.js").ConversationTurn[]>;
+    /**
+     * The timing skeleton of the conversation: one `{speaker_id, start_ms,
+     * end_ms}` per turn on the model's 80ms frame clock. Carries no text.
+     */
+    getTurnBoundaries(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<TurnBoundary[]>;
+    /**
+     * The committed conversation events in commit order: turn boundaries,
+     * barge-ins, and state deltas, each with its retrodictive `frame_ms` on the
+     * 80ms frame clock.
+     */
+    getEvents(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisEvent[]>;
+    /** The recording-local speakers with talk time and turn counts. */
+    getSpeakers(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<DiarizedSpeaker[]>;
     analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     analyzePCM(pcmData: Int16Array | Float32Array | ArrayBuffer, options?: PCMOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     /** People resolved from stored speaker profiles within this API key's data scope. */
