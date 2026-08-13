@@ -1,4 +1,6 @@
-import type { Conversation, VocalFeatures } from './conversation.js';
+import type { Conversation } from './conversation.js';
+import { type Prosody } from './conversation/prosody.js';
+export type { Prosody, ProsodyChange } from './conversation/prosody.js';
 /**
  * Options for {@link ProsodyClient.transcribe}.
  */
@@ -40,53 +42,6 @@ export interface VoiceProfile {
     windowCount: number;
     /** Whether pitch was measurable at all. */
     pitchAvailable: boolean;
-}
-/**
- * How this turn moved against the same speaker's preceding audio. Signed:
- * zero is a real reading, `null` means the feature was not measurable.
- */
-export interface ProsodyChange {
-    loudnessDb: number | null;
-    peakDb: number | null;
-    pitchSemitones: number | null;
-    pitchRangeSemitones: number | null;
-    pitchSlopeSemitonesPerSecond: number | null;
-    tiltDbPerOctave: number | null;
-    voicedRatio: number | null;
-    pauseRatio: number | null;
-    voiceOnsetRateHz: number | null;
-}
-/**
- * How a turn sounded, in physical units.
- *
- * A field is `null` when the audio did not support the measurement (pitch on
- * a whispered or unvoiced turn, for example).
- */
-export interface Prosody {
-    /** Loudness, dBFS. */
-    loudnessDbfs: number | null;
-    /** Loudest sample in the window, dBFS. */
-    peakDbfs: number | null;
-    /** Pitch, Hz. */
-    pitchHz: number | null;
-    /** Pitch movement within the turn, semitones. */
-    pitchRangeSemitones: number | null;
-    /** Pitch direction, semitones per second: negative falls, positive rises. */
-    pitchSlopeSemitonesPerSecond: number | null;
-    /** Spectral tilt, dB per octave. Breathy voices tilt steeper. */
-    tiltDbPerOctave: number | null;
-    /** Fraction of the turn carrying voiced audio, 0–1. */
-    voicedRatio: number | null;
-    /** Fraction of the turn that was silence, 0–1. */
-    pauseRatio: number | null;
-    /** Fraction of samples at the clipping ceiling, 0–1. */
-    clippingRatio: number | null;
-    /** Voice onsets per second: how often phonation restarts. */
-    voiceOnsetRateHz: number | null;
-    /** True when pitch was measurable on this turn. */
-    pitchAvailable: boolean;
-    /** Change against this speaker's own baseline. `null` on their first turn. */
-    change: ProsodyChange | null;
 }
 /**
  * One voice in this result.
@@ -150,6 +105,4 @@ export interface Transcription {
     turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
     conversation: Conversation;
 }
-/** Map the wire measurement onto the named, unit-carrying product shape. */
-export declare function prosodyFromVocalFeatures(vocal: VocalFeatures | null | undefined): Prosody | null;
 export declare function transcriptionFromConversation(conversation: Conversation, options?: TranscribeOptions): Transcription;

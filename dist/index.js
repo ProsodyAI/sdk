@@ -1,10 +1,10 @@
 export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
-export { parseAnalysisResult, ConversationAnalysis, acousticWindows, acousticSeries, } from './analysis.js';
+export { parseAnalysisResult, ConversationAnalysis, acousticWindows, measurementSeries, } from './analysis.js';
 export { AcousticWindow, } from './step.js';
-export { Conversation, vocalFeaturesFromWindow, vocalFeaturesFromState, mergeTranscriptUpdateSegments, buildTurnsFromSegments, } from './conversation.js';
+export { Conversation, prosodyFromState, prosodyFromWindow, mergeTranscriptUpdateSegments, buildTurnsFromSegments, } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export { LiveSession, } from './live-session.js';
-export { transcriptionFromConversation, prosodyFromVocalFeatures, Speaker, } from './transcription.js';
+export { transcriptionFromConversation, Speaker, } from './transcription.js';
 export { applySpeakerUpdateToSegments, } from './conversation.js';
 export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './session.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, } from './realtime.js';

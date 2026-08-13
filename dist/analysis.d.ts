@@ -1,17 +1,18 @@
-import type { AcousticState, AnalysisResult, AnalysisTurn, DiarizedSpeaker, ProsodyTimelinePoint } from './types.js';
-import { AcousticWindow, type AcousticDeltaName, type AcousticFeatureName, type AffectVad, type PitchReading } from './step.js';
-export interface AcousticFeaturePoint {
+import { type MeasurementName, type Prosody, type ProsodyChange } from './conversation/prosody.js';
+import { AcousticWindow, type AffectVad, type PitchReading } from './step.js';
+import type { AnalysisResult, AnalysisTurn, DiarizedSpeaker, ProsodyTimelinePoint } from './types.js';
+export interface MeasurementPoint {
     startMs: number;
     endMs: number;
     speakerId: string;
     value: number;
 }
-export interface AcousticDeltaPoint {
+export interface ChangePoint {
     startMs: number;
     endMs: number;
     speakerId: string;
     reference: string | null;
-    values: Partial<Record<AcousticDeltaName, number>>;
+    values: Partial<ProsodyChange>;
 }
 /**
  * Validate the stable batch envelope.
@@ -40,13 +41,13 @@ export declare class ConversationAnalysis {
     getAcoustics(speakerId?: string): AcousticWindow[];
     getAcousticWindow(index: number): AcousticWindow | null;
     /** One physical measurement across the recording, optionally for one speaker. */
-    getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[];
+    getMeasurementSeries(name: MeasurementName, speakerId?: string): MeasurementPoint[];
     /** Speaker-relative changes. The first window in each speaker lane has none. */
-    getDeltas(speakerId?: string): AcousticDeltaPoint[];
-    /** Vocal features on the latest (or indexed) acoustic window. */
-    getVocalFeatures(windowIndex?: number): ReturnType<AcousticWindow['getVocalFeatures']>;
+    getChanges(speakerId?: string): ChangePoint[];
+    /** The measurement bundle on the latest (or indexed) acoustic window. */
+    getProsody(windowIndex?: number): Prosody | null;
     /** Pitch series across windows, skipping unvoiced measurements. */
-    getPitch(speakerId?: string): AcousticFeaturePoint[];
+    getPitch(speakerId?: string): MeasurementPoint[];
     getPitchAt(windowIndex: number): PitchReading | null;
     /**
      * Affect VAD for the whole file when the checkpoint publishes it.
@@ -65,10 +66,10 @@ export declare class ConversationAnalysis {
  */
 export declare function acousticWindows(result: AnalysisResult): ProsodyTimelinePoint[];
 /**
- * Read one measured feature across a call, skipping windows where it was not
+ * Read one measurement across a call, skipping windows where it was not
  * measurable (an unvoiced window carries `null` f0, without any floor value).
  */
-export declare function acousticSeries(result: AnalysisResult, feature: keyof NonNullable<AcousticState['values']> & string): {
+export declare function measurementSeries(result: AnalysisResult, name: MeasurementName): {
     start_ms: number;
     end_ms: number;
     speaker_id?: string;

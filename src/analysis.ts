@@ -1,31 +1,34 @@
+import {
+  measurementFromState,
+  type MeasurementName,
+  type Prosody,
+  type ProsodyChange,
+} from './conversation/prosody.js';
+import {
+  AcousticWindow,
+  type AffectVad,
+  type PitchReading,
+} from './step.js';
 import type {
-  AcousticState,
   AnalysisResult,
   AnalysisTurn,
   DiarizedSpeaker,
   ProsodyTimelinePoint,
 } from './types.js';
-import {
-  AcousticWindow,
-  type AcousticDeltaName,
-  type AcousticFeatureName,
-  type AffectVad,
-  type PitchReading,
-} from './step.js';
 
-export interface AcousticFeaturePoint {
+export interface MeasurementPoint {
   startMs: number;
   endMs: number;
   speakerId: string;
   value: number;
 }
 
-export interface AcousticDeltaPoint {
+export interface ChangePoint {
   startMs: number;
   endMs: number;
   speakerId: string;
   reference: string | null;
-  values: Partial<Record<AcousticDeltaName, number>>;
+  values: Partial<ProsodyChange>;
 }
 
 /**
@@ -112,9 +115,9 @@ export class ConversationAnalysis {
   }
 
   /** One physical measurement across the recording, optionally for one speaker. */
-  getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[] {
+  getMeasurementSeries(name: MeasurementName, speakerId?: string): MeasurementPoint[] {
     return this.getAcoustics(speakerId).flatMap((window) => {
-      const value = window.getFeature(name);
+      const value = window.getMeasurement(name);
       return value === null ? [] : [{
         startMs: window.startMs,
         endMs: window.endMs,
@@ -125,38 +128,32 @@ export class ConversationAnalysis {
   }
 
   /** Speaker-relative changes. The first window in each speaker lane has none. */
-  getDeltas(speakerId?: string): AcousticDeltaPoint[] {
+  getChanges(speakerId?: string): ChangePoint[] {
     return this.getAcoustics(speakerId).flatMap((window) => {
-      const change = window.getAcousticChange();
-      if (!change?.values) return [];
-      const values: Partial<Record<AcousticDeltaName, number>> = {};
-      for (const [name, value] of Object.entries(change.values)) {
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          values[name as AcousticDeltaName] = value;
-        }
-      }
+      const delta = window.getChange();
+      if (!delta) return [];
       return [{
         startMs: window.startMs,
         endMs: window.endMs,
         speakerId: window.speakerId,
-        reference: change.reference ?? null,
-        values,
+        reference: delta.reference,
+        values: delta.values,
       }];
     });
   }
 
-  /** Vocal features on the latest (or indexed) acoustic window. */
-  getVocalFeatures(windowIndex?: number): ReturnType<AcousticWindow['getVocalFeatures']> {
+  /** The measurement bundle on the latest (or indexed) acoustic window. */
+  getProsody(windowIndex?: number): Prosody | null {
     if (windowIndex === undefined) {
       const windows = this.getAcoustics();
-      return windows[windows.length - 1]?.getVocalFeatures() ?? null;
+      return windows[windows.length - 1]?.getProsody() ?? null;
     }
-    return this.getAcousticWindow(windowIndex)?.getVocalFeatures() ?? null;
+    return this.getAcousticWindow(windowIndex)?.getProsody() ?? null;
   }
 
   /** Pitch series across windows, skipping unvoiced measurements. */
-  getPitch(speakerId?: string): AcousticFeaturePoint[] {
-    return this.getFeatureSeries('f0_median_hz', speakerId);
+  getPitch(speakerId?: string): MeasurementPoint[] {
+    return this.getMeasurementSeries('pitchHz', speakerId);
   }
 
   getPitchAt(windowIndex: number): PitchReading | null {
@@ -241,17 +238,17 @@ export function acousticWindows(result: AnalysisResult): ProsodyTimelinePoint[] 
 }
 
 /**
- * Read one measured feature across a call, skipping windows where it was not
+ * Read one measurement across a call, skipping windows where it was not
  * measurable (an unvoiced window carries `null` f0, without any floor value).
  */
-export function acousticSeries(
+export function measurementSeries(
   result: AnalysisResult,
-  feature: keyof NonNullable<AcousticState['values']> & string,
+  name: MeasurementName,
 ): { start_ms: number; end_ms: number; speaker_id?: string; value: number }[] {
   const series: { start_ms: number; end_ms: number; speaker_id?: string; value: number }[] = [];
   for (const point of acousticWindows(result)) {
-    const value = point.acoustic_state?.values?.[feature];
-    if (typeof value === 'number' && Number.isFinite(value)) {
+    const value = measurementFromState(point.acoustic_state ?? null, name);
+    if (value !== null) {
       series.push({
         start_ms: point.start_ms,
         end_ms: point.end_ms,

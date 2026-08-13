@@ -2,12 +2,12 @@ export type { ProsodyFeatures, ProsodySignals, AcousticProvenance, AcousticState
 export type { ProsodyClientConfig, RetryConfig } from './config.js';
 export type { LiveKitParticipantLike, LiveKitDataReceivedHandler, LiveKitRoomLike, ProsodySessionOptions, } from './session.js';
 export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
-export { parseAnalysisResult, ConversationAnalysis, type AcousticFeaturePoint, type AcousticDeltaPoint, acousticWindows, acousticSeries, } from './analysis.js';
-export { AcousticWindow, type AcousticFeatureName, type AcousticDeltaName, type AcousticFrameName, type AcousticFramePoint, type AffectVad, type PitchReading, type LevelReading, type VoicingReading, } from './step.js';
-export { Conversation, vocalFeaturesFromWindow, vocalFeaturesFromState, mergeTranscriptUpdateSegments, buildTurnsFromSegments, type ConversationTurn, type VocalFeatures, } from './conversation.js';
+export { parseAnalysisResult, ConversationAnalysis, type MeasurementPoint, type ChangePoint, acousticWindows, measurementSeries, } from './analysis.js';
+export { AcousticWindow, type AffectVad, type PitchReading, type LevelReading, type VoicingReading, } from './step.js';
+export { Conversation, prosodyFromState, prosodyFromWindow, mergeTranscriptUpdateSegments, buildTurnsFromSegments, type ConversationTurn, type MeasurementName, type Prosody, type ProsodyChange, type ProsodyDelta, } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions, } from './live-session.js';
-export { transcriptionFromConversation, prosodyFromVocalFeatures, Speaker, type Prosody, type ProsodyChange, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';
+export { transcriptionFromConversation, Speaker, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';
 export { applySpeakerUpdateToSegments, } from './conversation.js';
 export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './session.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';

@@ -72,17 +72,13 @@ export {
 export {
   parseAnalysisResult,
   ConversationAnalysis,
-  type AcousticFeaturePoint,
-  type AcousticDeltaPoint,
+  type MeasurementPoint,
+  type ChangePoint,
   acousticWindows,
-  acousticSeries,
+  measurementSeries,
 } from './analysis.js';
 export {
   AcousticWindow,
-  type AcousticFeatureName,
-  type AcousticDeltaName,
-  type AcousticFrameName,
-  type AcousticFramePoint,
   type AffectVad,
   type PitchReading,
   type LevelReading,
@@ -90,12 +86,15 @@ export {
 } from './step.js';
 export {
   Conversation,
-  vocalFeaturesFromWindow,
-  vocalFeaturesFromState,
+  prosodyFromState,
+  prosodyFromWindow,
   mergeTranscriptUpdateSegments,
   buildTurnsFromSegments,
   type ConversationTurn,
-  type VocalFeatures,
+  type MeasurementName,
+  type Prosody,
+  type ProsodyChange,
+  type ProsodyDelta,
 } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export {
@@ -105,10 +104,7 @@ export {
 } from './live-session.js';
 export {
   transcriptionFromConversation,
-  prosodyFromVocalFeatures,
   Speaker,
-  type Prosody,
-  type ProsodyChange,
   type TranscribeOptions,
   type TranscribeTurn,
   type Transcription,

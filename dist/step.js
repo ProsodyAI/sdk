@@ -1,3 +1,4 @@
+import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, } from './conversation/prosody.js';
 /**
  * One gated ProsodySSM recurrent step, as a consumer sees it.
  *
@@ -79,36 +80,21 @@ export class AcousticWindow {
     getSpeakerId() {
         return this.speakerId;
     }
-    /** Full gated `acoustic_state` object (values / masks / frames). */
+    /** Wire `acoustic_state` payload, for consumers that parse the wire themselves. */
     getAcousticState() {
         return this.state;
     }
+    /** Wire `acoustic_change` payload, for consumers that parse the wire themselves. */
     getAcousticChange() {
         return this.change;
     }
-    getValues() {
-        return this.state?.values ?? null;
+    /** The full measurement bundle for this window, under readable names. */
+    getProsody() {
+        return prosodyFromState(this.state, this.change);
     }
-    getFrames() {
-        return this.state?.frames ?? null;
-    }
-    getFeature(name) {
-        return finiteOrNull(this.state?.values?.[name]);
-    }
-    getDelta(name) {
-        return finiteOrNull(this.change?.values?.[name]);
-    }
-    /** Mimi-aligned frame trajectory for live windows. Batch reports omit frames. */
-    getFrameSeries(name) {
-        const frames = this.state?.frames;
-        const values = frames?.[name];
-        if (!Array.isArray(values))
-            return [];
-        const frameRateHz = finiteOrNull(frames?.frame_rate_hz) ?? 12.5;
-        return values.map((value, index) => ({
-            timeMs: this.startMs + (index * 1000) / frameRateHz,
-            value: finiteOrNull(value),
-        }));
+    /** One measurement from this window, by readable name. */
+    getMeasurement(name) {
+        return measurementFromState(this.state, name);
     }
     getPitch() {
         const values = this.state?.values;
@@ -154,29 +140,9 @@ export class AcousticWindow {
     getVad() {
         return this.affectAvailable ? this.affect : null;
     }
-    /** Speaker-relative deltas vs prior chunk in this speaker's recurrent scope. */
+    /** Speaker-relative movement vs the prior window in this speaker's scope. */
     getChange() {
-        return this.change?.values ?? null;
-    }
-    /** Developer-facing bundle of gated vocal measurements for this window. */
-    getVocalFeatures() {
-        const values = this.state?.values;
-        if (!values)
-            return null;
-        return {
-            rms_dbfs: finiteOrNull(values.rms_dbfs),
-            peak_dbfs: finiteOrNull(values.peak_dbfs),
-            f0_median_hz: finiteOrNull(values.f0_median_hz),
-            f0_range_semitones: finiteOrNull(values.f0_range_semitones),
-            f0_slope_semitones_per_second: finiteOrNull(values.f0_slope_semitones_per_second),
-            spectral_tilt_db_per_octave: finiteOrNull(values.spectral_tilt_db_per_octave),
-            voiced_ratio: finiteOrNull(values.voiced_ratio),
-            pause_ratio: finiteOrNull(values.pause_ratio),
-            clipping_ratio: finiteOrNull(values.clipping_ratio),
-            voice_onset_rate_hz: finiteOrNull(values.voice_onset_rate_hz),
-            change: this.change?.values ?? null,
-            f0_available: this.state?.masks?.f0_available === true,
-        };
+        return prosodyDeltaFromWire(this.change);
     }
 }
 function finiteOrNull(value) {

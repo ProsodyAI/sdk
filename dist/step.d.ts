@@ -1,4 +1,5 @@
-import type { AcousticChange, AcousticState, AcousticStateFrames, AcousticStateValues, DirectiveEvent, ProsodyTimelinePoint } from './types.js';
+import { type MeasurementName, type Prosody, type ProsodyDelta } from './conversation/prosody.js';
+import type { AcousticChange, AcousticState, DirectiveEvent, ProsodyTimelinePoint } from './types.js';
 export interface AffectVad {
     valence: number;
     arousal: number;
@@ -22,13 +23,6 @@ export interface VoicingReading {
     onsetRateHz: number | null;
     /** Committed per-frame voicing mask at 12.5 Hz. */
     frameVoiced: boolean[] | null;
-}
-export type AcousticFeatureName = 'rms_dbfs' | 'peak_dbfs' | 'f0_median_hz' | 'f0_range_semitones' | 'f0_slope_semitones_per_second' | 'spectral_tilt_db_per_octave' | 'voiced_ratio' | 'pause_ratio' | 'clipping_ratio' | 'voice_onset_rate_hz';
-export type AcousticDeltaName = 'rms_db_change' | 'peak_db_change' | 'f0_median_semitone_change' | 'f0_range_semitone_change' | 'f0_slope_semitones_per_second_change' | 'spectral_tilt_db_per_octave_change' | 'voiced_ratio_change' | 'pause_ratio_change' | 'voice_onset_rate_hz_change';
-export type AcousticFrameName = 'rms_dbfs' | 'f0_hz' | 'spectral_tilt_db_per_octave';
-export interface AcousticFramePoint {
-    timeMs: number;
-    value: number | null;
 }
 /**
  * One gated ProsodySSM recurrent step, as a consumer sees it.
@@ -61,15 +55,14 @@ export declare class AcousticWindow {
         affectAvailable?: boolean;
     }): AcousticWindow;
     getSpeakerId(): string;
-    /** Full gated `acoustic_state` object (values / masks / frames). */
+    /** Wire `acoustic_state` payload, for consumers that parse the wire themselves. */
     getAcousticState(): AcousticState | null;
+    /** Wire `acoustic_change` payload, for consumers that parse the wire themselves. */
     getAcousticChange(): AcousticChange | null;
-    getValues(): AcousticStateValues | null;
-    getFrames(): AcousticStateFrames | null;
-    getFeature(name: AcousticFeatureName): number | null;
-    getDelta(name: AcousticDeltaName): number | null;
-    /** Mimi-aligned frame trajectory for live windows. Batch reports omit frames. */
-    getFrameSeries(name: AcousticFrameName): AcousticFramePoint[];
+    /** The full measurement bundle for this window, under readable names. */
+    getProsody(): Prosody | null;
+    /** One measurement from this window, by readable name. */
+    getMeasurement(name: MeasurementName): number | null;
     getPitch(): PitchReading;
     /** Convenience: median F0 Hz, or null. */
     getPitchHz(): number | null;
@@ -80,21 +73,6 @@ export declare class AcousticWindow {
      * Return V/A/D when the checkpoint marks affect as a trained measurement.
      */
     getVad(): AffectVad | null;
-    /** Speaker-relative deltas vs prior chunk in this speaker's recurrent scope. */
-    getChange(): AcousticChange['values'] | null;
-    /** Developer-facing bundle of gated vocal measurements for this window. */
-    getVocalFeatures(): {
-        rms_dbfs: number | null;
-        peak_dbfs: number | null;
-        f0_median_hz: number | null;
-        f0_range_semitones: number | null;
-        f0_slope_semitones_per_second: number | null;
-        spectral_tilt_db_per_octave: number | null;
-        voiced_ratio: number | null;
-        pause_ratio: number | null;
-        clipping_ratio: number | null;
-        voice_onset_rate_hz: number | null;
-        change: AcousticChange['values'] | null;
-        f0_available: boolean;
-    } | null;
+    /** Speaker-relative movement vs the prior window in this speaker's scope. */
+    getChange(): ProsodyDelta | null;
 }
