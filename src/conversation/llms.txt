@@ -1,0 +1,21 @@
+# packages/sdk/src/conversation
+
+Turn assembly and the readable measurement layer for @prosodyai/sdk.
+
+## Files
+
+- `prosody.ts`: owns the readable measurement names and the readable-to-wire
+  key maps. Anything exposing a measurement to a consumer goes through
+  `prosodyFromState`, `measurementFromState`, or `prosodyDeltaFromWire`.
+- `turn-model.ts`: turn and step types; `ConversationTurn.prosody` is the
+  per-turn measurement slot.
+- `turn-builder.ts`: segments to turns, prosody attached by overlap.
+- `transcript-merge.ts`: reducers for transcript and speaker updates.
+- `speaker-resolution.ts`: live segment attribution.
+
+## Contracts
+
+- No wire field name leaves this directory except through the maps in
+  `prosody.ts`.
+- `ConversationTurn` carries `prosody?: Prosody | null`; the old `vocal`
+  bundle with wire keys was removed.

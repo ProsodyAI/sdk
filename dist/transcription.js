@@ -52,7 +52,7 @@ function speakerLabel(id, index) {
 function statOf(windows, name) {
     const values = [];
     for (const window of windows) {
-        const value = window.getFeature(name);
+        const value = window.getMeasurement(name);
         if (value !== null)
             values.push(value);
     }
@@ -71,54 +71,16 @@ function statOf(windows, name) {
     };
 }
 function voiceProfileOf(windows) {
-    const pitchHz = statOf(windows, 'f0_median_hz');
+    const pitchHz = statOf(windows, 'pitchHz');
     return {
-        loudnessDbfs: statOf(windows, 'rms_dbfs'),
+        loudnessDbfs: statOf(windows, 'loudnessDbfs'),
         pitchHz,
-        pitchRangeSemitones: statOf(windows, 'f0_range_semitones'),
-        tiltDbPerOctave: statOf(windows, 'spectral_tilt_db_per_octave'),
-        voicedRatio: statOf(windows, 'voiced_ratio'),
-        pauseRatio: statOf(windows, 'pause_ratio'),
+        pitchRangeSemitones: statOf(windows, 'pitchRangeSemitones'),
+        tiltDbPerOctave: statOf(windows, 'tiltDbPerOctave'),
+        voicedRatio: statOf(windows, 'voicedRatio'),
+        pauseRatio: statOf(windows, 'pauseRatio'),
         windowCount: windows.length,
         pitchAvailable: pitchHz !== null,
-    };
-}
-function prosodyChangeOf(change) {
-    if (!change)
-        return null;
-    const at = (name) => {
-        const value = change[name];
-        return typeof value === 'number' ? value : null;
-    };
-    return {
-        loudnessDb: at('rms_db_change'),
-        peakDb: at('peak_db_change'),
-        pitchSemitones: at('f0_median_semitone_change'),
-        pitchRangeSemitones: at('f0_range_semitone_change'),
-        pitchSlopeSemitonesPerSecond: at('f0_slope_semitones_per_second_change'),
-        tiltDbPerOctave: at('spectral_tilt_db_per_octave_change'),
-        voicedRatio: at('voiced_ratio_change'),
-        pauseRatio: at('pause_ratio_change'),
-        voiceOnsetRateHz: at('voice_onset_rate_hz_change'),
-    };
-}
-/** Map the wire measurement onto the named, unit-carrying product shape. */
-export function prosodyFromVocalFeatures(vocal) {
-    if (!vocal)
-        return null;
-    return {
-        loudnessDbfs: vocal.rms_dbfs,
-        peakDbfs: vocal.peak_dbfs,
-        pitchHz: vocal.f0_median_hz,
-        pitchRangeSemitones: vocal.f0_range_semitones,
-        pitchSlopeSemitonesPerSecond: vocal.f0_slope_semitones_per_second,
-        tiltDbPerOctave: vocal.spectral_tilt_db_per_octave,
-        voicedRatio: vocal.voiced_ratio,
-        pauseRatio: vocal.pause_ratio,
-        clippingRatio: vocal.clipping_ratio,
-        voiceOnsetRateHz: vocal.voice_onset_rate_hz,
-        pitchAvailable: vocal.f0_available,
-        change: prosodyChangeOf(vocal.change),
     };
 }
 export function transcriptionFromConversation(conversation, options) {
@@ -163,7 +125,7 @@ export function transcriptionFromConversation(conversation, options) {
             endMs: turn.end_ms,
         };
         if (includeProsody)
-            base.prosody = prosodyFromVocalFeatures(turn.vocal);
+            base.prosody = turn.prosody ?? null;
         return base;
     });
     return {

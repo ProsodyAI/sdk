@@ -1,5 +1,5 @@
 import type { AcousticChange, AcousticState, TranscriptUpdateSegment } from '../types.js';
-import type { VocalFeatures } from './vocal-features.js';
+import type { Prosody } from './prosody.js';
 
 /** One diarized transcript turn with the covering acoustic measurement. */
 export interface ConversationTurn {
@@ -8,7 +8,7 @@ export interface ConversationTurn {
   end_ms: number;
   text: string;
   final?: boolean;
-  vocal?: VocalFeatures | null;
+  prosody?: Prosody | null;
 }
 
 export type LiveSegment = TranscriptUpdateSegment & {

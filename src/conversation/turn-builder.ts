@@ -7,7 +7,7 @@ import {
   type LiveSegment,
   type StepAnchor,
 } from './turn-model.js';
-import { vocalFeaturesFromState, type VocalFeatures } from './vocal-features.js';
+import { prosodyFromState, type Prosody } from './prosody.js';
 
 /** Build speaker-owned turns and attach overlapping vocal measurements. */
 export function buildTurnsFromSegments(
@@ -18,7 +18,7 @@ export function buildTurnsFromSegments(
     .map((segment) => ({ ...segment }))
     .sort((a, b) => a.start_ms - b.start_ms || a.end_ms - b.end_ms);
 
-  const vocalAt = (startMs: number, endMs: number): VocalFeatures | null => {
+  const prosodyAt = (startMs: number, endMs: number): Prosody | null => {
     let best: StepAnchor | null = null;
     let bestOverlap = 0;
     for (const step of steps) {
@@ -29,7 +29,7 @@ export function buildTurnsFromSegments(
       }
     }
     if (!best?.acoustic_state) return null;
-    return vocalFeaturesFromState(best.acoustic_state, best.acoustic_change);
+    return prosodyFromState(best.acoustic_state, best.acoustic_change);
   };
 
   const turns: ConversationTurn[] = [];
@@ -45,7 +45,7 @@ export function buildTurnsFromSegments(
       last.text = `${last.text} ${text}`.trim();
       last.end_ms = Math.max(last.end_ms, seg.end_ms);
       last.final = seg.is_final === true;
-      if (!last.vocal) last.vocal = vocalAt(last.start_ms, last.end_ms);
+      if (!last.prosody) last.prosody = prosodyAt(last.start_ms, last.end_ms);
       continue;
     }
     turns.push({
@@ -54,7 +54,7 @@ export function buildTurnsFromSegments(
       end_ms: seg.end_ms,
       text,
       final: seg.is_final === true,
-      vocal: vocalAt(seg.start_ms, Math.max(seg.start_ms + 1, seg.end_ms)),
+      prosody: prosodyAt(seg.start_ms, Math.max(seg.start_ms + 1, seg.end_ms)),
     });
   }
   return turns;

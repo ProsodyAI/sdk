@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { acousticSeries, acousticWindows, parseAnalysisResult } from '../analysis.js';
+import { acousticWindows, measurementSeries, parseAnalysisResult } from '../analysis.js';
 
 /**
  * Captured from production: POST /v1/analyze/audio with diarize=true on 90s of
@@ -41,9 +41,9 @@ describe('acoustic output from a real deployment', () => {
     expect(windows[1].acoustic_change?.reference).toContain('previous_chunk');
   });
 
-  it('reads one feature across the call', () => {
+  it('reads one measurement across the call', () => {
     const result = parseAnalysisResult(production);
-    const series = acousticSeries(result, 'f0_median_hz');
+    const series = measurementSeries(result, 'pitchHz');
     expect(series).toHaveLength(3);
     expect(series.every((point) => point.end_ms > point.start_ms)).toBe(true);
   });
@@ -75,7 +75,7 @@ describe('affect is not required to be a measurement', () => {
       ],
     });
     expect(result.affect_available).toBe(false);
-    expect(acousticSeries(result, 'rms_dbfs')[0].value).toBe(-20.5);
+    expect(measurementSeries(result, 'loudnessDbfs')[0].value).toBe(-20.5);
   });
 
   it('rejects a response that claims affect but omits the numbers', () => {

@@ -108,11 +108,11 @@ speaker-relative deltas:
 
 ```typescript
 const windows = result.conversation.getAcoustics(speaker.id);
-const pitch = result.conversation.getFeatureSeries(
-  'f0_median_hz',
+const pitch = result.conversation.getMeasurementSeries(
+  'pitchHz',
   speaker.id,
 );
-const changes = result.conversation.getDeltas(speaker.id);
+const changes = result.conversation.getChanges(speaker.id);
 ```
 
 ## Speaker directory and enrollment

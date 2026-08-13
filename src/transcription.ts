@@ -1,5 +1,11 @@
-import type { Conversation, VocalFeatures } from './conversation.js';
-import type { AcousticFeatureName, AcousticWindow } from './step.js';
+import type { Conversation } from './conversation.js';
+import {
+  type MeasurementName,
+  type Prosody,
+} from './conversation/prosody.js';
+import type { AcousticWindow } from './step.js';
+
+export type { Prosody, ProsodyChange } from './conversation/prosody.js';
 
 /**
  * Options for {@link ProsodyClient.transcribe}.
@@ -44,55 +50,6 @@ export interface VoiceProfile {
   windowCount: number;
   /** Whether pitch was measurable at all. */
   pitchAvailable: boolean;
-}
-
-/**
- * How this turn moved against the same speaker's preceding audio. Signed:
- * zero is a real reading, `null` means the feature was not measurable.
- */
-export interface ProsodyChange {
-  loudnessDb: number | null;
-  peakDb: number | null;
-  pitchSemitones: number | null;
-  pitchRangeSemitones: number | null;
-  pitchSlopeSemitonesPerSecond: number | null;
-  tiltDbPerOctave: number | null;
-  voicedRatio: number | null;
-  pauseRatio: number | null;
-  voiceOnsetRateHz: number | null;
-}
-
-/**
- * How a turn sounded, in physical units.
- *
- * A field is `null` when the audio did not support the measurement (pitch on
- * a whispered or unvoiced turn, for example).
- */
-export interface Prosody {
-  /** Loudness, dBFS. */
-  loudnessDbfs: number | null;
-  /** Loudest sample in the window, dBFS. */
-  peakDbfs: number | null;
-  /** Pitch, Hz. */
-  pitchHz: number | null;
-  /** Pitch movement within the turn, semitones. */
-  pitchRangeSemitones: number | null;
-  /** Pitch direction, semitones per second: negative falls, positive rises. */
-  pitchSlopeSemitonesPerSecond: number | null;
-  /** Spectral tilt, dB per octave. Breathy voices tilt steeper. */
-  tiltDbPerOctave: number | null;
-  /** Fraction of the turn carrying voiced audio, 0–1. */
-  voicedRatio: number | null;
-  /** Fraction of the turn that was silence, 0–1. */
-  pauseRatio: number | null;
-  /** Fraction of samples at the clipping ceiling, 0–1. */
-  clippingRatio: number | null;
-  /** Voice onsets per second: how often phonation restarts. */
-  voiceOnsetRateHz: number | null;
-  /** True when pitch was measurable on this turn. */
-  pitchAvailable: boolean;
-  /** Change against this speaker's own baseline. `null` on their first turn. */
-  change: ProsodyChange | null;
 }
 
 /**
@@ -184,10 +141,10 @@ function speakerLabel(id: string, index: number): string {
   return index >= 0 ? `Speaker ${index + 1}` : id;
 }
 
-function statOf(windows: AcousticWindow[], name: AcousticFeatureName): VoiceStat | null {
+function statOf(windows: AcousticWindow[], name: MeasurementName): VoiceStat | null {
   const values: number[] = [];
   for (const window of windows) {
-    const value = window.getFeature(name);
+    const value = window.getMeasurement(name);
     if (value !== null) values.push(value);
   }
   if (!values.length) return null;
@@ -205,56 +162,16 @@ function statOf(windows: AcousticWindow[], name: AcousticFeatureName): VoiceStat
 }
 
 function voiceProfileOf(windows: AcousticWindow[]): VoiceProfile {
-  const pitchHz = statOf(windows, 'f0_median_hz');
+  const pitchHz = statOf(windows, 'pitchHz');
   return {
-    loudnessDbfs: statOf(windows, 'rms_dbfs'),
+    loudnessDbfs: statOf(windows, 'loudnessDbfs'),
     pitchHz,
-    pitchRangeSemitones: statOf(windows, 'f0_range_semitones'),
-    tiltDbPerOctave: statOf(windows, 'spectral_tilt_db_per_octave'),
-    voicedRatio: statOf(windows, 'voiced_ratio'),
-    pauseRatio: statOf(windows, 'pause_ratio'),
+    pitchRangeSemitones: statOf(windows, 'pitchRangeSemitones'),
+    tiltDbPerOctave: statOf(windows, 'tiltDbPerOctave'),
+    voicedRatio: statOf(windows, 'voicedRatio'),
+    pauseRatio: statOf(windows, 'pauseRatio'),
     windowCount: windows.length,
     pitchAvailable: pitchHz !== null,
-  };
-}
-
-function prosodyChangeOf(change: VocalFeatures['change']): ProsodyChange | null {
-  if (!change) return null;
-  const at = (name: string): number | null => {
-    const value = change[name];
-    return typeof value === 'number' ? value : null;
-  };
-  return {
-    loudnessDb: at('rms_db_change'),
-    peakDb: at('peak_db_change'),
-    pitchSemitones: at('f0_median_semitone_change'),
-    pitchRangeSemitones: at('f0_range_semitone_change'),
-    pitchSlopeSemitonesPerSecond: at('f0_slope_semitones_per_second_change'),
-    tiltDbPerOctave: at('spectral_tilt_db_per_octave_change'),
-    voicedRatio: at('voiced_ratio_change'),
-    pauseRatio: at('pause_ratio_change'),
-    voiceOnsetRateHz: at('voice_onset_rate_hz_change'),
-  };
-}
-
-/** Map the wire measurement onto the named, unit-carrying product shape. */
-export function prosodyFromVocalFeatures(
-  vocal: VocalFeatures | null | undefined,
-): Prosody | null {
-  if (!vocal) return null;
-  return {
-    loudnessDbfs: vocal.rms_dbfs,
-    peakDbfs: vocal.peak_dbfs,
-    pitchHz: vocal.f0_median_hz,
-    pitchRangeSemitones: vocal.f0_range_semitones,
-    pitchSlopeSemitonesPerSecond: vocal.f0_slope_semitones_per_second,
-    tiltDbPerOctave: vocal.spectral_tilt_db_per_octave,
-    voicedRatio: vocal.voiced_ratio,
-    pauseRatio: vocal.pause_ratio,
-    clippingRatio: vocal.clipping_ratio,
-    voiceOnsetRateHz: vocal.voice_onset_rate_hz,
-    pitchAvailable: vocal.f0_available,
-    change: prosodyChangeOf(vocal.change),
   };
 }
 
@@ -306,7 +223,7 @@ export function transcriptionFromConversation(
       startMs: turn.start_ms,
       endMs: turn.end_ms,
     };
-    if (includeProsody) base.prosody = prosodyFromVocalFeatures(turn.vocal);
+    if (includeProsody) base.prosody = turn.prosody ?? null;
     return base;
   });
 

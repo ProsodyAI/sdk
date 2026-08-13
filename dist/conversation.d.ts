@@ -1,10 +1,10 @@
 import type { AnalysisResult, DiarizedSpeaker, ProsodyEvent } from './types.js';
-import { AcousticWindow, type AcousticFeatureName } from './step.js';
-import { type AcousticDeltaPoint, type AcousticFeaturePoint } from './analysis.js';
+import { AcousticWindow } from './step.js';
+import { type ChangePoint, type MeasurementPoint } from './analysis.js';
 import { type ConversationTurn } from './conversation/turn-model.js';
-import { type VocalFeatures } from './conversation/vocal-features.js';
+import { type MeasurementName, type Prosody } from './conversation/prosody.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
-export { vocalFeaturesFromState, vocalFeaturesFromWindow, type VocalFeatures, } from './conversation/vocal-features.js';
+export { prosodyFromState, prosodyFromWindow, type MeasurementName, type Prosody, type ProsodyChange, type ProsodyDelta, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 /**
@@ -26,15 +26,16 @@ export declare class Conversation {
     getTurns(): ConversationTurn[];
     getTurn(index: number): ConversationTurn | null;
     /**
-     * Vocal features for a turn (overlap-weighted best step) or latest step.
+     * Measurement bundle for a turn (overlap-weighted best step) or latest step.
      * Pass `turnIndex` for a turn; omit for the most recent recurrent step.
      */
-    getVocalFeatures(turnIndex?: number): VocalFeatures | null;
+    getProsody(turnIndex?: number): Prosody | null;
     getSpeakers(): DiarizedSpeaker[];
     /** All measured windows, optionally limited to one recording-local speaker. */
     getAcoustics(speakerId?: string): AcousticWindow[];
     getAcousticWindow(index: number): AcousticWindow | null;
-    getFeatureSeries(name: AcousticFeatureName, speakerId?: string): AcousticFeaturePoint[];
-    getDeltas(speakerId?: string): AcousticDeltaPoint[];
+    getMeasurementSeries(name: MeasurementName, speakerId?: string): MeasurementPoint[];
+    /** Speaker-relative changes. The first window in each speaker lane has none. */
+    getChanges(speakerId?: string): ChangePoint[];
     private batchTurn;
 }

@@ -32,8 +32,8 @@ describe('AcousticWindow consumer accessors', () => {
     const conversation = new ConversationAnalysis(parseAnalysisResult(production));
     const windows = conversation.getAcoustics();
     expect(windows[0].getChange()).toBeNull();
-    expect(windows[1].getDelta('rms_db_change')).toBeCloseTo(2.18, 1);
-    expect(conversation.getDeltas()).toHaveLength(2);
+    expect(windows[1].getChange()?.values.loudnessDb).toBeCloseTo(2.18, 1);
+    expect(conversation.getChanges()).toHaveLength(2);
   });
 
   it('getPitch lists voiced F0 across the call', () => {
@@ -112,7 +112,7 @@ describe('AcousticWindow consumer accessors', () => {
     expect(window.getVad()).toBeNull();
   });
 
-  it('exposes Mimi-aligned frame trajectories from a live window', () => {
+  it('maps the measurement bundle to readable names', () => {
     const window = AcousticWindow.fromDirective({
       type: 'directive',
       session_id: 's1',
@@ -124,22 +124,21 @@ describe('AcousticWindow consumer accessors', () => {
       dominance: 0,
       prosody: { valence: 0, arousal: 0, dominance: 0 },
       acoustic_state: {
-        values: { rms_dbfs: -22 },
-        frames: {
-          frame_rate_hz: 12.5,
-          rms_dbfs: [-24, -22],
-          f0_hz: [null, 180],
-        },
+        values: { rms_dbfs: -22, f0_median_hz: 180 },
+        masks: { f0_available: true },
       },
+      acoustic_change: { values: { rms_db_change: 1.5 }, reference: 'previous_chunk' },
       text: '', frames_processed: 2, timings_ms: {},
       speaker_changed: false,
       num_speakers: 1, diar_segments: [], phonemes: [], ipa_transcript: '',
       prosody_embedding: null,
     } as DirectiveEvent);
 
-    expect(window.getFrameSeries('f0_hz')).toEqual([
-      { timeMs: 0, value: null },
-      { timeMs: 80, value: 180 },
-    ]);
+    const prosody = window.getProsody();
+    expect(prosody?.loudnessDbfs).toBe(-22);
+    expect(prosody?.pitchHz).toBe(180);
+    expect(prosody?.change?.loudnessDb).toBe(1.5);
+    expect(window.getMeasurement('pitchHz')).toBe(180);
+    expect(window.getChange()?.reference).toBe('previous_chunk');
   });
 });

@@ -1,10 +1,10 @@
-import { AcousticWindow, } from './step.js';
+import { AcousticWindow } from './step.js';
 import { ConversationAnalysis, } from './analysis.js';
 import { isKnownSpeaker, normalizeSpeakerId, } from './conversation/turn-model.js';
-import { vocalFeaturesFromState, vocalFeaturesFromWindow, } from './conversation/vocal-features.js';
+import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
 import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
-export { vocalFeaturesFromState, vocalFeaturesFromWindow, } from './conversation/vocal-features.js';
+export { prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 /**
@@ -115,23 +115,23 @@ export class Conversation {
         return turns[index] ?? null;
     }
     /**
-     * Vocal features for a turn (overlap-weighted best step) or latest step.
+     * Measurement bundle for a turn (overlap-weighted best step) or latest step.
      * Pass `turnIndex` for a turn; omit for the most recent recurrent step.
      */
-    getVocalFeatures(turnIndex) {
+    getProsody(turnIndex) {
         if (turnIndex !== undefined) {
             const turn = this.getTurn(turnIndex);
-            return turn?.vocal ?? null;
+            return turn?.prosody ?? null;
         }
         if (this.batch) {
             const windows = this.batch.getAcoustics();
             const last = windows[windows.length - 1];
-            return last ? vocalFeaturesFromWindow(last) : null;
+            return last ? prosodyFromWindow(last) : null;
         }
         const last = this.steps[this.steps.length - 1];
         if (!last?.acoustic_state)
             return null;
-        return vocalFeaturesFromState(last.acoustic_state, last.acoustic_change);
+        return prosodyFromState(last.acoustic_state, last.acoustic_change);
     }
     getSpeakers() {
         if (this.batch)
@@ -172,11 +172,11 @@ export class Conversation {
             return null;
         return windows[index] ?? null;
     }
-    getFeatureSeries(name, speakerId) {
+    getMeasurementSeries(name, speakerId) {
         if (this.batch)
-            return this.batch.getFeatureSeries(name, speakerId);
+            return this.batch.getMeasurementSeries(name, speakerId);
         return this.getAcoustics(speakerId).flatMap((window) => {
-            const value = window.getFeature(name);
+            const value = measurementFromState(window.getAcousticState(), name);
             return value === null ? [] : [{
                     startMs: window.startMs,
                     endMs: window.endMs,
@@ -185,25 +185,20 @@ export class Conversation {
                 }];
         });
     }
-    getDeltas(speakerId) {
+    /** Speaker-relative changes. The first window in each speaker lane has none. */
+    getChanges(speakerId) {
         if (this.batch)
-            return this.batch.getDeltas(speakerId);
+            return this.batch.getChanges(speakerId);
         return this.getAcoustics(speakerId).flatMap((window) => {
-            const change = window.getAcousticChange();
-            if (!change?.values)
+            const delta = prosodyDeltaFromWire(window.getAcousticChange());
+            if (!delta)
                 return [];
-            const values = {};
-            for (const [name, value] of Object.entries(change.values)) {
-                if (typeof value === 'number' && Number.isFinite(value)) {
-                    values[name] = value;
-                }
-            }
             return [{
                     startMs: window.startMs,
                     endMs: window.endMs,
                     speakerId: window.speakerId,
-                    reference: change.reference ?? null,
-                    values,
+                    reference: delta.reference,
+                    values: delta.values,
                 }];
         });
     }
@@ -216,7 +211,7 @@ export class Conversation {
             end_ms: turn.end_ms,
             text: turn.text,
             final: true,
-            vocal: state ? vocalFeaturesFromState(state, change) : null,
+            prosody: state ? prosodyFromState(state, change) : null,
         };
     }
 }
