@@ -85,7 +85,6 @@ describe('LiveSession', () => {
       session_id: 'sess-1',
       speaker_id: 'speaker_0',
       timestamp_ms: 0,
-      affect_available: false,
       acoustic_state: {
         values: { rms_dbfs: -20, f0_median_hz: 140 },
         masks: { f0_available: true },

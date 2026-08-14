@@ -56,7 +56,7 @@ describe('acoustic output from a real deployment', () => {
   });
 });
 
-describe('affect is not required to be a measurement', () => {
+describe('affect is the trained head readout, null when unvoiced', () => {
   const base = {
     prediction_id: 'pred-1',
     text: 'hello',
@@ -64,23 +64,27 @@ describe('affect is not required to be a measurement', () => {
     word_count: 1,
   };
 
-  it('accepts a response whose checkpoint publishes no affect', () => {
+  it('accepts a response whose frames are unvoiced (null V/A/D)', () => {
     const result = parseAnalysisResult({
       ...base,
-      affect_available: false,
-      prosody: { valence: 0, arousal: 0, dominance: 0 },
+      prosody: { valence: null, arousal: null, dominance: null },
       prosody_timeline: [
-        { start_ms: 0, end_ms: 5000, valence: 0, arousal: 0, dominance: 0,
+        { start_ms: 0, end_ms: 5000, valence: null, arousal: null, dominance: null,
           acoustic_state: { values: { rms_dbfs: -20.5 } } },
       ],
     });
-    expect(result.affect_available).toBe(false);
     expect(measurementSeries(result, 'stress.loudness')[0].value).toBe(-20.5);
   });
 
-  it('rejects a response that claims affect but omits the numbers', () => {
-    expect(() =>
-      parseAnalysisResult({ ...base, affect_available: true, prosody: { valence: 0.2 } }),
-    ).toThrow(/affect_available/);
+  it('carries voiced readings through as numbers', () => {
+    const result = parseAnalysisResult({
+      ...base,
+      prosody: { valence: 0.2, arousal: 0.6, dominance: 0.5 },
+      prosody_timeline: [
+        { start_ms: 0, end_ms: 5000, valence: 0.2, arousal: 0.6, dominance: 0.5,
+          acoustic_state: { values: { rms_dbfs: -20.5 } } },
+      ],
+    });
+    expect(result.prosody.valence).toBe(0.2);
   });
 });

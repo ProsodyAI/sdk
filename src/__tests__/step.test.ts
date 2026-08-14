@@ -24,7 +24,9 @@ describe('VoiceFrame consumer accessors', () => {
     expect(first.state?.intonation.pitch).toBeCloseTo(146.02, 1);
     expect(first.state?.stress.loudness).toBeCloseTo(-18.04, 1);
     expect(first.state?.rhythm.voiced).toBeCloseTo(0.9476, 3);
-    expect(first.vad).toBeNull();
+    expect(first.vad?.valence).toBeCloseTo(0.1358, 3);
+    expect(first.vad?.arousal).toBeCloseTo(0.5178, 3);
+    expect(first.vad?.dominance).toBeCloseTo(0.6265, 3);
   });
 
   it('exposes speaker-relative change after the first step', () => {
@@ -49,7 +51,6 @@ describe('VoiceFrame consumer accessors', () => {
         text: 'hi',
         duration: 1,
         word_count: 1,
-        affect_available: false,
         prosody: { valence: 0, arousal: 0, dominance: 0 },
         per_speaker: [
           {
@@ -84,11 +85,10 @@ describe('VoiceFrame consumer accessors', () => {
       session_id: 's1',
       speaker_id: 'speaker_0',
       timestamp_ms: 8000,
-      affect_available: false,
-      valence: 0,
-      arousal: 0,
-      dominance: 0,
-      prosody: { valence: 0, arousal: 0, dominance: 0 },
+      valence: null,
+      arousal: null,
+      dominance: null,
+      prosody: { valence: null, arousal: null, dominance: null },
       acoustic_state: {
         values: { f0_median_hz: 180, rms_dbfs: -22, voiced_ratio: 0.8 },
         masks: { f0_available: true },
@@ -117,11 +117,10 @@ describe('VoiceFrame consumer accessors', () => {
       session_id: 's1',
       speaker_id: 'speaker_0',
       timestamp_ms: 1000,
-      affect_available: false,
-      valence: 0,
-      arousal: 0,
-      dominance: 0,
-      prosody: { valence: 0, arousal: 0, dominance: 0 },
+      valence: null,
+      arousal: null,
+      dominance: null,
+      prosody: { valence: null, arousal: null, dominance: null },
       acoustic_state: {
         values: { rms_dbfs: -22, f0_median_hz: 180 },
         masks: { f0_available: true },

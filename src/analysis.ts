@@ -45,9 +45,10 @@ export interface ChangePoint {
  *
  * ProsodySSM's product output is `acoustic_state`, the measured waveform
  * values per window, which arrives on `prosody_timeline` and on each turn.
- * Valence / arousal / dominance are only readings when `affect_available` is
- * true, so they are never required here: a deployment that publishes
- * measurements and no affect is a correct deployment.
+ * Valence / arousal / dominance are the trained affect head's readout; each
+ * is `null` on an unvoiced frame, never a fabricated neutral. The head is
+ * always trained, so a deployment that publishes only acoustic state is
+ * still a correct deployment.
  */
 export function parseAnalysisResult(value: unknown): AnalysisResult {
   if (!isRecord(value)) {
@@ -64,16 +65,6 @@ export function parseAnalysisResult(value: unknown): AnalysisResult {
   }
   if (typeof value.duration !== 'number' || typeof value.word_count !== 'number') {
     throw new Error('Analysis result missing audio metadata');
-  }
-
-  if (value.affect_available === true) {
-    for (const field of ['valence', 'arousal', 'dominance'] as const) {
-      if (typeof value.prosody[field] !== 'number') {
-        throw new Error(
-          `Analysis result declares affect_available but prosody.${field} is not a number`,
-        );
-      }
-    }
   }
 
   return value as unknown as AnalysisResult;
@@ -115,10 +106,9 @@ export class ConversationAnalysis {
 
   /** Measured frames produced from Mimi-latent recurrent analysis. */
   getFrames(speakerId?: string): VoiceFrame[] {
-    const affectAvailable = this.result.affect_available === true;
     return voiceFrames(this.result)
       .filter((point) => speakerId === undefined || point.speaker_id === speakerId)
-      .map((point) => VoiceFrame.fromTimelinePoint(point, { affectAvailable }));
+      .map((point) => VoiceFrame.fromTimelinePoint(point));
   }
 
   /** One frame by index, or null when out of range. */
@@ -166,21 +156,19 @@ export class ConversationAnalysis {
   }
 
   /**
-   * Affect VAD for the whole file when the checkpoint publishes it.
-   * Null when `affect_available` is false.
+   * Affect VAD for the whole file. Each component is `null` on an unvoiced
+   * frame; the head is always trained. Null when every dimension is null.
    */
   getVad(): AffectVad | null {
-    if (this.result.affect_available !== true) return null;
     const { valence, arousal, dominance } = this.result.prosody;
-    if (valence == null || arousal == null || dominance == null) return null;
+    if (valence == null && arousal == null && dominance == null) return null;
     return { valence, arousal, dominance };
   }
 
-  /** Valence for the whole file, or for one turn. Null when affect is not published. */
+  /** Valence for the whole file, or for one turn. Null on an unvoiced frame. */
   getValence(turnIndex?: number): number | null {
-    if (this.result.affect_available !== true) return null;
     if (turnIndex === undefined) return finiteOrNull(this.result.prosody.valence);
-    return finiteOrNull(this.getTurn(turnIndex)?.prosody?.valence);
+    return finiteOrNull(this.getTurn(turnIndex)?.prosody?.valence ?? null);
   }
 
   /** Raw API timeline for consumers that need the wire shape. */

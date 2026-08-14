@@ -12,7 +12,6 @@ describe('parseAnalysisResult', () => {
         arousal: 0.36,
         dominance: 0.58,
       },
-      affect_available: true,
       transcription: {
         provider: 'nemotron',
         language: 'en',
