@@ -64,6 +64,35 @@ export interface AnalysisTurn {
     prosody?: TurnProsody | null;
 }
 /**
+ * One committed conversation event. `frame_ms` is retrodictive: it points at
+ * where the evidence began on the model's 80ms frame clock; `commit_ms` is
+ * where the decision landed.
+ */
+export type AnalysisEvent = {
+    type: 'turn_boundary';
+    frame_ms: number;
+    commit_ms: number;
+} | {
+    type: 'barge_in';
+    frame_ms: number;
+    commit_ms: number;
+    duration_ms: number;
+    resolved: boolean;
+} | {
+    type: 'state_delta';
+    frame_ms: number;
+    commit_ms: number;
+    duration_ms: number;
+    magnitude: number;
+    resolved: boolean;
+};
+/** The timing skeleton of a conversation: who holds the floor, and when. */
+export interface TurnBoundary {
+    speaker_id: string;
+    start_ms: number;
+    end_ms: number;
+}
+/**
  * ASR status for one analysis. Prosody is measured from the waveform
  * independently of ASR, so an empty transcript is a partial result.
  */
@@ -94,6 +123,8 @@ export interface AnalysisResult {
     diarization?: DiarizationResult | null;
     prosody_timeline?: ProsodyTimelinePoint[] | null;
     per_speaker?: PerSpeakerAnalysis[] | null;
+    /** Committed conversation events in commit order (80ms frame clock). */
+    events?: AnalysisEvent[] | null;
 }
 export interface AnalysisOptions {
     language?: string;

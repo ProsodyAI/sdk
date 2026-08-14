@@ -6,11 +6,13 @@ The `@prosodyai/sdk` source tree. Everything consumers touch is exported from
 - `types.ts` / `types/`: wire payloads, declared once. Wire field names live
   here and at the parse boundary.
 - `conversation/prosody.ts`: the readable measurement layer. `Prosody`,
-  `ProsodyChange`, `ProsodyDelta`, `MeasurementName`, and the wire-key maps
-  that translate `acoustic_state` / `acoustic_change` into product names.
-- `step.ts`: `AcousticWindow`, one measured interval with readable accessors.
+  `ProsodyState`, `ProsodyChange`, `ProsodyDelta`, `MeasurementPath`, and the
+  wire-key maps that translate `acoustic_state` / `acoustic_change` into
+  family-shaped product names.
+- `step.ts`: `VoiceFrame`, one measured interval, exposing `state`, `change`,
+  and `vad` directly.
 - `analysis.ts`: `parseAnalysisResult` (batch envelope validation),
-  `ConversationAnalysis`, `acousticWindows`, `measurementSeries`.
+  `ConversationAnalysis`, `voiceFrames`, `measurementSeries`.
 - `conversation.ts`: `Conversation`, the shared live/batch state model.
 - `transcription.ts`: the transcribe product shape (`Speaker`, `VoiceProfile`,
   `Transcription`).

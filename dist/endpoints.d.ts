@@ -1,4 +1,5 @@
 import type { RequestOptions } from './http.js';
+import type { RecallResult } from './types/memory.js';
 import type { RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 /**
  * One REST endpoint: method, path, and response type. The response type rides
@@ -23,6 +24,7 @@ export declare const endpoints: {
     readonly previewEnrollment: Endpoint<VoiceEnrollmentPreview>;
     readonly confirmEnrollment: Endpoint<VoiceEnrollmentResult>;
     readonly createRealtimeSession: Endpoint<RealtimeSessionCredentials>;
+    readonly memoryRecall: Endpoint<RecallResult>;
     readonly health: Endpoint<{
         status: string;
     }>;

@@ -9,7 +9,7 @@ import type {
   WarningEvent,
 } from './types.js';
 import { parseProsodyEvent } from './session.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
@@ -36,7 +36,7 @@ export interface ProsodyRealtimeConfig {
 export interface ProsodyRealtimeHandlers {
   onConfigAck?: (event: Record<string, unknown>) => void;
   onDirective?: (event: DirectiveEvent) => void;
-  onAcousticWindow?: (window: AcousticWindow) => void;
+  onVoiceFrame?: (window: VoiceFrame) => void;
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
@@ -196,6 +196,12 @@ export class ProsodyRealtimeStream {
     this.socket.send(JSON.stringify({ type: 'end' }));
   }
 
+  /** Send one JSON control frame as a text message (e.g. `voice_profile_update`). */
+  sendControl(message: Record<string, unknown>): void {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    this.socket.send(JSON.stringify(message));
+  }
+
   close(code = 1000, reason = 'client_close'): void {
     if (this.closed || !this.socket) return;
     this.closed = true;
@@ -235,8 +241,8 @@ export class ProsodyRealtimeStream {
     switch (event.type) {
       case 'directive': {
         this.handlers.onDirective?.(event);
-        const window = AcousticWindow.fromDirective(event);
-        this.handlers.onAcousticWindow?.(window);
+        const window = VoiceFrame.fromDirective(event);
+        this.handlers.onVoiceFrame?.(window);
         this.handlers.conversation?.apply(event);
         break;
       }

@@ -1,5 +1,5 @@
 import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 /** Default LiveKit data topic matching API `livekit_event_topic`. */
 export declare const PROSODY_EVENT_TOPIC = "prosody.events.v1";
@@ -21,7 +21,7 @@ export interface ProsodySessionOptions {
     participantIdentity?: string;
     onDirective?: (event: DirectiveEvent) => void;
     /** Physical measurements and speaker-relative deltas for each directive. */
-    onAcousticWindow?: (window: AcousticWindow) => void;
+    onVoiceFrame?: (window: VoiceFrame) => void;
     /** Optional conversation object that receives parsed session events. */
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
@@ -35,6 +35,14 @@ export interface ProsodySessionOptions {
 }
 type EventInput = string | Uint8Array | ArrayBuffer | Record<string, unknown>;
 export declare function parseProsodyEvent(input: EventInput): ProsodyEvent;
+/**
+ * Consumes Prosody analysis events off a LiveKit room's data topic.
+ *
+ * Audio rides the LiveKit media plane; an agent worker (or the Python
+ * `livekit-plugins-prosodyai` plugin) bridges the track to the analysis
+ * WebSocket and republishes events to this topic. This class parses, orders
+ * by `generation`/`seq` when present, and fans out to typed handlers.
+ */
 export declare class ProsodySession {
     private readonly room;
     private readonly options;
@@ -43,9 +51,13 @@ export declare class ProsodySession {
     private currentGeneration;
     private currentSeq;
     constructor(room: LiveKitRoomLike, options: ProsodySessionOptions);
+    /** Highest event generation seen, when the wire carries ordering. */
     get generation(): number | null;
+    /** Highest event sequence seen, when the wire carries ordering. */
     get lastSeq(): number | null;
+    /** Subscribe to the room data topic. Idempotent. */
     start(): this;
+    /** Unsubscribe from the room data topic. Idempotent. */
     stop(): void;
     private readonly handleRoomData;
     private acceptSequence;

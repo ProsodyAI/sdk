@@ -144,6 +144,92 @@ describe('analyze', () => {
   });
 });
 
+// ──────────────────── One-call readouts (batch) ────────────────────
+
+describe('one-call readouts', () => {
+  const diarizedResult = {
+    ...mockResult,
+    turns: [
+      { start_ms: 0, end_ms: 2_480, speaker_id: 'speaker_0', text: 'first turn' },
+      { start_ms: 2_480, end_ms: 4_960, speaker_id: 'speaker_1', text: 'second turn' },
+    ],
+    diarization: {
+      model: 'prosodyssm',
+      num_speakers: 2,
+      speakers: ['speaker_0', 'speaker_1'],
+      turns: [
+        { start_ms: 0, end_ms: 2_480, speaker: 'speaker_0' },
+        { start_ms: 2_480, end_ms: 4_960, speaker: 'speaker_1' },
+      ],
+    },
+    events: [
+      { type: 'turn_boundary', frame_ms: 2_480, commit_ms: 2_560 },
+      { type: 'barge_in', frame_ms: 3_120, commit_ms: 3_200, duration_ms: 640, resolved: true },
+    ],
+    per_speaker: [
+      { speaker_id: 'speaker_0', talk_ms: 2_480, window_count: 1 },
+      { speaker_id: 'speaker_1', talk_ms: 2_480, window_count: 1 },
+    ],
+  };
+
+  it('getTurns returns diarized turns with text', async () => {
+    mockFetchOk(diarizedResult);
+    const client = new ProsodyClient('key');
+    const turns = await client.getTurns(Buffer.from('audio'));
+    expect(turns).toHaveLength(2);
+    expect(turns[0]).toMatchObject({ speaker_id: 'speaker_0', start_ms: 0, end_ms: 2_480, text: 'first turn' });
+    expect(turns[1]?.speaker_id).toBe('speaker_1');
+  });
+
+  it('getTurnBoundaries returns the diarization skeleton without text', async () => {
+    mockFetchOk(diarizedResult);
+    const client = new ProsodyClient('key');
+    const boundaries = await client.getTurnBoundaries(Buffer.from('audio'));
+    expect(boundaries).toEqual([
+      { speaker_id: 'speaker_0', start_ms: 0, end_ms: 2_480 },
+      { speaker_id: 'speaker_1', start_ms: 2_480, end_ms: 4_960 },
+    ]);
+    expect(JSON.stringify(boundaries)).not.toMatch(/text/);
+  });
+
+  it('getTurnBoundaries falls back to transcript turns when no diarization block', async () => {
+    const { diarization: _diarization, ...withoutDiarization } = diarizedResult;
+    mockFetchOk(withoutDiarization);
+    const client = new ProsodyClient('key');
+    const boundaries = await client.getTurnBoundaries(Buffer.from('audio'));
+    expect(boundaries).toEqual([
+      { speaker_id: 'speaker_0', start_ms: 0, end_ms: 2_480 },
+      { speaker_id: 'speaker_1', start_ms: 2_480, end_ms: 4_960 },
+    ]);
+  });
+
+  it('getEvents returns committed events in order', async () => {
+    mockFetchOk(diarizedResult);
+    const client = new ProsodyClient('key');
+    const events = await client.getEvents(Buffer.from('audio'));
+    expect(events).toEqual([
+      { type: 'turn_boundary', frame_ms: 2_480, commit_ms: 2_560 },
+      { type: 'barge_in', frame_ms: 3_120, commit_ms: 3_200, duration_ms: 640, resolved: true },
+    ]);
+  });
+
+  it('getEvents returns an empty list when the response carries none', async () => {
+    mockFetchOk(mockResult);
+    const client = new ProsodyClient('key');
+    await expect(client.getEvents(Buffer.from('audio'))).resolves.toEqual([]);
+  });
+
+  it('getSpeakers returns recording-local speakers with accounting', async () => {
+    mockFetchOk(diarizedResult);
+    const client = new ProsodyClient('key');
+    const speakers = await client.getSpeakers(Buffer.from('audio'));
+    expect(speakers).toEqual([
+      { speaker_id: 'speaker_0', talk_ms: 2_480, turn_count: 1, window_count: 1 },
+      { speaker_id: 'speaker_1', talk_ms: 2_480, turn_count: 1, window_count: 1 },
+    ]);
+  });
+});
+
 // ─────────────────────────── Transcribe ──────────────────────────────
 
 describe('transcribe', () => {
@@ -204,10 +290,10 @@ describe('transcribe', () => {
 
     expect(result.text).toBe('hello');
     expect(result.turns[0]?.text).toBe('hello');
-    expect(result.turns[0]?.prosody?.pitchHz).toBe(180);
-    expect(result.turns[0]?.prosody?.loudnessDbfs).toBe(-24);
-    expect(result.turns[0]?.prosody?.tiltDbPerOctave).toBe(-12);
-    expect(result.turns[0]?.prosody?.pitchAvailable).toBe(true);
+    expect(result.turns[0]?.prosody?.state.intonation.pitch).toBe(180);
+    expect(result.turns[0]?.prosody?.state.stress.loudness).toBe(-24);
+    expect(result.turns[0]?.prosody?.state.tilt).toBe(-12);
+    expect(result.turns[0]?.prosody?.state.intonation.pitch).not.toBeNull();
     expect(result.conversation.getTranscript()).toBe('hello');
 
     const speaker = result.turns[0]!.speaker;
@@ -356,6 +442,34 @@ describe('cancellation', () => {
     const promise = client.health(controller.signal);
     controller.abort();
     await expect(promise).rejects.toThrow();
+  });
+});
+
+// ──────────────────────────── Memory ───────────────────────────────
+
+describe('memory', () => {
+  it('recalls a person\'s significant moments, recency-ranked', async () => {
+    const fetch = mockFetchOk({ person_id: 'p1', is_returning: true, memories: [], preamble: '' });
+    const client = new ProsodyClient('key');
+    const result = await client.memory.recall.post('p1', 10);
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toBe('https://api.prosodyai.app/v1/memory/recall');
+    expect(JSON.parse(init.body)).toEqual({ person_id: 'p1', top_k: 10, include_recent: true });
+    expect(result.is_returning).toBe(true);
+  });
+
+  it('defaults topK to the route default', async () => {
+    const fetch = mockFetchOk({ person_id: 'p1', is_returning: false, memories: [], preamble: '' });
+    const client = new ProsodyClient('key');
+    await client.memory.recall.post('p1');
+    expect(JSON.parse(fetch.mock.calls[0][1].body).top_k).toBe(5);
+  });
+
+  it('rejects an out-of-range topK before any request', async () => {
+    const fetch = mockFetchOk();
+    const client = new ProsodyClient('key');
+    await expect(client.memory.recall.post('p1', 0)).rejects.toThrow('integer from 1 to 50');
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

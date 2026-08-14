@@ -8,7 +8,7 @@ import type {
   SpeakerUpdateEvent,
   TranscriptUpdateEvent,
 } from './types.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame, type AffectVad } from './step.js';
 import {
   ConversationAnalysis,
   type ChangePoint,
@@ -26,7 +26,7 @@ import {
   prosodyDeltaFromWire,
   prosodyFromState,
   prosodyFromWindow,
-  type MeasurementName,
+  type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
 import {
@@ -39,10 +39,11 @@ export type { ConversationTurn } from './conversation/turn-model.js';
 export {
   prosodyFromState,
   prosodyFromWindow,
-  type MeasurementName,
+  type MeasurementPath,
   type Prosody,
   type ProsodyChange,
   type ProsodyDelta,
+  type ProsodyState,
 } from './conversation/prosody.js';
 export {
   applySpeakerUpdateToSegments,
@@ -51,10 +52,12 @@ export {
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 
 /**
- * Developer product object for diarized turns and vocal measurements.
+ * Shared state model for diarized turns and voice measurements, over a
+ * recording or a live socket.
  *
- * Live: feed Prosody wire events via `apply` (same spine as the demo session
- * hook). Batch: `Conversation.fromAnalysis`.
+ * Live: feed Prosody wire events via `apply`. Batch: build from
+ * `Conversation.fromAnalysis`. The same object backs `LiveSession` and the
+ * batch `Transcription.conversation`.
  */
 export class Conversation {
   private segments: LiveSegment[] = [];
@@ -62,6 +65,7 @@ export class Conversation {
   private affectAvailable = false;
   private batch: ConversationAnalysis | null = null;
 
+  /** Build a conversation from a batch analysis result. */
   static fromAnalysis(result: AnalysisResult): Conversation {
     const conversation = new Conversation();
     conversation.batch = new ConversationAnalysis(result);
@@ -153,12 +157,13 @@ export class Conversation {
     return this;
   }
 
+  /** Full transcript text, built from the current turns. */
   getTranscript(): string {
     if (this.batch) return this.batch.getTranscript();
     return this.getTurns().map((turn) => turn.text).join(' ').trim();
   }
 
-  /** Diarized transcript turns with speaker_id (demo-equivalent spine). */
+  /** Diarized turns with speaker ids and attached prosody. */
   getTurns(): ConversationTurn[] {
     if (this.batch) {
       return this.batch.getTurns().map((turn) => this.batchTurn(turn));
@@ -166,6 +171,7 @@ export class Conversation {
     return buildTurnsFromSegments(this.segments, this.steps);
   }
 
+  /** One turn by index, or null when out of range. */
   getTurn(index: number): ConversationTurn | null {
     const turns = this.getTurns();
     if (!Number.isInteger(index) || index < 0 || index >= turns.length) return null;
@@ -182,7 +188,7 @@ export class Conversation {
       return turn?.prosody ?? null;
     }
     if (this.batch) {
-      const windows = this.batch.getAcoustics();
+      const windows = this.batch.getFrames();
       const last = windows[windows.length - 1];
       return last ? prosodyFromWindow(last) : null;
     }
@@ -191,10 +197,11 @@ export class Conversation {
     return prosodyFromState(last.acoustic_state, last.acoustic_change);
   }
 
+  /** Speakers on this call, with talk time and frame counts. */
   getSpeakers(): DiarizedSpeaker[] {
     if (this.batch) return this.batch.getSpeakers();
     const turns = this.getTurns();
-    const windows = this.getAcoustics();
+    const windows = this.getFrames();
     const ids = new Set<string>();
     for (const turn of turns) if (isKnownSpeaker(turn.speaker_id)) ids.add(turn.speaker_id);
     for (const window of windows) if (isKnownSpeaker(window.speakerId)) ids.add(window.speakerId);
@@ -208,11 +215,20 @@ export class Conversation {
     }));
   }
 
-  /** All measured windows, optionally limited to one recording-local speaker. */
-  getAcoustics(speakerId?: string): AcousticWindow[] {
-    if (this.batch) return this.batch.getAcoustics(speakerId);
+  /** Measured affect for the call, when the checkpoint publishes it. */
+  getVad(): AffectVad | null {
+    if (this.batch) return this.batch.getVad();
+    if (!this.affectAvailable) return null;
+    const windows = this.getFrames();
+    const last = windows[windows.length - 1];
+    return last?.vad ?? null;
+  }
+
+  /** All measured frames, optionally limited to one recording-local speaker. */
+  getFrames(speakerId?: string): VoiceFrame[] {
+    if (this.batch) return this.batch.getFrames(speakerId);
     return this.steps.map((step) =>
-      AcousticWindow.fromLiveStep({
+      VoiceFrame.fromLiveStep({
         speakerId: step.speaker_id,
         timestampMs: step.timestamp_ms,
         acousticState: step.acoustic_state,
@@ -222,16 +238,18 @@ export class Conversation {
     ).filter((window) => speakerId === undefined || window.speakerId === speakerId);
   }
 
-  getAcousticWindow(index: number): AcousticWindow | null {
-    const windows = this.getAcoustics();
+  /** One frame by index, or null when out of range. */
+  getVoiceFrame(index: number): VoiceFrame | null {
+    const windows = this.getFrames();
     if (!Number.isInteger(index) || index < 0 || index >= windows.length) return null;
     return windows[index] ?? null;
   }
 
-  getMeasurementSeries(name: MeasurementName, speakerId?: string): MeasurementPoint[] {
-    if (this.batch) return this.batch.getMeasurementSeries(name, speakerId);
-    return this.getAcoustics(speakerId).flatMap((window) => {
-      const value = measurementFromState(window.getAcousticState(), name);
+  /** One measurement across the call, by typed path, optionally for one speaker. */
+  getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[] {
+    if (this.batch) return this.batch.getMeasurementSeries(path, speakerId);
+    return this.getFrames(speakerId).flatMap((window) => {
+      const value = measurementFromState(window.getAcousticState(), path);
       return value === null ? [] : [{
         startMs: window.startMs,
         endMs: window.endMs,
@@ -244,7 +262,7 @@ export class Conversation {
   /** Speaker-relative changes. The first window in each speaker lane has none. */
   getChanges(speakerId?: string): ChangePoint[] {
     if (this.batch) return this.batch.getChanges(speakerId);
-    return this.getAcoustics(speakerId).flatMap((window) => {
+    return this.getFrames(speakerId).flatMap((window) => {
       const delta = prosodyDeltaFromWire(window.getAcousticChange());
       if (!delta) return [];
       return [{

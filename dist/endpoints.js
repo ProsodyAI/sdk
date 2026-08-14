@@ -12,6 +12,7 @@ export const endpoints = {
     previewEnrollment: endpoint('POST', '/v1/voice/enrollments/preview'),
     confirmEnrollment: endpoint('POST', '/v1/voice/enrollments/confirm'),
     createRealtimeSession: endpoint('POST', '/v1/realtime/sessions'),
+    memoryRecall: endpoint('POST', '/v1/memory/recall'),
     health: endpoint('GET', '/health'),
 };
 export function callJSON(target, opts, payload, signal) {

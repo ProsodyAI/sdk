@@ -9,7 +9,7 @@ import type {
   TranscriptUpdateEvent,
   WarningEvent,
 } from './types.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 
 /** Default LiveKit data topic matching API `livekit_event_topic`. */
@@ -51,7 +51,7 @@ export interface ProsodySessionOptions {
   participantIdentity?: string;
   onDirective?: (event: DirectiveEvent) => void;
   /** Physical measurements and speaker-relative deltas for each directive. */
-  onAcousticWindow?: (window: AcousticWindow) => void;
+  onVoiceFrame?: (window: VoiceFrame) => void;
   /** Optional conversation object that receives parsed session events. */
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
@@ -101,6 +101,14 @@ export function parseProsodyEvent(input: EventInput): ProsodyEvent {
   return value as unknown as ProsodyEvent;
 }
 
+/**
+ * Consumes Prosody analysis events off a LiveKit room's data topic.
+ *
+ * Audio rides the LiveKit media plane; an agent worker (or the Python
+ * `livekit-plugins-prosodyai` plugin) bridges the track to the analysis
+ * WebSocket and republishes events to this topic. This class parses, orders
+ * by `generation`/`seq` when present, and fans out to typed handlers.
+ */
 export class ProsodySession {
   private readonly room: LiveKitRoomLike;
   private readonly options: ProsodySessionOptions;
@@ -118,14 +126,17 @@ export class ProsodySession {
     this.topic = options.topic ?? PROSODY_EVENT_TOPIC;
   }
 
+  /** Highest event generation seen, when the wire carries ordering. */
   get generation(): number | null {
     return this.currentGeneration;
   }
 
+  /** Highest event sequence seen, when the wire carries ordering. */
   get lastSeq(): number | null {
     return this.currentSeq >= 0 ? this.currentSeq : null;
   }
 
+  /** Subscribe to the room data topic. Idempotent. */
   start(): this {
     if (this.isStarted) return this;
     this.room.on('dataReceived', this.handleRoomData);
@@ -133,6 +144,7 @@ export class ProsodySession {
     return this;
   }
 
+  /** Unsubscribe from the room data topic. Idempotent. */
   stop(): void {
     if (!this.isStarted) return;
     this.room.off('dataReceived', this.handleRoomData);
@@ -191,8 +203,8 @@ export class ProsodySession {
     switch (event.type) {
       case 'directive': {
         this.options.onDirective?.(event);
-        const window = AcousticWindow.fromDirective(event);
-        this.options.onAcousticWindow?.(window);
+        const window = VoiceFrame.fromDirective(event);
+        this.options.onVoiceFrame?.(window);
         this.options.conversation?.apply(event);
         break;
       }

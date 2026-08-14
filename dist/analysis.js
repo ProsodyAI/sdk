@@ -1,5 +1,5 @@
 import { measurementFromState, } from './conversation/prosody.js';
-import { AcousticWindow, } from './step.js';
+import { VoiceFrame, } from './step.js';
 /**
  * Validate the stable batch envelope.
  *
@@ -45,37 +45,42 @@ export class ConversationAnalysis {
     constructor(data) {
         this.result = data;
     }
+    /** Full transcript text. */
     getTranscript() {
         return this.result.text;
     }
+    /** Diarized turns, in order. */
     getTurns() {
         return [...(this.result.turns ?? [])];
     }
+    /** One turn by index, or null when out of range. */
     getTurn(index) {
         if (!Number.isInteger(index) || index < 0)
             return null;
         return this.result.turns?.[index] ?? null;
     }
+    /** Recording-local speakers with talk time and turn counts. */
     getSpeakers() {
         return recordingSpeakers(this.result);
     }
-    /** Measured windows produced from Mimi-latent recurrent analysis. */
-    getAcoustics(speakerId) {
+    /** Measured frames produced from Mimi-latent recurrent analysis. */
+    getFrames(speakerId) {
         const affectAvailable = this.result.affect_available === true;
-        return acousticWindows(this.result)
+        return voiceFrames(this.result)
             .filter((point) => speakerId === undefined || point.speaker_id === speakerId)
-            .map((point) => AcousticWindow.fromTimelinePoint(point, { affectAvailable }));
+            .map((point) => VoiceFrame.fromTimelinePoint(point, { affectAvailable }));
     }
-    getAcousticWindow(index) {
-        const windows = this.getAcoustics();
+    /** One frame by index, or null when out of range. */
+    getVoiceFrame(index) {
+        const windows = this.getFrames();
         if (!Number.isInteger(index) || index < 0 || index >= windows.length)
             return null;
         return windows[index] ?? null;
     }
     /** One physical measurement across the recording, optionally for one speaker. */
-    getMeasurementSeries(name, speakerId) {
-        return this.getAcoustics(speakerId).flatMap((window) => {
-            const value = window.getMeasurement(name);
+    getMeasurementSeries(path, speakerId) {
+        return this.getFrames(speakerId).flatMap((window) => {
+            const value = measurementFromState(window.getAcousticState(), path);
             return value === null ? [] : [{
                     startMs: window.startMs,
                     endMs: window.endMs,
@@ -86,7 +91,7 @@ export class ConversationAnalysis {
     }
     /** Speaker-relative changes. The first window in each speaker lane has none. */
     getChanges(speakerId) {
-        return this.getAcoustics(speakerId).flatMap((window) => {
+        return this.getFrames(speakerId).flatMap((window) => {
             const delta = window.getChange();
             if (!delta)
                 return [];
@@ -102,17 +107,10 @@ export class ConversationAnalysis {
     /** The measurement bundle on the latest (or indexed) acoustic window. */
     getProsody(windowIndex) {
         if (windowIndex === undefined) {
-            const windows = this.getAcoustics();
+            const windows = this.getFrames();
             return windows[windows.length - 1]?.getProsody() ?? null;
         }
-        return this.getAcousticWindow(windowIndex)?.getProsody() ?? null;
-    }
-    /** Pitch series across windows, skipping unvoiced measurements. */
-    getPitch(speakerId) {
-        return this.getMeasurementSeries('pitchHz', speakerId);
-    }
-    getPitchAt(windowIndex) {
-        return this.getAcousticWindow(windowIndex)?.getPitch() ?? null;
+        return this.getVoiceFrame(windowIndex)?.getProsody() ?? null;
     }
     /**
      * Affect VAD for the whole file when the checkpoint publishes it.
@@ -126,6 +124,7 @@ export class ConversationAnalysis {
             return null;
         return { valence, arousal, dominance };
     }
+    /** Valence for the whole file, or for one turn. Null when affect is not published. */
     getValence(turnIndex) {
         if (this.result.affect_available !== true)
             return null;
@@ -182,17 +181,17 @@ function recordingSpeakers(result) {
  * Empty when the upload was not diarized (`diarize: false`), since the timeline
  * is only built for a diarized call.
  */
-export function acousticWindows(result) {
+export function voiceFrames(result) {
     return (result.prosody_timeline ?? []).filter((point) => point.acoustic_state != null);
 }
 /**
  * Read one measurement across a call, skipping windows where it was not
- * measurable (an unvoiced window carries `null` f0, without any floor value).
+ * measurable (an unvoiced window carries `null` pitch, without any floor value).
  */
-export function measurementSeries(result, name) {
+export function measurementSeries(result, path) {
     const series = [];
-    for (const point of acousticWindows(result)) {
-        const value = measurementFromState(point.acoustic_state ?? null, name);
+    for (const point of voiceFrames(result)) {
+        const value = measurementFromState(point.acoustic_state ?? null, path);
         if (value !== null) {
             series.push({
                 start_ms: point.start_ms,

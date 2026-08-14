@@ -1,7 +1,7 @@
 {
   "name": "@prosodyai/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for diarized conversations, vocal acoustics, speaker-relative change, and speaker identity",
+  "description": "TypeScript SDK for ProsodyAI",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,6 +14,7 @@
   },
   "files": [
     "dist",
+    "logo.png",
     "README.md"
   ],
   "sideEffects": false,
@@ -29,11 +30,10 @@
     "url": "https://github.com/ProsodyAI/sdk/issues"
   },
   "scripts": {
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "node scripts/clean.mjs",
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "example": "npx --yes serve . -p 3000",
     "prepack": "npm run build"
   },
   "keywords": [

@@ -6,7 +6,7 @@ import { transcriptionFromConversation, } from './transcription.js';
  *
  * Opens a direct API session, sends PCM or Opus bytes, and builds a
  * {@link Conversation} from wire events. LiveKit media uses
- * {@link ProsodyClient.livekit}.
+ * {@link ProsodyClient.realtime}.
  *
  * Apps (including the website demo) supply audio; this class owns start/stop,
  * frame pacing, and the conversation spine.
@@ -138,6 +138,12 @@ export class LiveSession {
             return;
         }
         this.stream.sendAudio(chunk);
+    }
+    /** Send one JSON control frame (e.g. `voice_profile_update`) as a text message. */
+    sendControl(message) {
+        if (!this.stream)
+            throw new Error('LiveSession is not started');
+        this.stream.sendControl(message);
     }
     /**
      * Wait until the server acks the current analysis second (`directive` or

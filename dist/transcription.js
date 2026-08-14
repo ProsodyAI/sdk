@@ -1,3 +1,4 @@
+import { measurementFromState, } from './conversation/prosody.js';
 /**
  * One voice in this result.
  *
@@ -13,34 +14,39 @@ export class Speaker {
     id;
     /** Display label (`Speaker 1`), ordered by first appearance in this result. */
     label;
+    /** Total attributed speaking time, in ms. */
     talkMs;
+    /** Number of transcript turns attributed to this speaker. */
     turnCount;
     /** This voice's measured baseline across the recording. */
-    voice;
+    state;
     constructor(init) {
         this.id = init.id;
         this.label = init.label;
         this.talkMs = init.talkMs;
         this.turnCount = init.turnCount;
-        this.voice = init.voice;
+        this.state = init.state;
     }
     /** True when diarization could not attribute this audio. */
     get isUnknown() {
         return this.id === 'unknown';
     }
+    /** Attributed speaking time, in seconds. */
     get talkSeconds() {
         return this.talkMs / 1000;
     }
+    /** Display label. */
     toString() {
         return this.label;
     }
+    /** Plain object form, for logging or JSON transport. */
     toJSON() {
         return {
             id: this.id,
             label: this.label,
             talkMs: this.talkMs,
             turnCount: this.turnCount,
-            voice: this.voice,
+            state: this.state,
         };
     }
 }
@@ -49,10 +55,10 @@ function speakerLabel(id, index) {
         return 'Unknown speaker';
     return index >= 0 ? `Speaker ${index + 1}` : id;
 }
-function statOf(windows, name) {
+function statOf(windows, path) {
     const values = [];
     for (const window of windows) {
-        const value = window.getMeasurement(name);
+        const value = measurementFromState(window.getAcousticState(), path);
         if (value !== null)
             values.push(value);
     }
@@ -71,16 +77,23 @@ function statOf(windows, name) {
     };
 }
 function voiceProfileOf(windows) {
-    const pitchHz = statOf(windows, 'pitchHz');
     return {
-        loudnessDbfs: statOf(windows, 'loudnessDbfs'),
-        pitchHz,
-        pitchRangeSemitones: statOf(windows, 'pitchRangeSemitones'),
-        tiltDbPerOctave: statOf(windows, 'tiltDbPerOctave'),
-        voicedRatio: statOf(windows, 'voicedRatio'),
-        pauseRatio: statOf(windows, 'pauseRatio'),
+        intonation: {
+            pitch: statOf(windows, 'intonation.pitch'),
+            range: statOf(windows, 'intonation.range'),
+            slope: statOf(windows, 'intonation.slope'),
+        },
+        stress: {
+            loudness: statOf(windows, 'stress.loudness'),
+            peak: statOf(windows, 'stress.peak'),
+        },
+        rhythm: {
+            voiced: statOf(windows, 'rhythm.voiced'),
+            pause: statOf(windows, 'rhythm.pause'),
+            onset: statOf(windows, 'rhythm.onset'),
+        },
+        tilt: statOf(windows, 'tilt'),
         windowCount: windows.length,
-        pitchAvailable: pitchHz !== null,
     };
 }
 export function transcriptionFromConversation(conversation, options) {
@@ -99,7 +112,7 @@ export function transcriptionFromConversation(conversation, options) {
         label: speakerLabel(entry.speaker_id, index),
         talkMs: entry.talk_ms,
         turnCount: entry.turn_count,
-        voice: voiceProfileOf(conversation.getAcoustics(entry.speaker_id)),
+        state: voiceProfileOf(conversation.getFrames(entry.speaker_id)),
     }));
     const byId = new Map(speakers.map((speaker) => [speaker.id, speaker]));
     const speakerFor = (id) => {
@@ -112,7 +125,7 @@ export function transcriptionFromConversation(conversation, options) {
             label: speakerLabel(id, -1),
             talkMs: 0,
             turnCount: 0,
-            voice: voiceProfileOf(conversation.getAcoustics(id)),
+            state: voiceProfileOf(conversation.getFrames(id)),
         });
         byId.set(id, created);
         return created;
@@ -137,6 +150,8 @@ export function transcriptionFromConversation(conversation, options) {
             const id = typeof speaker === 'string' ? speaker : speaker.id;
             return turns.filter((turn) => turn.speaker.id === id);
         },
+        frames: conversation.getFrames(),
+        vad: conversation.getVad(),
         conversation,
     };
 }

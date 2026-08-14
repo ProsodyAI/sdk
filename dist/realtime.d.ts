@@ -1,5 +1,5 @@
 import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
 export interface ProsodyRealtimeConfig {
@@ -23,7 +23,7 @@ export interface ProsodyRealtimeConfig {
 export interface ProsodyRealtimeHandlers {
     onConfigAck?: (event: Record<string, unknown>) => void;
     onDirective?: (event: DirectiveEvent) => void;
-    onAcousticWindow?: (window: AcousticWindow) => void;
+    onVoiceFrame?: (window: VoiceFrame) => void;
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
@@ -59,6 +59,8 @@ export declare class ProsodyRealtimeStream {
     sendAudio(chunk: ArrayBuffer | Uint8Array | Buffer): void;
     /** Ask the server for `session_end` and close after. */
     end(): void;
+    /** Send one JSON control frame as a text message (e.g. `voice_profile_update`). */
+    sendControl(message: Record<string, unknown>): void;
     close(code?: number, reason?: string): void;
     private buildConfig;
     private dispatch;

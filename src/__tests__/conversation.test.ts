@@ -12,15 +12,15 @@ const production = JSON.parse(
 ) as unknown;
 
 describe('Conversation', () => {
-  it('batch: diarized turns + getProsody', () => {
+  it('batch: diarized turns + prosody state', () => {
     const conversation = Conversation.fromAnalysis(parseAnalysisResult(production));
     const turns = conversation.getTurns();
     expect(turns.length).toBeGreaterThan(0);
     expect(turns[0].speaker_id).toBeTruthy();
     expect(turns[0].text).toBeTruthy();
-    expect(turns[0].prosody?.loudnessDbfs).toBeCloseTo(-18.04, 1);
-    expect(conversation.getProsody()?.pitchHz).toBeCloseTo(
-      conversation.getAcoustics().at(-1)?.getPitchHz() ?? NaN,
+    expect(turns[0].prosody?.state.stress.loudness).toBeCloseTo(-18.04, 1);
+    expect(conversation.getProsody()?.state.intonation.pitch).toBeCloseTo(
+      conversation.getFrames().at(-1)?.state?.intonation.pitch ?? NaN,
       1,
     );
     expect(conversation.getSpeakers()).toEqual([{
@@ -29,10 +29,10 @@ describe('Conversation', () => {
       turn_count: 1,
       window_count: 18,
     }]);
-    expect(conversation.getMeasurementSeries('loudnessDbfs')).toHaveLength(3);
-    expect(conversation.getMeasurementSeries('pitchHz', 'speaker_0')).toHaveLength(3);
+    expect(conversation.getMeasurementSeries('stress.loudness')).toHaveLength(3);
+    expect(conversation.getMeasurementSeries('intonation.pitch', 'speaker_0')).toHaveLength(3);
     expect(conversation.getChanges('speaker_0')).toHaveLength(2);
-    expect(conversation.getChanges('speaker_0')[0].values.loudnessDb).toBeCloseTo(2.18, 1);
+    expect(conversation.getChanges('speaker_0')[0]!.values.stress.loudness).toBeCloseTo(2.18, 1);
   });
 
   it('live: merges transcript_update into diarized turns like the demo', () => {
@@ -94,8 +94,8 @@ describe('Conversation', () => {
     expect(turns).toHaveLength(1);
     expect(turns[0].speaker_id).toBe('speaker_0');
     expect(turns[0].text).toBe('Hello there friend');
-    expect(turns[0].prosody?.pitchHz).toBe(140);
-    expect(conversation.getProsody()?.loudnessDbfs).toBe(-20);
+    expect(turns[0].prosody?.state.intonation.pitch).toBe(140);
+    expect(conversation.getProsody()?.state.stress.loudness).toBe(-20);
   });
 
   it('live: speaker change starts a new turn', () => {
