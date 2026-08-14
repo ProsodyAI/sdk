@@ -290,10 +290,10 @@ describe('transcribe', () => {
 
     expect(result.text).toBe('hello');
     expect(result.turns[0]?.text).toBe('hello');
-    expect(result.turns[0]?.prosody?.pitchHz).toBe(180);
-    expect(result.turns[0]?.prosody?.loudnessDbfs).toBe(-24);
-    expect(result.turns[0]?.prosody?.tiltDbPerOctave).toBe(-12);
-    expect(result.turns[0]?.prosody?.pitchAvailable).toBe(true);
+    expect(result.turns[0]?.prosody?.state.intonation.pitch).toBe(180);
+    expect(result.turns[0]?.prosody?.state.stress.loudness).toBe(-24);
+    expect(result.turns[0]?.prosody?.state.tilt).toBe(-12);
+    expect(result.turns[0]?.prosody?.state.intonation.pitch).not.toBeNull();
     expect(result.conversation.getTranscript()).toBe('hello');
 
     const speaker = result.turns[0]!.speaker;
@@ -442,6 +442,34 @@ describe('cancellation', () => {
     const promise = client.health(controller.signal);
     controller.abort();
     await expect(promise).rejects.toThrow();
+  });
+});
+
+// ──────────────────────────── Memory ───────────────────────────────
+
+describe('memory', () => {
+  it('recalls a person\'s significant moments, recency-ranked', async () => {
+    const fetch = mockFetchOk({ person_id: 'p1', is_returning: true, memories: [], preamble: '' });
+    const client = new ProsodyClient('key');
+    const result = await client.memory.recall.post('p1', 10);
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toBe('https://api.prosodyai.app/v1/memory/recall');
+    expect(JSON.parse(init.body)).toEqual({ person_id: 'p1', top_k: 10, include_recent: true });
+    expect(result.is_returning).toBe(true);
+  });
+
+  it('defaults topK to the route default', async () => {
+    const fetch = mockFetchOk({ person_id: 'p1', is_returning: false, memories: [], preamble: '' });
+    const client = new ProsodyClient('key');
+    await client.memory.recall.post('p1');
+    expect(JSON.parse(fetch.mock.calls[0][1].body).top_k).toBe(5);
+  });
+
+  it('rejects an out-of-range topK before any request', async () => {
+    const fetch = mockFetchOk();
+    const client = new ProsodyClient('key');
+    await expect(client.memory.recall.post('p1', 0)).rejects.toThrow('integer from 1 to 50');
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ConversationAnalysis, parseAnalysisResult } from '../analysis.js';
-import { AcousticWindow } from '../step.js';
+import { VoiceFrame } from '../step.js';
 import type { DirectiveEvent } from '../types.js';
 
 const production = JSON.parse(
@@ -12,33 +12,32 @@ const production = JSON.parse(
   ),
 ) as unknown;
 
-describe('AcousticWindow consumer accessors', () => {
-  it('reads pitch / level / voicing from a production timeline window', () => {
+describe('VoiceFrame consumer accessors', () => {
+  it('reads intonation / stress / rhythm from a production timeline window', () => {
     const result = parseAnalysisResult(production);
     const conversation = new ConversationAnalysis(result);
-    const windows = conversation.getAcoustics();
+    const windows = conversation.getFrames();
     expect(windows).toHaveLength(3);
 
     const first = windows[0];
     expect(first.getSpeakerId()).toBeTruthy();
-    expect(first.getPitchHz()).toBeCloseTo(146.02, 1);
-    expect(first.getPitch().available).toBe(true);
-    expect(first.getLevel().rmsDbfs).toBeCloseTo(-18.04, 1);
-    expect(first.getVoicing().voicedRatio).toBeCloseTo(0.9476, 3);
-    expect(first.getVad()).toBeNull();
+    expect(first.state?.intonation.pitch).toBeCloseTo(146.02, 1);
+    expect(first.state?.stress.loudness).toBeCloseTo(-18.04, 1);
+    expect(first.state?.rhythm.voiced).toBeCloseTo(0.9476, 3);
+    expect(first.vad).toBeNull();
   });
 
   it('exposes speaker-relative change after the first step', () => {
     const conversation = new ConversationAnalysis(parseAnalysisResult(production));
-    const windows = conversation.getAcoustics();
-    expect(windows[0].getChange()).toBeNull();
-    expect(windows[1].getChange()?.values.loudnessDb).toBeCloseTo(2.18, 1);
+    const windows = conversation.getFrames();
+    expect(windows[0].change).toBeNull();
+    expect(windows[1].change?.stress.loudness).toBeCloseTo(2.18, 1);
     expect(conversation.getChanges()).toHaveLength(2);
   });
 
-  it('getPitch lists voiced F0 across the call', () => {
+  it('lists intonation pitch across the call', () => {
     const conversation = new ConversationAnalysis(parseAnalysisResult(production));
-    const pitch = conversation.getPitch();
+    const pitch = conversation.getMeasurementSeries('intonation.pitch');
     expect(pitch).toHaveLength(3);
     expect(pitch[0].value).toBeCloseTo(146.02, 1);
   });
@@ -106,14 +105,14 @@ describe('AcousticWindow consumer accessors', () => {
       prosody_embedding: null,
     } as DirectiveEvent;
 
-    const window = AcousticWindow.fromDirective(directive);
-    expect(window.getPitchHz()).toBe(180);
-    expect(window.getLevel().rmsDbfs).toBe(-22);
-    expect(window.getVad()).toBeNull();
+    const window = VoiceFrame.fromDirective(directive);
+    expect(window.state?.intonation.pitch).toBe(180);
+    expect(window.state?.stress.loudness).toBe(-22);
+    expect(window.vad).toBeNull();
   });
 
-  it('maps the measurement bundle to readable names', () => {
-    const window = AcousticWindow.fromDirective({
+  it('maps the measurement bundle to family-shaped names', () => {
+    const window = VoiceFrame.fromDirective({
       type: 'directive',
       session_id: 's1',
       speaker_id: 'speaker_0',
@@ -135,10 +134,9 @@ describe('AcousticWindow consumer accessors', () => {
     } as DirectiveEvent);
 
     const prosody = window.getProsody();
-    expect(prosody?.loudnessDbfs).toBe(-22);
-    expect(prosody?.pitchHz).toBe(180);
-    expect(prosody?.change?.loudnessDb).toBe(1.5);
-    expect(window.getMeasurement('pitchHz')).toBe(180);
+    expect(prosody?.state.stress.loudness).toBe(-22);
+    expect(prosody?.state.intonation.pitch).toBe(180);
+    expect(prosody?.change?.stress.loudness).toBe(1.5);
     expect(window.getChange()?.reference).toBe('previous_chunk');
   });
 });

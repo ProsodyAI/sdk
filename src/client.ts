@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import type { RequestOptions } from './http.js';
+import type { RecallResult } from './types/memory.js';
 import { parseAnalysisResult } from './analysis.js';
 import { Conversation } from './conversation.js';
 import { resolveConfig } from './config.js';
@@ -59,14 +60,15 @@ type RealtimeConnectOpts = {
 /**
  * Developer client authenticated with a `psk_*` API key.
  *
- * Three transports:
+ * Three modes, named after the API's own prefixes:
  *
- * 1. **REST**: {@link ProsodyClient.transcribe} → `POST /v1/analyze/audio`
- * 2. **Realtime WebSocket**: {@link ProsodyClient.realtime} →
- *    `WS /v1/stream/realtime` (you send PCM/Opus; events come back)
- * 3. **LiveKit**: {@link ProsodyClient.livekit} → WebRTC media plane;
- *    mint a room, consume analysis events on the data topic. Audio does not
- *    go over the Prosody WebSocket from the browser.
+ * 1. **analyze**: REST batch, {@link ProsodyClient.transcribe} →
+ *    `POST /v1/analyze/audio`
+ * 2. **stream**: {@link ProsodyClient.stream} → `WS /v1/stream/realtime`
+ *    (you send PCM/Opus; events come back)
+ * 3. **realtime**: {@link ProsodyClient.realtime} → the LiveKit WebRTC
+ *    media plane; mint a room, consume analysis events on the data topic.
+ *    Audio does not go over the Prosody WebSocket from the browser.
  *
  * The Python LiveKit plugin bridges a LiveKit track → analysis WS on the
  * agent worker. That is an agent concern, and this client leaves it there.
@@ -77,9 +79,9 @@ export class ProsodyClient {
   readonly baseUrl: string;
 
   /**
-   * Analysis WebSocket transport (`WS /v1/stream/realtime`).
+   * The analysis WebSocket transport (`WS /v1/stream/realtime`).
    */
-  readonly realtime: {
+  readonly stream: {
     /** Session with Conversation: `start` → `send` → `stop`. */
     session: (options?: RealtimeSessionOpts) => LiveSession;
     /** Low-level stream if you want handlers without Conversation. */
@@ -90,10 +92,11 @@ export class ProsodyClient {
   };
 
   /**
-   * LiveKit media plane (WebRTC). Audio rides LiveKit; Prosody events arrive
-   * on the room data topic after a worker/plugin is analyzing the track.
+   * The LiveKit media plane (WebRTC). Audio rides LiveKit; Prosody events
+   * arrive on the room data topic after a worker/plugin is analyzing the
+   * track.
    */
-  readonly livekit: {
+  readonly realtime: {
     /** Mint room credentials (`POST /v1/realtime/sessions`). Server-side only. */
     createSession: (
       options?: RealtimeSessionCreateOptions,
@@ -106,25 +109,48 @@ export class ProsodyClient {
     attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => ProsodySession;
   };
 
+  /**
+   * The batch analysis namespace. {@link ProsodyClient.conversations.analyze}
+   * returns a `Conversation` (turns, speakers, frames, deltas).
+   */
   readonly conversations: {
+    /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyze: (
       audio: string | Buffer,
       options?: AnalysisOptions,
       signal?: AbortSignal,
     ) => Promise<Conversation>;
   };
+  /**
+   * Speaker identity: list resolved people, and enroll new voices in a
+   * two-step preview-then-confirm flow.
+   */
   readonly speakers: {
+    /** People resolved from stored speaker profiles within this API key's data scope. */
     list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
+    /** Diarize an enrollment recording without persisting any identity yet. */
     previewEnrollment: (
       audio: string | Buffer,
       signal?: AbortSignal,
     ) => Promise<VoiceEnrollmentPreview>;
+    /** Persist an operator-confirmed mapping from every previewed lane to a person. */
     confirmEnrollment: (
       audio: string | Buffer,
       previewSha256: string,
       mappings: VoiceEnrollmentMapping[],
       signal?: AbortSignal,
     ) => Promise<VoiceEnrollmentResult>;
+  };
+
+  /**
+   * Operator surface: a saved person's persisted significant moments.
+   * Shipped for internal tooling and absent from the published docs.
+   */
+  readonly memory: {
+    recall: {
+      /** `POST /v1/memory/recall`: `memory.recall.post(personId, topK)`. */
+      post: (personId: string, topK?: number, signal?: AbortSignal) => Promise<RecallResult>;
+    };
   };
 
   constructor(config: ProsodyClientConfig | string) {
@@ -140,14 +166,17 @@ export class ProsodyClient {
       previewEnrollment: this.previewSpeakerEnrollment.bind(this),
       confirmEnrollment: this.confirmSpeakerEnrollment.bind(this),
     });
-    this.realtime = Object.freeze({
+    this.memory = Object.freeze({
+      recall: Object.freeze({ post: this.recallMemory.bind(this) }),
+    });
+    this.stream = Object.freeze({
       session: (options?: RealtimeSessionOpts) => this.openRealtimeSession(options),
       connect: (
         handlers?: ProsodyRealtimeHandlers,
         options?: RealtimeConnectOpts,
       ) => this.openRealtimeStream(handlers, options),
     });
-    this.livekit = Object.freeze({
+    this.realtime = Object.freeze({
       createSession: (
         options: RealtimeSessionCreateOptions = {},
         signal?: AbortSignal,
@@ -177,6 +206,11 @@ export class ProsodyClient {
 
   // ──────────────────────────── Analysis ────────────────────────────
 
+  /**
+   * Raw batch analysis result (`POST /v1/analyze/audio`). Returns the parsed
+   * `AnalysisResult` directly; prefer {@link ProsodyClient.transcribe} or
+   * {@link ProsodyClient.analyzeConversation} for typed readouts.
+   */
   async analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
     const formData = await audioFormData(audio);
     if (options?.language) formData.append('language', options.language);
@@ -256,6 +290,7 @@ export class ProsodyClient {
     return (await this.analyzeConversation(audio, options, signal)).getSpeakers();
   }
 
+  /** Analyze base64-encoded audio over the JSON endpoint. */
   async analyzeBase64(base64Audio: string, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
     const raw = await callJSON(endpoints.analyzeBase64, this.opts, {
       audio_base64: base64Audio,
@@ -266,6 +301,7 @@ export class ProsodyClient {
     return parseAnalysisResult(raw);
   }
 
+  /** Analyze raw PCM (Int16/Float32/ArrayBuffer) by wrapping it as WAV first. */
   async analyzePCM(
     pcmData: Int16Array | Float32Array | ArrayBuffer,
     options?: PCMOptions,
@@ -325,8 +361,31 @@ export class ProsodyClient {
     return callForm(endpoints.confirmEnrollment, this.opts, formData, signal);
   }
 
+  // ───────────────────────────── Memory ────────────────────────────
+
+  /**
+   * A saved person's top-K significant moments, recency-ranked: the call
+   * carries no ranking vector, so the route's recency mode answers.
+   */
+  private async recallMemory(
+    personId: string,
+    topK = 5,
+    signal?: AbortSignal,
+  ): Promise<RecallResult> {
+    if (!personId) throw new Error('memory.recall.post requires personId');
+    if (!Number.isInteger(topK) || topK < 1 || topK > 50) {
+      throw new Error('memory.recall.post topK must be an integer from 1 to 50');
+    }
+    return callJSON(endpoints.memoryRecall, this.opts, {
+      person_id: personId,
+      top_k: topK,
+      include_recent: true,
+    }, signal);
+  }
+
   // ───────────────────────────── Feedback ──────────────────────────
 
+  /** Submit a corrected V/A/D reading for a prediction, for model feedback. */
   async submitCorrection(options: FeedbackCorrectionOptions, signal?: AbortSignal): Promise<{ status: string }> {
     const hasCorrection = options.correctedValence !== undefined
       || options.correctedArousal !== undefined
@@ -346,6 +405,7 @@ export class ProsodyClient {
     }, signal);
   }
 
+  /** Submit per-session KPI outcomes for a call, for outcome labeling. */
   async submitSessionOutcome(options: SessionOutcomeOptions, signal?: AbortSignal): Promise<{ status: string }> {
     if (options.outcomes.length === 0) {
       throw new Error('submitSessionOutcome requires at least one KPI outcome');
@@ -357,6 +417,7 @@ export class ProsodyClient {
     }, signal);
   }
 
+  /** Service health check (`GET /v1/health`). */
   async health(signal?: AbortSignal): Promise<{ status: string }> {
     return callQuery(endpoints.health, this.opts, undefined, signal);
   }
@@ -407,7 +468,7 @@ export class ProsodyClient {
   }
 
   /**
-   * Mint LiveKit room credentials for {@link ProsodyClient.livekit.createSession}.
+   * Mint LiveKit room credentials for {@link ProsodyClient.realtime.createSession}.
    * Server-side only: it holds `psk_*`.
    */
   private async createRealtimeSession(

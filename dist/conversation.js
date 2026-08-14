@@ -1,4 +1,4 @@
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 import { ConversationAnalysis, } from './analysis.js';
 import { isKnownSpeaker, normalizeSpeakerId, } from './conversation/turn-model.js';
 import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
@@ -8,16 +8,19 @@ export { prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js'
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 /**
- * Developer product object for diarized turns and vocal measurements.
+ * Shared state model for diarized turns and voice measurements, over a
+ * recording or a live socket.
  *
- * Live: feed Prosody wire events via `apply` (same spine as the demo session
- * hook). Batch: `Conversation.fromAnalysis`.
+ * Live: feed Prosody wire events via `apply`. Batch: build from
+ * `Conversation.fromAnalysis`. The same object backs `LiveSession` and the
+ * batch `Transcription.conversation`.
  */
 export class Conversation {
     segments = [];
     steps = [];
     affectAvailable = false;
     batch = null;
+    /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result) {
         const conversation = new Conversation();
         conversation.batch = new ConversationAnalysis(result);
@@ -96,18 +99,20 @@ export class Conversation {
         }
         return this;
     }
+    /** Full transcript text, built from the current turns. */
     getTranscript() {
         if (this.batch)
             return this.batch.getTranscript();
         return this.getTurns().map((turn) => turn.text).join(' ').trim();
     }
-    /** Diarized transcript turns with speaker_id (demo-equivalent spine). */
+    /** Diarized turns with speaker ids and attached prosody. */
     getTurns() {
         if (this.batch) {
             return this.batch.getTurns().map((turn) => this.batchTurn(turn));
         }
         return buildTurnsFromSegments(this.segments, this.steps);
     }
+    /** One turn by index, or null when out of range. */
     getTurn(index) {
         const turns = this.getTurns();
         if (!Number.isInteger(index) || index < 0 || index >= turns.length)
@@ -124,7 +129,7 @@ export class Conversation {
             return turn?.prosody ?? null;
         }
         if (this.batch) {
-            const windows = this.batch.getAcoustics();
+            const windows = this.batch.getFrames();
             const last = windows[windows.length - 1];
             return last ? prosodyFromWindow(last) : null;
         }
@@ -133,11 +138,12 @@ export class Conversation {
             return null;
         return prosodyFromState(last.acoustic_state, last.acoustic_change);
     }
+    /** Speakers on this call, with talk time and frame counts. */
     getSpeakers() {
         if (this.batch)
             return this.batch.getSpeakers();
         const turns = this.getTurns();
-        const windows = this.getAcoustics();
+        const windows = this.getFrames();
         const ids = new Set();
         for (const turn of turns)
             if (isKnownSpeaker(turn.speaker_id))
@@ -154,11 +160,21 @@ export class Conversation {
             window_count: windows.filter((window) => window.speakerId === speakerId).length,
         }));
     }
-    /** All measured windows, optionally limited to one recording-local speaker. */
-    getAcoustics(speakerId) {
+    /** Measured affect for the call, when the checkpoint publishes it. */
+    getVad() {
         if (this.batch)
-            return this.batch.getAcoustics(speakerId);
-        return this.steps.map((step) => AcousticWindow.fromLiveStep({
+            return this.batch.getVad();
+        if (!this.affectAvailable)
+            return null;
+        const windows = this.getFrames();
+        const last = windows[windows.length - 1];
+        return last?.vad ?? null;
+    }
+    /** All measured frames, optionally limited to one recording-local speaker. */
+    getFrames(speakerId) {
+        if (this.batch)
+            return this.batch.getFrames(speakerId);
+        return this.steps.map((step) => VoiceFrame.fromLiveStep({
             speakerId: step.speaker_id,
             timestampMs: step.timestamp_ms,
             acousticState: step.acoustic_state,
@@ -166,17 +182,19 @@ export class Conversation {
             affectAvailable: this.affectAvailable,
         })).filter((window) => speakerId === undefined || window.speakerId === speakerId);
     }
-    getAcousticWindow(index) {
-        const windows = this.getAcoustics();
+    /** One frame by index, or null when out of range. */
+    getVoiceFrame(index) {
+        const windows = this.getFrames();
         if (!Number.isInteger(index) || index < 0 || index >= windows.length)
             return null;
         return windows[index] ?? null;
     }
-    getMeasurementSeries(name, speakerId) {
+    /** One measurement across the call, by typed path, optionally for one speaker. */
+    getMeasurementSeries(path, speakerId) {
         if (this.batch)
-            return this.batch.getMeasurementSeries(name, speakerId);
-        return this.getAcoustics(speakerId).flatMap((window) => {
-            const value = measurementFromState(window.getAcousticState(), name);
+            return this.batch.getMeasurementSeries(path, speakerId);
+        return this.getFrames(speakerId).flatMap((window) => {
+            const value = measurementFromState(window.getAcousticState(), path);
             return value === null ? [] : [{
                     startMs: window.startMs,
                     endMs: window.endMs,
@@ -189,7 +207,7 @@ export class Conversation {
     getChanges(speakerId) {
         if (this.batch)
             return this.batch.getChanges(speakerId);
-        return this.getAcoustics(speakerId).flatMap((window) => {
+        return this.getFrames(speakerId).flatMap((window) => {
             const delta = prosodyDeltaFromWire(window.getAcousticChange());
             if (!delta)
                 return [];

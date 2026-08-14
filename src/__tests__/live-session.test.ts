@@ -58,7 +58,7 @@ describe('LiveSession', () => {
       apiKey: 'psk_test',
       baseUrl: 'http://localhost:8080',
     });
-    const session = client.realtime.session({ source: 'microphone', sampleRate: 16_000 });
+    const session = client.stream.session({ source: 'microphone', sampleRate: 16_000 });
 
     const started = session.start();
     await Promise.resolve();

@@ -1,5 +1,5 @@
 import { parseProsodyEvent } from './session.js';
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 /**
  * Lower-level live analysis client for `WS /v1/stream/realtime`.
  *
@@ -131,6 +131,12 @@ export class ProsodyRealtimeStream {
             return;
         this.socket.send(JSON.stringify({ type: 'end' }));
     }
+    /** Send one JSON control frame as a text message (e.g. `voice_profile_update`). */
+    sendControl(message) {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN)
+            return;
+        this.socket.send(JSON.stringify(message));
+    }
     close(code = 1000, reason = 'client_close') {
         if (this.closed || !this.socket)
             return;
@@ -172,8 +178,8 @@ export class ProsodyRealtimeStream {
         switch (event.type) {
             case 'directive': {
                 this.handlers.onDirective?.(event);
-                const window = AcousticWindow.fromDirective(event);
-                this.handlers.onAcousticWindow?.(window);
+                const window = VoiceFrame.fromDirective(event);
+                this.handlers.onVoiceFrame?.(window);
                 this.handlers.conversation?.apply(event);
                 break;
             }

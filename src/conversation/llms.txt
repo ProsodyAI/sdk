@@ -4,9 +4,10 @@ Turn assembly and the readable measurement layer for @prosodyai/sdk.
 
 ## Files
 
-- `prosody.ts`: owns the readable measurement names and the readable-to-wire
+- `prosody.ts`: owns the readable measurement shape and the wire-to-product
   key maps. Anything exposing a measurement to a consumer goes through
-  `prosodyFromState`, `measurementFromState`, or `prosodyDeltaFromWire`.
+  `prosodyFromState`, `prosodyStateFromWire`, `measurementFromState`, or
+  `prosodyDeltaFromWire`.
 - `turn-model.ts`: turn and step types; `ConversationTurn.prosody` is the
   per-turn measurement slot.
 - `turn-builder.ts`: segments to turns, prosody attached by overlap.
@@ -17,5 +18,8 @@ Turn assembly and the readable measurement layer for @prosodyai/sdk.
 
 - No wire field name leaves this directory except through the maps in
   `prosody.ts`.
+- `Prosody` is `{ state, change }`: `state` is what was measured, `change` is
+  the signed movement against the speaker's own baseline. Both share the same
+  family shape: `intonation`, `stress`, `rhythm`, plus `tilt`.
 - `ConversationTurn` carries `prosody?: Prosody | null`; the old `vocal`
   bundle with wire keys was removed.

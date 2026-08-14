@@ -30,7 +30,7 @@ export interface LiveSessionOptions {
  *
  * Opens a direct API session, sends PCM or Opus bytes, and builds a
  * {@link Conversation} from wire events. LiveKit media uses
- * {@link ProsodyClient.livekit}.
+ * {@link ProsodyClient.realtime}.
  *
  * Apps (including the website demo) supply audio; this class owns start/stop,
  * frame pacing, and the conversation spine.
@@ -61,6 +61,8 @@ export declare class LiveSession {
     start(overrides?: LiveSessionStartOptions): Promise<void>;
     /** Send one PCM (or Opus) audio chunk. */
     send(chunk: ArrayBuffer | Uint8Array | Buffer | Int16Array): void;
+    /** Send one JSON control frame (e.g. `voice_profile_update`) as a text message. */
+    sendControl(message: Record<string, unknown>): void;
     /**
      * Wait until the server acks the current analysis second (`directive` or
      * `frame_ack`). Used for paced file replay.

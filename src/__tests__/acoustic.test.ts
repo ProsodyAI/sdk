@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { acousticWindows, measurementSeries, parseAnalysisResult } from '../analysis.js';
+import { voiceFrames, measurementSeries, parseAnalysisResult } from '../analysis.js';
 
 /**
  * Captured from production: POST /v1/analyze/audio with diarize=true on 90s of
@@ -23,7 +23,7 @@ describe('acoustic output from a real deployment', () => {
 
   it('exposes the measured windows the model produced', () => {
     const result = parseAnalysisResult(production);
-    const windows = acousticWindows(result);
+    const windows = voiceFrames(result);
     expect(windows).toHaveLength(3);
 
     const first = windows[0].acoustic_state?.values;
@@ -35,7 +35,7 @@ describe('acoustic output from a real deployment', () => {
 
   it('reports speaker-relative movement after the first window', () => {
     const result = parseAnalysisResult(production);
-    const windows = acousticWindows(result);
+    const windows = voiceFrames(result);
     expect(windows[0].acoustic_change ?? null).toBeNull();
     expect(windows[1].acoustic_change?.values?.rms_db_change).toBeCloseTo(2.18, 1);
     expect(windows[1].acoustic_change?.reference).toContain('previous_chunk');
@@ -43,7 +43,7 @@ describe('acoustic output from a real deployment', () => {
 
   it('reads one measurement across the call', () => {
     const result = parseAnalysisResult(production);
-    const series = measurementSeries(result, 'pitchHz');
+    const series = measurementSeries(result, 'intonation.pitch');
     expect(series).toHaveLength(3);
     expect(series.every((point) => point.end_ms > point.start_ms)).toBe(true);
   });
@@ -75,7 +75,7 @@ describe('affect is not required to be a measurement', () => {
       ],
     });
     expect(result.affect_available).toBe(false);
-    expect(measurementSeries(result, 'loudnessDbfs')[0].value).toBe(-20.5);
+    expect(measurementSeries(result, 'stress.loudness')[0].value).toBe(-20.5);
   });
 
   it('rejects a response that claims affect but omits the numbers', () => {

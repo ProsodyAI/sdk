@@ -1,4 +1,4 @@
-import { AcousticWindow } from './step.js';
+import { VoiceFrame } from './step.js';
 /** Default LiveKit data topic matching API `livekit_event_topic`. */
 export const PROSODY_EVENT_TOPIC = 'prosody.events.v1';
 const PROSODY_EVENT_TYPES = new Set([
@@ -37,6 +37,14 @@ export function parseProsodyEvent(input) {
     }
     return value;
 }
+/**
+ * Consumes Prosody analysis events off a LiveKit room's data topic.
+ *
+ * Audio rides the LiveKit media plane; an agent worker (or the Python
+ * `livekit-plugins-prosodyai` plugin) bridges the track to the analysis
+ * WebSocket and republishes events to this topic. This class parses, orders
+ * by `generation`/`seq` when present, and fans out to typed handlers.
+ */
 export class ProsodySession {
     room;
     options;
@@ -52,12 +60,15 @@ export class ProsodySession {
         this.options = options;
         this.topic = options.topic ?? PROSODY_EVENT_TOPIC;
     }
+    /** Highest event generation seen, when the wire carries ordering. */
     get generation() {
         return this.currentGeneration;
     }
+    /** Highest event sequence seen, when the wire carries ordering. */
     get lastSeq() {
         return this.currentSeq >= 0 ? this.currentSeq : null;
     }
+    /** Subscribe to the room data topic. Idempotent. */
     start() {
         if (this.isStarted)
             return this;
@@ -65,6 +76,7 @@ export class ProsodySession {
         this.isStarted = true;
         return this;
     }
+    /** Unsubscribe from the room data topic. Idempotent. */
     stop() {
         if (!this.isStarted)
             return;
@@ -111,8 +123,8 @@ export class ProsodySession {
         switch (event.type) {
             case 'directive': {
                 this.options.onDirective?.(event);
-                const window = AcousticWindow.fromDirective(event);
-                this.options.onAcousticWindow?.(window);
+                const window = VoiceFrame.fromDirective(event);
+                this.options.onVoiceFrame?.(window);
                 this.options.conversation?.apply(event);
                 break;
             }

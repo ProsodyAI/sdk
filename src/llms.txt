@@ -6,22 +6,24 @@ TypeScript source for @prosodyai/sdk, the consumer SDK for the ProsodyAI API.
 
 - `index.ts`: public export surface.
 - `types.ts`, `types/`: wire payload types; wire field names are confined here.
-- `step.ts`: `AcousticWindow`, one measured interval; readable accessors
-  (`getProsody`, `getMeasurement`, `getChange`, `getPitch`, `getLevel`,
-  `getVoicing`, `getTilt`, `getVad`) plus the raw wire escape hatches
-  (`getAcousticState`, `getAcousticChange`).
+- `step.ts`: `VoiceFrame`, one measured interval. Exposes `state`, `change`,
+  and `vad` directly, plus `getProsody`, `getChange`, and the raw wire escape
+  hatches (`getAcousticState`, `getAcousticChange`).
 - `analysis.ts`: batch envelope validation and `ConversationAnalysis`.
 - `conversation.ts`: `Conversation`, shared live/batch state model.
 - `transcription.ts`: `Speaker`, `VoiceProfile`, `Transcription`.
-- `conversation/prosody.ts`: owns the readable measurement names
-  (`Prosody`, `ProsodyChange`, `MeasurementName`) and the only
-  readable-to-wire key maps.
+- `conversation/prosody.ts`: owns the readable measurement shape
+  (`Prosody`, `ProsodyState`, `ProsodyChange`, `MeasurementPath`) and the only
+  wire-to-product key maps.
 - `client.ts`, `session.ts`, `live-session.ts`, `realtime.ts`: transports.
 
 ## Contracts
 
-- Product surface carries readable names (`pitchHz`, `loudnessDbfs`).
-  Wire names (`f0_median_hz`, `rms_dbfs`) appear only in `types/` and in the
-  maps inside `conversation/prosody.ts`.
-- Wire names that cross the delta boundary are mapped through `CHANGE_WIRE`;
-  the readable change keys are `loudnessDb`, `pitchSemitones`, and friends.
+- Product surface carries family-shaped names (`state.intonation.pitch`,
+  `state.stress.loudness`, `state.rhythm.voiced`, `state.tilt`). Wire names
+  (`f0_median_hz`, `rms_dbfs`) appear only in `types/` and in the maps inside
+  `conversation/prosody.ts`.
+- `state` is what was measured; `change` is what it moved against the speaker's
+  own baseline. Both use the same family and field names.
+- No unit suffixes or availability booleans on public names. A null field means
+  the audio did not support the measurement.

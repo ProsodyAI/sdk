@@ -1,5 +1,6 @@
 import type { RequestOptions } from './http.js';
 import { postForm, postJSON, requestJSON } from './http.js';
+import type { RecallResult } from './types/memory.js';
 import type {
   RealtimeSessionCredentials,
   SpeakerDirectoryResult,
@@ -31,6 +32,7 @@ export const endpoints = {
   previewEnrollment: endpoint<VoiceEnrollmentPreview>('POST', '/v1/voice/enrollments/preview'),
   confirmEnrollment: endpoint<VoiceEnrollmentResult>('POST', '/v1/voice/enrollments/confirm'),
   createRealtimeSession: endpoint<RealtimeSessionCredentials>('POST', '/v1/realtime/sessions'),
+  memoryRecall: endpoint<RecallResult>('POST', '/v1/memory/recall'),
   health: endpoint<{ status: string }>('GET', '/health'),
 } as const;
 

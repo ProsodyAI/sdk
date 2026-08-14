@@ -1,52 +1,88 @@
-import type { AcousticWindow } from '../step.js';
+import type { VoiceFrame } from '../step.js';
 import type { AcousticChange, AcousticState } from '../types.js';
 
-/**
- * How a window moved against the same speaker's preceding audio. Signed:
- * zero is a real reading, `null` means the measurement was not supported.
- */
-export interface ProsodyChange {
-  loudnessDb: number | null;
-  peakDb: number | null;
-  pitchSemitones: number | null;
-  pitchRangeSemitones: number | null;
-  pitchSlopeSemitonesPerSecond: number | null;
-  tiltDbPerOctave: number | null;
-  voicedRatio: number | null;
-  pauseRatio: number | null;
-  voiceOnsetRateHz: number | null;
+/** Intonation: the F0 contour of one window. */
+export interface IntonationState {
+  /** Median F0, Hz. Null when the window was unvoiced. */
+  pitch: number | null;
+  /** F0 span within the window, semitones. Pitch span marks emphasis. */
+  range: number | null;
+  /** Contour direction, semitones per second: negative falls, positive rises. */
+  slope: number | null;
+}
+
+/** Stress: the intensity of one window. */
+export interface StressState {
+  /** Intensity, dBFS relative to full scale. */
+  loudness: number | null;
+  /** Peak intensity in the window, dBFS. */
+  peak: number | null;
+}
+
+/** Rhythm: the timing of phonation and silence in one window. */
+export interface RhythmState {
+  /** Fraction of the window phonated, 0-1. */
+  voiced: number | null;
+  /** Fraction of the window in silence, 0-1. */
+  pause: number | null;
+  /** Phonation onsets per second; correlates with articulation rate. */
+  onset: number | null;
 }
 
 /**
- * How a window sounded, in physical units.
- *
- * A field is `null` when the audio did not support the measurement (pitch on
- * a whispered or unvoiced window, for example).
+ * The suprasegmental readout of one window: intonation, stress, rhythm, and
+ * voice quality in physical units.
  */
+export interface ProsodyState {
+  intonation: IntonationState;
+  stress: StressState;
+  rhythm: RhythmState;
+  /** Voice quality: spectral tilt, dB per octave. Breathy phonation tilts steeper than pressed. */
+  tilt: number | null;
+  /** Signal health: fraction of samples at full scale, 0-1. */
+  clipping: number | null;
+}
+
+/** Intonation movement against the speaker's own baseline. */
+export interface IntonationChange {
+  /** F0 movement, semitones. */
+  pitch: number | null;
+  /** Pitch span movement, semitones. */
+  range: number | null;
+  /** Contour movement, semitones per second. */
+  slope: number | null;
+}
+
+/** Stress movement against the speaker's own baseline. */
+export interface StressChange {
+  /** Loudness movement, dB. */
+  loudness: number | null;
+  /** Peak movement, dB. */
+  peak: number | null;
+}
+
+/** Rhythm movement against the speaker's own baseline. */
+export interface RhythmChange {
+  voiced: number | null;
+  pause: number | null;
+  onset: number | null;
+}
+
+/**
+ * What one window moved, field by field with `ProsodyState`. Signed: zero is
+ * a real reading, `null` means the measurement was not supported.
+ */
+export interface ProsodyChange {
+  intonation: IntonationChange;
+  stress: StressChange;
+  rhythm: RhythmChange;
+  tilt: number | null;
+}
+
+/** One window of prosody: what was measured, and what it moved. */
 export interface Prosody {
-  /** Loudness, dBFS. */
-  loudnessDbfs: number | null;
-  /** Loudest sample in the window, dBFS. */
-  peakDbfs: number | null;
-  /** Pitch, Hz. */
-  pitchHz: number | null;
-  /** Pitch movement within the window, semitones. */
-  pitchRangeSemitones: number | null;
-  /** Pitch direction, semitones per second: negative falls, positive rises. */
-  pitchSlopeSemitonesPerSecond: number | null;
-  /** Spectral tilt, dB per octave. Breathy voices tilt steeper. */
-  tiltDbPerOctave: number | null;
-  /** Fraction of the window carrying voiced audio, 0-1. */
-  voicedRatio: number | null;
-  /** Fraction of the window that was silence, 0-1. */
-  pauseRatio: number | null;
-  /** Fraction of samples at the clipping ceiling, 0-1. */
-  clippingRatio: number | null;
-  /** Voice onsets per second: how often phonation restarts. */
-  voiceOnsetRateHz: number | null;
-  /** True when pitch was measurable on this window. */
-  pitchAvailable: boolean;
-  /** Change against this speaker's own baseline. `null` on their first window. */
+  state: ProsodyState;
+  /** Speaker-relative movement. Null on the speaker's first window. */
   change: ProsodyChange | null;
 }
 
@@ -56,69 +92,113 @@ export interface ProsodyDelta {
   values: ProsodyChange;
 }
 
-/** Readable measurement keys accepted by the series accessors. */
-export type MeasurementName =
-  | 'loudnessDbfs'
-  | 'peakDbfs'
-  | 'pitchHz'
-  | 'pitchRangeSemitones'
-  | 'pitchSlopeSemitonesPerSecond'
-  | 'tiltDbPerOctave'
-  | 'voicedRatio'
-  | 'pauseRatio'
-  | 'clippingRatio'
-  | 'voiceOnsetRateHz';
+/** Wire keys for the measured state, declared once in family shape. */
+const STATE_WIRE = {
+  intonation: {
+    pitch: 'f0_median_hz',
+    range: 'f0_range_semitones',
+    slope: 'f0_slope_semitones_per_second',
+  },
+  stress: {
+    loudness: 'rms_dbfs',
+    peak: 'peak_dbfs',
+  },
+  rhythm: {
+    voiced: 'voiced_ratio',
+    pause: 'pause_ratio',
+    onset: 'voice_onset_rate_hz',
+  },
+  tilt: 'spectral_tilt_db_per_octave',
+  clipping: 'clipping_ratio',
+} as const;
 
-const MEASUREMENT_WIRE: Record<MeasurementName, string> = {
-  loudnessDbfs: 'rms_dbfs',
-  peakDbfs: 'peak_dbfs',
-  pitchHz: 'f0_median_hz',
-  pitchRangeSemitones: 'f0_range_semitones',
-  pitchSlopeSemitonesPerSecond: 'f0_slope_semitones_per_second',
-  tiltDbPerOctave: 'spectral_tilt_db_per_octave',
-  voicedRatio: 'voiced_ratio',
-  pauseRatio: 'pause_ratio',
-  clippingRatio: 'clipping_ratio',
-  voiceOnsetRateHz: 'voice_onset_rate_hz',
-};
+/** Wire keys for speaker-relative movement, same family shape. */
+const CHANGE_WIRE = {
+  intonation: {
+    pitch: 'f0_median_semitone_change',
+    range: 'f0_range_semitone_change',
+    slope: 'f0_slope_semitones_per_second_change',
+  },
+  stress: {
+    loudness: 'rms_db_change',
+    peak: 'peak_db_change',
+  },
+  rhythm: {
+    voiced: 'voiced_ratio_change',
+    pause: 'pause_ratio_change',
+    onset: 'voice_onset_rate_hz_change',
+  },
+  tilt: 'spectral_tilt_db_per_octave_change',
+} as const;
 
-const CHANGE_WIRE: Record<keyof ProsodyChange, string> = {
-  loudnessDb: 'rms_db_change',
-  peakDb: 'peak_db_change',
-  pitchSemitones: 'f0_median_semitone_change',
-  pitchRangeSemitones: 'f0_range_semitone_change',
-  pitchSlopeSemitonesPerSecond: 'f0_slope_semitones_per_second_change',
-  tiltDbPerOctave: 'spectral_tilt_db_per_octave_change',
-  voicedRatio: 'voiced_ratio_change',
-  pauseRatio: 'pause_ratio_change',
-  voiceOnsetRateHz: 'voice_onset_rate_hz_change',
-};
+/** Typed measurement paths accepted by the series accessors. */
+export type MeasurementPath =
+  | `intonation.${keyof typeof STATE_WIRE.intonation}`
+  | `stress.${keyof typeof STATE_WIRE.stress}`
+  | `rhythm.${keyof typeof STATE_WIRE.rhythm}`
+  | 'tilt'
+  | 'clipping';
+
+function flattenWire(registry: Record<string, unknown>, prefix = ''): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, node] of Object.entries(registry)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof node === 'string') out[path] = node;
+    else Object.assign(out, flattenWire(node as Record<string, unknown>, path));
+  }
+  return out;
+}
+
+const STATE_WIRE_FLAT = flattenWire(STATE_WIRE) as Record<MeasurementPath, string>;
+
+function buildFromWire<T>(
+  registry: Record<string, unknown> | string,
+  read: (wireKey: string) => number | null,
+): T {
+  if (typeof registry === 'string') return read(registry) as T;
+  const out: Record<string, unknown> = {};
+  for (const [key, node] of Object.entries(registry)) {
+    out[key] = buildFromWire(node as Record<string, unknown> | string, read);
+  }
+  return out as T;
+}
 
 function numberOf(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-/** Read one measurement from a wire acoustic state. */
-export function measurementFromState(
-  state: AcousticState | null | undefined,
-  name: MeasurementName,
-): number | null {
-  return numberOf(state?.values?.[MEASUREMENT_WIRE[name]]);
+/**
+ * Map a wire acoustic state onto the measured window. Intonation reads null
+ * when the window was unvoiced: pitch does not exist on unphonated audio.
+ */
+export function prosodyStateFromWire(state: AcousticState | null | undefined): ProsodyState | null {
+  if (!state) return null;
+  const built = buildFromWire<ProsodyState>(STATE_WIRE, (key) => numberOf(state.values?.[key]));
+  if (state.masks?.f0_available !== true) {
+    built.intonation = { pitch: null, range: null, slope: null };
+  }
+  return built;
 }
 
-/** Map wire change values onto the readable change shape. */
+/** Read one measurement from a wire acoustic state, by typed path. */
+export function measurementFromState(
+  state: AcousticState | null | undefined,
+  path: MeasurementPath,
+): number | null {
+  if (!state) return null;
+  if (path.startsWith('intonation.') && state.masks?.f0_available !== true) return null;
+  return numberOf(state.values?.[STATE_WIRE_FLAT[path]]);
+}
+
+/** Map wire change values onto the family-shaped movement. */
 export function prosodyChangeFromWire(
   values: AcousticChange['values'] | null | undefined,
 ): ProsodyChange | null {
   if (!values) return null;
-  const change = {} as ProsodyChange;
-  for (const [name, wire] of Object.entries(CHANGE_WIRE) as [keyof ProsodyChange, string][]) {
-    change[name] = numberOf(values[wire]);
-  }
-  return change;
+  return buildFromWire<ProsodyChange>(CHANGE_WIRE, (key) => numberOf(values[key]));
 }
 
-/** Map a wire acoustic change to a readable delta with its reference. */
+/** Map a wire acoustic change to a delta with its reference. */
 export function prosodyDeltaFromWire(
   change: AcousticChange | null | undefined,
 ): ProsodyDelta | null {
@@ -127,31 +207,16 @@ export function prosodyDeltaFromWire(
   return { reference: change?.reference ?? null, values };
 }
 
-/** Map a wire acoustic state onto the named, unit-carrying product shape. */
+/** Map a wire acoustic state onto the product shape: state plus movement. */
 export function prosodyFromState(
   state: AcousticState | null | undefined,
   change?: AcousticChange | null,
 ): Prosody | null {
-  if (!state) return null;
-  const pitchAvailable = state.masks?.f0_available === true;
-  return {
-    loudnessDbfs: measurementFromState(state, 'loudnessDbfs'),
-    peakDbfs: measurementFromState(state, 'peakDbfs'),
-    pitchHz: pitchAvailable ? measurementFromState(state, 'pitchHz') : null,
-    pitchRangeSemitones: pitchAvailable ? measurementFromState(state, 'pitchRangeSemitones') : null,
-    pitchSlopeSemitonesPerSecond: pitchAvailable
-      ? measurementFromState(state, 'pitchSlopeSemitonesPerSecond')
-      : null,
-    tiltDbPerOctave: measurementFromState(state, 'tiltDbPerOctave'),
-    voicedRatio: measurementFromState(state, 'voicedRatio'),
-    pauseRatio: measurementFromState(state, 'pauseRatio'),
-    clippingRatio: measurementFromState(state, 'clippingRatio'),
-    voiceOnsetRateHz: measurementFromState(state, 'voiceOnsetRateHz'),
-    pitchAvailable,
-    change: prosodyChangeFromWire(change?.values ?? null),
-  };
+  const built = prosodyStateFromWire(state);
+  if (!built) return null;
+  return { state: built, change: prosodyChangeFromWire(change?.values ?? null) };
 }
 
-export function prosodyFromWindow(window: AcousticWindow): Prosody | null {
+export function prosodyFromWindow(window: VoiceFrame): Prosody | null {
   return prosodyFromState(window.getAcousticState(), window.getAcousticChange());
 }

@@ -76,15 +76,12 @@ export {
   ConversationAnalysis,
   type MeasurementPoint,
   type ChangePoint,
-  acousticWindows,
+  voiceFrames,
   measurementSeries,
 } from './analysis.js';
 export {
-  AcousticWindow,
+  VoiceFrame,
   type AffectVad,
-  type PitchReading,
-  type LevelReading,
-  type VoicingReading,
 } from './step.js';
 export {
   Conversation,
@@ -93,10 +90,11 @@ export {
   mergeTranscriptUpdateSegments,
   buildTurnsFromSegments,
   type ConversationTurn,
-  type MeasurementName,
+  type MeasurementPath,
   type Prosody,
   type ProsodyChange,
   type ProsodyDelta,
+  type ProsodyState,
 } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export {

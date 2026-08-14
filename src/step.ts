@@ -1,10 +1,12 @@
 import {
-  measurementFromState,
+  prosodyChangeFromWire,
   prosodyDeltaFromWire,
   prosodyFromState,
-  type MeasurementName,
+  prosodyStateFromWire,
   type Prosody,
+  type ProsodyChange,
   type ProsodyDelta,
+  type ProsodyState,
 } from './conversation/prosody.js';
 import type {
   AcousticChange,
@@ -13,49 +15,52 @@ import type {
   ProsodyTimelinePoint,
 } from './types.js';
 
+/**
+ * Measured valence, arousal, and dominance for one frame or call.
+ *
+ * Only present when the checkpoint trains the affect heads (`affect_available`).
+ * Each component is a signed reading on the model's affect scale.
+ */
 export interface AffectVad {
+  /** Valence: pleasant to unpleasant. */
   valence: number;
+  /** Arousal: calm to activated. */
   arousal: number;
+  /** Dominance: submissive to dominant. */
   dominance: number;
 }
 
-export interface PitchReading {
-  /** Median voiced F0 (Hz). Null when the window was unvoiced. */
-  medianHz: number | null;
-  rangeSemitones: number | null;
-  slopeSemitonesPerSecond: number | null;
-  available: boolean;
-}
-
-export interface LevelReading {
-  rmsDbfs: number | null;
-  peakDbfs: number | null;
-  clippingRatio: number | null;
-}
-
-export interface VoicingReading {
-  voicedRatio: number | null;
-  pauseRatio: number | null;
-  onsetRateHz: number | null;
-  /** Committed per-frame voicing mask at 12.5 Hz. */
-  frameVoiced: boolean[] | null;
-}
-
 /**
- * One gated ProsodySSM recurrent step, as a consumer sees it.
+ * One measured interval of a call, as a consumer sees it.
  *
- * Built from a live `directive` or batch `prosody_timeline` window. Raw Mimi
- * latents and recurrent state tensors remain internal.
+ * Built from a live `directive` event or a batch `prosody_timeline` window.
+ * Raw Mimi latents and recurrent state tensors stay internal; this surface
+ * carries only the readouts: who spoke, when, how the voice sounded, how it
+ * moved against that speaker's own baseline, and the affect when published.
+ *
+ * The `state`/`change` pair is the locked vocabulary: `state` is what was
+ * measured, `change` is what it moved. Both share the same family shape
+ * (intonation, stress, rhythm, tilt).
  */
-export class AcousticWindow {
+export class VoiceFrame {
+  /** Conversation-local lane this frame was attributed to. */
   readonly speakerId: string;
+  /** Position of this frame's tip on the session audio clock, in ms. */
   readonly timestampMs: number;
+  /** Start of the measured interval, in ms. */
   readonly startMs: number;
+  /** End of the measured interval, in ms. */
   readonly endMs: number;
+  /** True when the checkpoint publishes affect readings for this frame. */
   readonly affectAvailable: boolean;
-  private readonly state: AcousticState | null;
-  private readonly change: AcousticChange | null;
-  private readonly affect: AffectVad | null;
+  /** How the voice sounded. Null when this frame carried no acoustic state. */
+  readonly state: ProsodyState | null;
+  /** What this frame moved against this speaker's own baseline. Null on the speaker's first frame. */
+  readonly change: ProsodyChange | null;
+  /** Measured valence/arousal/dominance, when `affectAvailable` is true. */
+  readonly vad: AffectVad | null;
+  private readonly wireState: AcousticState | null;
+  private readonly wireChange: AcousticChange | null;
 
   private constructor(args: {
     speakerId: string;
@@ -72,15 +77,19 @@ export class AcousticWindow {
     this.startMs = args.startMs;
     this.endMs = args.endMs;
     this.affectAvailable = args.affectAvailable;
-    this.state = args.state;
-    this.change = args.change;
-    this.affect = args.affect;
+    this.wireState = args.state;
+    this.wireChange = args.change;
+    this.state = prosodyStateFromWire(args.state);
+    this.change = prosodyStateFromWire(args.state)
+      ? prosodyDeltaFromWire(args.change)?.values ?? null
+      : null;
+    this.vad = args.affectAvailable ? args.affect : null;
   }
 
-  /** Live analysis chunk (`directive` from `/v1/stream/realtime`). */
-  static fromDirective(event: DirectiveEvent): AcousticWindow {
+  /** Build a frame from a live `directive` event off `/v1/stream/realtime`. */
+  static fromDirective(event: DirectiveEvent): VoiceFrame {
     const affectAvailable = event.affect_available === true;
-    return new AcousticWindow({
+    return new VoiceFrame({
       speakerId: event.speaker_id,
       timestampMs: event.timestamp_ms,
       startMs: Math.max(0, event.timestamp_ms - 1000),
@@ -98,13 +107,13 @@ export class AcousticWindow {
     });
   }
 
-  /** One diarized batch window from `prosody_timeline`. */
+  /** Build a frame from one diarized batch window on `prosody_timeline`. */
   static fromTimelinePoint(
     point: ProsodyTimelinePoint,
     options?: { affectAvailable?: boolean },
-  ): AcousticWindow {
+  ): VoiceFrame {
     const affectAvailable = options?.affectAvailable === true;
-    return new AcousticWindow({
+    return new VoiceFrame({
       speakerId: point.speaker_id ?? 'unknown',
       timestampMs: point.end_ms,
       startMs: point.start_ms,
@@ -122,15 +131,15 @@ export class AcousticWindow {
     });
   }
 
-  /** Live step without requiring a full directive payload. */
+  /** Build a frame from a live step without a full directive payload. */
   static fromLiveStep(args: {
     speakerId: string;
     timestampMs: number;
     acousticState: AcousticState | null;
     acousticChange?: AcousticChange | null;
     affectAvailable?: boolean;
-  }): AcousticWindow {
-    return new AcousticWindow({
+  }): VoiceFrame {
+    return new VoiceFrame({
       speakerId: args.speakerId,
       timestampMs: args.timestampMs,
       startMs: Math.max(0, args.timestampMs - 1000),
@@ -142,85 +151,28 @@ export class AcousticWindow {
     });
   }
 
+  /** Conversation-local lane this frame was attributed to. */
   getSpeakerId(): string {
     return this.speakerId;
   }
 
-  /** Wire `acoustic_state` payload, for consumers that parse the wire themselves. */
+  /** Raw wire `acoustic_state` payload, for consumers that parse the wire themselves. */
   getAcousticState(): AcousticState | null {
-    return this.state;
+    return this.wireState;
   }
 
-  /** Wire `acoustic_change` payload, for consumers that parse the wire themselves. */
+  /** Raw wire `acoustic_change` payload, for consumers that parse the wire themselves. */
   getAcousticChange(): AcousticChange | null {
-    return this.change;
+    return this.wireChange;
   }
 
-  /** The full measurement bundle for this window, under readable names. */
+  /** The measurement bundle for this frame: `state` plus `change`. */
   getProsody(): Prosody | null {
-    return prosodyFromState(this.state, this.change);
+    return prosodyFromState(this.wireState, this.wireChange);
   }
 
-  /** One measurement from this window, by readable name. */
-  getMeasurement(name: MeasurementName): number | null {
-    return measurementFromState(this.state, name);
-  }
-
-  getPitch(): PitchReading {
-    const values = this.state?.values;
-    const masks = this.state?.masks;
-    return {
-      medianHz: finiteOrNull(values?.f0_median_hz),
-      rangeSemitones: finiteOrNull(values?.f0_range_semitones),
-      slopeSemitonesPerSecond: finiteOrNull(values?.f0_slope_semitones_per_second),
-      available: masks?.f0_available === true,
-    };
-  }
-
-  /** Convenience: median F0 Hz, or null. */
-  getPitchHz(): number | null {
-    const pitch = this.getPitch();
-    return pitch.available ? pitch.medianHz : null;
-  }
-
-  getLevel(): LevelReading {
-    const values = this.state?.values;
-    return {
-      rmsDbfs: finiteOrNull(values?.rms_dbfs),
-      peakDbfs: finiteOrNull(values?.peak_dbfs),
-      clippingRatio: finiteOrNull(values?.clipping_ratio),
-    };
-  }
-
-  getVoicing(): VoicingReading {
-    const values = this.state?.values;
-    const mask = this.state?.masks?.voiced_mask;
-    return {
-      voicedRatio: finiteOrNull(values?.voiced_ratio),
-      pauseRatio: finiteOrNull(values?.pause_ratio),
-      onsetRateHz: finiteOrNull(values?.voice_onset_rate_hz),
-      frameVoiced: Array.isArray(mask) ? [...mask] : null,
-    };
-  }
-
-  getTilt(): number | null {
-    if (this.state?.masks?.spectral_tilt_available === false) return null;
-    return finiteOrNull(this.state?.values?.spectral_tilt_db_per_octave);
-  }
-
-  /**
-   * Return V/A/D when the checkpoint marks affect as a trained measurement.
-   */
-  getVad(): AffectVad | null {
-    return this.affectAvailable ? this.affect : null;
-  }
-
-  /** Speaker-relative movement vs the prior window in this speaker's scope. */
+  /** The committed movement with the baseline it was judged against. */
   getChange(): ProsodyDelta | null {
-    return prosodyDeltaFromWire(this.change);
+    return prosodyDeltaFromWire(this.wireChange);
   }
-}
-
-function finiteOrNull(value: number | null | undefined): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

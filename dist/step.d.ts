@@ -1,78 +1,73 @@
-import { type MeasurementName, type Prosody, type ProsodyDelta } from './conversation/prosody.js';
+import { type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState } from './conversation/prosody.js';
 import type { AcousticChange, AcousticState, DirectiveEvent, ProsodyTimelinePoint } from './types.js';
+/**
+ * Measured valence, arousal, and dominance for one frame or call.
+ *
+ * Only present when the checkpoint trains the affect heads (`affect_available`).
+ * Each component is a signed reading on the model's affect scale.
+ */
 export interface AffectVad {
+    /** Valence: pleasant to unpleasant. */
     valence: number;
+    /** Arousal: calm to activated. */
     arousal: number;
+    /** Dominance: submissive to dominant. */
     dominance: number;
 }
-export interface PitchReading {
-    /** Median voiced F0 (Hz). Null when the window was unvoiced. */
-    medianHz: number | null;
-    rangeSemitones: number | null;
-    slopeSemitonesPerSecond: number | null;
-    available: boolean;
-}
-export interface LevelReading {
-    rmsDbfs: number | null;
-    peakDbfs: number | null;
-    clippingRatio: number | null;
-}
-export interface VoicingReading {
-    voicedRatio: number | null;
-    pauseRatio: number | null;
-    onsetRateHz: number | null;
-    /** Committed per-frame voicing mask at 12.5 Hz. */
-    frameVoiced: boolean[] | null;
-}
 /**
- * One gated ProsodySSM recurrent step, as a consumer sees it.
+ * One measured interval of a call, as a consumer sees it.
  *
- * Built from a live `directive` or batch `prosody_timeline` window. Raw Mimi
- * latents and recurrent state tensors remain internal.
+ * Built from a live `directive` event or a batch `prosody_timeline` window.
+ * Raw Mimi latents and recurrent state tensors stay internal; this surface
+ * carries only the readouts: who spoke, when, how the voice sounded, how it
+ * moved against that speaker's own baseline, and the affect when published.
+ *
+ * The `state`/`change` pair is the locked vocabulary: `state` is what was
+ * measured, `change` is what it moved. Both share the same family shape
+ * (intonation, stress, rhythm, tilt).
  */
-export declare class AcousticWindow {
+export declare class VoiceFrame {
+    /** Conversation-local lane this frame was attributed to. */
     readonly speakerId: string;
+    /** Position of this frame's tip on the session audio clock, in ms. */
     readonly timestampMs: number;
+    /** Start of the measured interval, in ms. */
     readonly startMs: number;
+    /** End of the measured interval, in ms. */
     readonly endMs: number;
+    /** True when the checkpoint publishes affect readings for this frame. */
     readonly affectAvailable: boolean;
-    private readonly state;
-    private readonly change;
-    private readonly affect;
+    /** How the voice sounded. Null when this frame carried no acoustic state. */
+    readonly state: ProsodyState | null;
+    /** What this frame moved against this speaker's own baseline. Null on the speaker's first frame. */
+    readonly change: ProsodyChange | null;
+    /** Measured valence/arousal/dominance, when `affectAvailable` is true. */
+    readonly vad: AffectVad | null;
+    private readonly wireState;
+    private readonly wireChange;
     private constructor();
-    /** Live analysis chunk (`directive` from `/v1/stream/realtime`). */
-    static fromDirective(event: DirectiveEvent): AcousticWindow;
-    /** One diarized batch window from `prosody_timeline`. */
+    /** Build a frame from a live `directive` event off `/v1/stream/realtime`. */
+    static fromDirective(event: DirectiveEvent): VoiceFrame;
+    /** Build a frame from one diarized batch window on `prosody_timeline`. */
     static fromTimelinePoint(point: ProsodyTimelinePoint, options?: {
         affectAvailable?: boolean;
-    }): AcousticWindow;
-    /** Live step without requiring a full directive payload. */
+    }): VoiceFrame;
+    /** Build a frame from a live step without a full directive payload. */
     static fromLiveStep(args: {
         speakerId: string;
         timestampMs: number;
         acousticState: AcousticState | null;
         acousticChange?: AcousticChange | null;
         affectAvailable?: boolean;
-    }): AcousticWindow;
+    }): VoiceFrame;
+    /** Conversation-local lane this frame was attributed to. */
     getSpeakerId(): string;
-    /** Wire `acoustic_state` payload, for consumers that parse the wire themselves. */
+    /** Raw wire `acoustic_state` payload, for consumers that parse the wire themselves. */
     getAcousticState(): AcousticState | null;
-    /** Wire `acoustic_change` payload, for consumers that parse the wire themselves. */
+    /** Raw wire `acoustic_change` payload, for consumers that parse the wire themselves. */
     getAcousticChange(): AcousticChange | null;
-    /** The full measurement bundle for this window, under readable names. */
+    /** The measurement bundle for this frame: `state` plus `change`. */
     getProsody(): Prosody | null;
-    /** One measurement from this window, by readable name. */
-    getMeasurement(name: MeasurementName): number | null;
-    getPitch(): PitchReading;
-    /** Convenience: median F0 Hz, or null. */
-    getPitchHz(): number | null;
-    getLevel(): LevelReading;
-    getVoicing(): VoicingReading;
-    getTilt(): number | null;
-    /**
-     * Return V/A/D when the checkpoint marks affect as a trained measurement.
-     */
-    getVad(): AffectVad | null;
-    /** Speaker-relative movement vs the prior window in this speaker's scope. */
+    /** The committed movement with the baseline it was judged against. */
     getChange(): ProsodyDelta | null;
 }

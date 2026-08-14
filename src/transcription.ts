@@ -1,9 +1,10 @@
 import type { Conversation } from './conversation.js';
 import {
-  type MeasurementName,
+  measurementFromState,
+  type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
-import type { AcousticWindow } from './step.js';
+import type { VoiceFrame, AffectVad } from './step.js';
 
 export type { Prosody, ProsodyChange } from './conversation/prosody.js';
 
@@ -22,13 +23,44 @@ export interface TranscribeOptions {
   prosody?: boolean;
 }
 
-/** Median and spread of one measured feature across a speaker's audio. */
+/** Median and spread of one measured feature across a speaker's frames. */
 export interface VoiceStat {
+  /** Median reading across the frames that supported this measurement. */
   median: number;
+  /** Lowest reading. */
   min: number;
+  /** Highest reading. */
   max: number;
-  /** Windows that carried a measurable value. */
+  /** Frames that carried a measurable value. */
   count: number;
+}
+
+/** Intonation baseline across a speaker's frames. */
+export interface IntonationBaseline {
+  /** Median F0. Null when no frame was voiced. */
+  pitch: VoiceStat | null;
+  /** Pitch span. */
+  range: VoiceStat | null;
+  /** Contour direction. */
+  slope: VoiceStat | null;
+}
+
+/** Stress baseline across a speaker's frames. */
+export interface StressBaseline {
+  /** Loudness. */
+  loudness: VoiceStat | null;
+  /** Peak intensity. */
+  peak: VoiceStat | null;
+}
+
+/** Rhythm baseline across a speaker's frames. */
+export interface RhythmBaseline {
+  /** Fraction phonated. */
+  voiced: VoiceStat | null;
+  /** Fraction silent. */
+  pause: VoiceStat | null;
+  /** Phonation onsets per second. */
+  onset: VoiceStat | null;
 }
 
 /**
@@ -36,20 +68,20 @@ export interface VoiceStat {
  * measured against.
  *
  * These are physical measurements of that voice across the recording. Fields
- * are `null` when no window supported the measurement (for example pitch on
+ * are `null` when no frame supported the measurement (for example pitch on
  * audio with no voiced frames). No embedding or voiceprint vector is exposed.
  */
 export interface VoiceProfile {
-  loudnessDbfs: VoiceStat | null;
-  pitchHz: VoiceStat | null;
-  pitchRangeSemitones: VoiceStat | null;
-  tiltDbPerOctave: VoiceStat | null;
-  voicedRatio: VoiceStat | null;
-  pauseRatio: VoiceStat | null;
-  /** Windows measured for this speaker. */
+  /** Intonation baseline. */
+  intonation: IntonationBaseline;
+  /** Stress baseline. */
+  stress: StressBaseline;
+  /** Rhythm baseline. */
+  rhythm: RhythmBaseline;
+  /** Voice quality baseline: spectral tilt. */
+  tilt: VoiceStat | null;
+  /** Frames measured for this speaker. */
   windowCount: number;
-  /** Whether pitch was measurable at all. */
-  pitchAvailable: boolean;
 }
 
 /**
@@ -67,23 +99,25 @@ export class Speaker {
   readonly id: string;
   /** Display label (`Speaker 1`), ordered by first appearance in this result. */
   readonly label: string;
+  /** Total attributed speaking time, in ms. */
   readonly talkMs: number;
+  /** Number of transcript turns attributed to this speaker. */
   readonly turnCount: number;
   /** This voice's measured baseline across the recording. */
-  readonly voice: VoiceProfile;
+  readonly state: VoiceProfile;
 
   constructor(init: {
     id: string;
     label: string;
     talkMs: number;
     turnCount: number;
-    voice: VoiceProfile;
+    state: VoiceProfile;
   }) {
     this.id = init.id;
     this.label = init.label;
     this.talkMs = init.talkMs;
     this.turnCount = init.turnCount;
-    this.voice = init.voice;
+    this.state = init.state;
   }
 
   /** True when diarization could not attribute this audio. */
@@ -91,48 +125,62 @@ export class Speaker {
     return this.id === 'unknown';
   }
 
+  /** Attributed speaking time, in seconds. */
   get talkSeconds(): number {
     return this.talkMs / 1000;
   }
 
+  /** Display label. */
   toString(): string {
     return this.label;
   }
 
+  /** Plain object form, for logging or JSON transport. */
   toJSON() {
     return {
       id: this.id,
       label: this.label,
       talkMs: this.talkMs,
       turnCount: this.turnCount,
-      voice: this.voice,
+      state: this.state,
     };
   }
 }
 
 /** One utterance: who said it, what they said, and how it sounded. */
 export interface TranscribeTurn {
+  /** The speaker who said this turn. */
   speaker: Speaker;
+  /** The transcript text of the turn. */
   text: string;
+  /** Start of the turn on the call clock, in ms. */
   startMs: number;
+  /** End of the turn on the call clock, in ms. */
   endMs: number;
-  /** Present when `prosody` is on (the default). */
+  /** How the voice sounded and moved on this turn. Present when `prosody` is on (the default). */
   prosody?: Prosody | null;
 }
 
 /**
- * Result of {@link ProsodyClient.transcribe}.
- *
- * `conversation` is the lower-level object for trajectories and deltas.
+ * Result of {@link ProsodyClient.transcribe}: the transcript, the speakers,
+ * every measured frame, and the call-level affect.
  */
 export interface Transcription {
+  /** Full transcript text. */
   text: string;
+  /** Diarized turns, in order. */
   turns: TranscribeTurn[];
+  /** Speakers on this call, with their measured baselines. */
   speakers: Speaker[];
   /** Look up a speaker by id. */
   getSpeaker(id: string): Speaker | undefined;
   /** Turns belonging to one speaker. */
   turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
+  /** Every measured frame across the call, in order. */
+  frames: VoiceFrame[];
+  /** Measured affect for the call, when the checkpoint publishes it. */
+  vad: AffectVad | null;
+  /** Lower-level object for trajectories and deltas. */
   conversation: Conversation;
 }
 
@@ -141,10 +189,10 @@ function speakerLabel(id: string, index: number): string {
   return index >= 0 ? `Speaker ${index + 1}` : id;
 }
 
-function statOf(windows: AcousticWindow[], name: MeasurementName): VoiceStat | null {
+function statOf(windows: VoiceFrame[], path: MeasurementPath): VoiceStat | null {
   const values: number[] = [];
   for (const window of windows) {
-    const value = window.getMeasurement(name);
+    const value = measurementFromState(window.getAcousticState(), path);
     if (value !== null) values.push(value);
   }
   if (!values.length) return null;
@@ -161,17 +209,24 @@ function statOf(windows: AcousticWindow[], name: MeasurementName): VoiceStat | n
   };
 }
 
-function voiceProfileOf(windows: AcousticWindow[]): VoiceProfile {
-  const pitchHz = statOf(windows, 'pitchHz');
+function voiceProfileOf(windows: VoiceFrame[]): VoiceProfile {
   return {
-    loudnessDbfs: statOf(windows, 'loudnessDbfs'),
-    pitchHz,
-    pitchRangeSemitones: statOf(windows, 'pitchRangeSemitones'),
-    tiltDbPerOctave: statOf(windows, 'tiltDbPerOctave'),
-    voicedRatio: statOf(windows, 'voicedRatio'),
-    pauseRatio: statOf(windows, 'pauseRatio'),
+    intonation: {
+      pitch: statOf(windows, 'intonation.pitch'),
+      range: statOf(windows, 'intonation.range'),
+      slope: statOf(windows, 'intonation.slope'),
+    },
+    stress: {
+      loudness: statOf(windows, 'stress.loudness'),
+      peak: statOf(windows, 'stress.peak'),
+    },
+    rhythm: {
+      voiced: statOf(windows, 'rhythm.voiced'),
+      pause: statOf(windows, 'rhythm.pause'),
+      onset: statOf(windows, 'rhythm.onset'),
+    },
+    tilt: statOf(windows, 'tilt'),
     windowCount: windows.length,
-    pitchAvailable: pitchHz !== null,
   };
 }
 
@@ -197,7 +252,7 @@ export function transcriptionFromConversation(
     label: speakerLabel(entry.speaker_id, index),
     talkMs: entry.talk_ms,
     turnCount: entry.turn_count,
-    voice: voiceProfileOf(conversation.getAcoustics(entry.speaker_id)),
+    state: voiceProfileOf(conversation.getFrames(entry.speaker_id)),
   }));
 
   const byId = new Map(speakers.map((speaker) => [speaker.id, speaker]));
@@ -210,7 +265,7 @@ export function transcriptionFromConversation(
       label: speakerLabel(id, -1),
       talkMs: 0,
       turnCount: 0,
-      voice: voiceProfileOf(conversation.getAcoustics(id)),
+      state: voiceProfileOf(conversation.getFrames(id)),
     });
     byId.set(id, created);
     return created;
@@ -236,6 +291,8 @@ export function transcriptionFromConversation(
       const id = typeof speaker === 'string' ? speaker : speaker.id;
       return turns.filter((turn) => turn.speaker.id === id);
     },
+    frames: conversation.getFrames(),
+    vad: conversation.getVad(),
     conversation,
   };
 }

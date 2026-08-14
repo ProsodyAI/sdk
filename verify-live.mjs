@@ -19,7 +19,7 @@ const orgSlug = process.env.PROSODY_ORG || 'prosodyai';
 // Fill unset vars from the repo-root .env
 try {
   const envPath = resolve(import.meta.dirname, '../../.env');
-  for (const line of readFileSync(envPath, 'utf8').splitlines()) {
+  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) continue;
     const idx = trimmed.indexOf('=');
