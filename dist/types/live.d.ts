@@ -46,22 +46,24 @@ export interface RealtimeSessionCredentials {
 }
 /** The three affect dimensions as a nested block (stream `Prosody`). */
 export interface AffectReading {
-    valence: number;
-    arousal: number;
-    dominance: number;
+    /** Valence reading. Null on an unvoiced frame. */
+    valence: number | null;
+    /** Arousal reading. Null on an unvoiced frame. */
+    arousal: number | null;
+    /** Dominance reading. Null on an unvoiced frame. */
+    dominance: number | null;
 }
 /** Matches api/models/stream_events.py Directive, the live product event. */
 export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
-    /**
-     * Marks valence, arousal, and dominance as trained measurements when true.
-     */
-    affect_available?: boolean;
     prosody: AffectReading;
-    valence: number;
-    arousal: number;
-    dominance: number;
+    /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+    valence: number | null;
+    /** Arousal reading. Null on an unvoiced frame. */
+    arousal: number | null;
+    /** Dominance reading. Null on an unvoiced frame. */
+    dominance: number | null;
     timings_ms: Record<string, number>;
     text: string;
     frames_processed: number;

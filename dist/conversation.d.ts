@@ -18,7 +18,6 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export declare class Conversation {
     private segments;
     private steps;
-    private affectAvailable;
     private batch;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result: AnalysisResult): Conversation;
@@ -37,7 +36,7 @@ export declare class Conversation {
     getProsody(turnIndex?: number): Prosody | null;
     /** Speakers on this call, with talk time and frame counts. */
     getSpeakers(): DiarizedSpeaker[];
-    /** Measured affect for the call, when the checkpoint publishes it. */
+    /** Measured affect for the call. Each component is null on an unvoiced frame. */
     getVad(): AffectVad | null;
     /** All measured frames, optionally limited to one recording-local speaker. */
     getFrames(speakerId?: string): VoiceFrame[];

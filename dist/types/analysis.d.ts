@@ -2,15 +2,14 @@ import type { AcousticChange, AcousticState } from './acoustic.js';
 import type { DiarizationResult, PerSpeakerAnalysis } from './diarization.js';
 /**
  * The affect head's readout on a batch analysis (wire `ProsodyFeatures`).
- * A dimension is `null` when the head did not measure; `affect_available`
- * on the result marks the readings as trained measurements.
+ * A dimension is `null` on an unvoiced frame; the head is always trained.
  */
 export interface ProsodyFeatures {
-    /** Vocal tone: -1 (negative) to +1 (positive). */
+    /** Vocal tone: -1 (negative) to +1 (positive). Null on an unvoiced frame. */
     valence: number | null;
-    /** Activation: 0 (calm) to 1 (activated). */
+    /** Activation: 0 (calm) to 1 (activated). Null on an unvoiced frame. */
     arousal: number | null;
-    /** Assertiveness: 0 (submissive) to 1 (dominant). */
+    /** Assertiveness: 0 (submissive) to 1 (dominant). Null on an unvoiced frame. */
     dominance: number | null;
 }
 export interface ProsodySignals {
@@ -26,9 +25,9 @@ export interface ProsodySignals {
 }
 /** Per-turn delivery (interview / call review product). */
 export interface TurnProsody {
-    valence: number;
-    arousal: number;
-    dominance: number;
+    valence: number | null;
+    arousal: number | null;
+    dominance: number | null;
     signals?: ProsodySignals | Record<string, number> | null;
     /** The trained measurement for the window covering this turn. */
     acoustic_state?: AcousticState | null;
@@ -45,12 +44,20 @@ export interface ProsodyTimelinePoint {
     start_ms: number;
     end_ms: number;
     speaker_id?: string;
-    valence: number;
-    arousal: number;
-    dominance: number;
+    /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+    valence: number | null;
+    /** Arousal reading. Null on an unvoiced frame. */
+    arousal: number | null;
+    /** Dominance reading. Null on an unvoiced frame. */
+    dominance: number | null;
     signals?: Record<string, number> | null;
     sequence_signals?: Record<string, number> | null;
     seq_frame?: Record<string, number | number[]> | null;
+    /**
+     * Per-80ms acoustic trajectory for this window. Each key maps to a list
+     * aligned to the model's frame grid; unvoiced frames carry null.
+     */
+    sequence_frames?: Record<string, Array<number | null>> | null;
     /** What this window measured. Present on every window of a diarized call. */
     acoustic_state?: AcousticState | null;
     /** Absent on a speaker's first window because there is nothing to compare against. */
@@ -110,10 +117,6 @@ export interface AnalysisResult {
     session_id?: string | null;
     text: string;
     prosody: ProsodyFeatures;
-    /**
-     * Marks `prosody.valence/arousal/dominance` as trained measurements when true.
-     */
-    affect_available?: boolean;
     /** ASR provider status for this analysis. */
     transcription?: TranscriptionStatus | null;
     timings_ms?: Record<string, number> | null;
