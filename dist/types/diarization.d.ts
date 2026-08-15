@@ -69,13 +69,15 @@ export interface TranscriptSegment {
     end_ms: number;
     text: string;
     speaker_id: string;
-    valence: number;
-    arousal: number;
-    dominance: number;
-    affect_available: boolean;
+    /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+    valence: number | null;
+    /** Arousal reading. Null on an unvoiced frame. */
+    arousal: number | null;
+    /** Dominance reading. Null on an unvoiced frame. */
+    dominance: number | null;
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
-    sequence_frames?: Record<string, number[]>;
+    sequence_frames?: Record<string, Array<number | null>>;
     speech_final?: boolean;
 }
 export interface TranscriptTurn {

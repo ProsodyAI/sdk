@@ -18,13 +18,11 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export class Conversation {
     segments = [];
     steps = [];
-    affectAvailable = false;
     batch = null;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result) {
         const conversation = new Conversation();
         conversation.batch = new ConversationAnalysis(result);
-        conversation.affectAvailable = result.affect_available === true;
         return conversation;
     }
     /** Ingest one live Prosody event (`directive`, `transcript_update`, …). */
@@ -32,7 +30,6 @@ export class Conversation {
         const type = String(event.type ?? '');
         if (type === 'directive') {
             const directive = event;
-            this.affectAvailable = directive.affect_available === true || this.affectAvailable;
             this.steps.push({
                 speaker_id: normalizeSpeakerId(directive.speaker_id),
                 timestamp_ms: directive.timestamp_ms,
@@ -160,12 +157,10 @@ export class Conversation {
             window_count: windows.filter((window) => window.speakerId === speakerId).length,
         }));
     }
-    /** Measured affect for the call, when the checkpoint publishes it. */
+    /** Measured affect for the call. Each component is null on an unvoiced frame. */
     getVad() {
         if (this.batch)
             return this.batch.getVad();
-        if (!this.affectAvailable)
-            return null;
         const windows = this.getFrames();
         const last = windows[windows.length - 1];
         return last?.vad ?? null;
@@ -179,7 +174,6 @@ export class Conversation {
             timestampMs: step.timestamp_ms,
             acousticState: step.acoustic_state,
             acousticChange: step.acoustic_change,
-            affectAvailable: this.affectAvailable,
         })).filter((window) => speakerId === undefined || window.speakerId === speakerId);
     }
     /** One frame by index, or null when out of range. */

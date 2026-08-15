@@ -105,7 +105,6 @@ describe('analyze', () => {
   it('returns a request-scoped conversation product surface', async () => {
     mockFetchOk({
       ...mockResult,
-      affect_available: true,
       turns: [{
         start_ms: 0,
         end_ms: 1_500,
@@ -236,7 +235,6 @@ describe('transcribe', () => {
   it('returns text and turns with prosody by default', async () => {
     mockFetchOk({
       ...mockResult,
-      affect_available: true,
       acoustic_state: {
         provenance: { schema_version: 'prosody_output/v2', values_unit: 'physical' },
         values: {

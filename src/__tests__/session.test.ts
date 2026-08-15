@@ -38,7 +38,6 @@ describe('parseProsodyEvent', () => {
       seq: 12,
       type: 'directive',
       prosody: { valence: -0.2, arousal: 0.8, dominance: 0.6 },
-      affect_available: false,
       valence: -0.2,
       arousal: 0.8,
       dominance: 0.6,
@@ -64,7 +63,9 @@ describe('parseProsodyEvent', () => {
     if (event.type !== 'directive') throw new Error('unexpected event');
     expect(event.timings_ms.chunk_total).toBe(22.4);
     expect(event.acoustic_state?.values?.rms_dbfs).toBe(-32.5);
-    expect(event.affect_available).toBe(false);
+    expect(event.valence).toBe(-0.2);
+    expect(event.arousal).toBe(0.8);
+    expect(event.dominance).toBe(0.6);
   });
 
   it('accepts the current wire envelope without generation or sequence', () => {

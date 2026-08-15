@@ -30,9 +30,10 @@ export interface ChangePoint {
  *
  * ProsodySSM's product output is `acoustic_state`, the measured waveform
  * values per window, which arrives on `prosody_timeline` and on each turn.
- * Valence / arousal / dominance are only readings when `affect_available` is
- * true, so they are never required here: a deployment that publishes
- * measurements and no affect is a correct deployment.
+ * Valence / arousal / dominance are the trained affect head's readout; each
+ * is `null` on an unvoiced frame, never a fabricated neutral. The head is
+ * always trained, so a deployment that publishes only acoustic state is
+ * still a correct deployment.
  */
 export declare function parseAnalysisResult(value: unknown): AnalysisResult;
 /**
@@ -63,11 +64,11 @@ export declare class ConversationAnalysis {
     /** The measurement bundle on the latest (or indexed) acoustic window. */
     getProsody(windowIndex?: number): Prosody | null;
     /**
-     * Affect VAD for the whole file when the checkpoint publishes it.
-     * Null when `affect_available` is false.
+     * Affect VAD for the whole file. Each component is `null` on an unvoiced
+     * frame; the head is always trained. Null when every dimension is null.
      */
     getVad(): AffectVad | null;
-    /** Valence for the whole file, or for one turn. Null when affect is not published. */
+    /** Valence for the whole file, or for one turn. Null on an unvoiced frame. */
     getValence(turnIndex?: number): number | null;
     /** Raw API timeline for consumers that need the wire shape. */
     getTimeline(): ProsodyTimelinePoint[];
