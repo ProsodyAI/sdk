@@ -369,7 +369,7 @@ describe('speaker identity', () => {
 
     await client.confirmSpeakerEnrollment(Buffer.from('audio'), 'sha', [{
       speaker_id: 'speaker_0',
-      display_name: 'Jacob',
+      display_name: 'Speaker A',
     }]);
     const [url, init] = fetch.mock.calls[1];
     expect(url).toBe('https://api.prosodyai.app/v1/voice/enrollments/confirm');
@@ -377,7 +377,7 @@ describe('speaker identity', () => {
     expect(body.get('preview_sha256')).toBe('sha');
     expect(JSON.parse(String(body.get('mapping_json')))).toEqual([{
       speaker_id: 'speaker_0',
-      display_name: 'Jacob',
+      display_name: 'Speaker A',
     }]);
   });
 });
