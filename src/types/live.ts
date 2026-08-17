@@ -139,6 +139,8 @@ export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update
   speaker_id: string;
   /** Durable person identity when the model has resolved this lane. */
   person_id?: string | null;
+  /** Label on the matched person when the org has one stored. */
+  display_name?: string | null;
   dominant_speaker_id?: string | null;
   speaker_changed: boolean;
   num_speakers: number;
