@@ -1,13 +1,24 @@
 import type { AcousticChange, AcousticState } from './acoustic.js';
 import type { ProsodyTimelinePoint } from './analysis.js';
 
+/**
+ * Per-speaker attribution accounting, and this speaker's pooled affect.
+ *
+ * V/A/D is the affect head's reading pooled over the windows attributed to
+ * this speaker. All three are null for a speaker no window measured.
+ */
 export interface PerSpeakerAnalysis {
   speaker_id: string;
   talk_ms: number;
   window_count: number;
-  valence: number;
-  arousal: number;
-  dominance: number;
+  turn_count: number;
+  /** Pooled valence. Null when no window measured this speaker. */
+  valence?: number | null;
+  /** Pooled arousal. Null when no window measured this speaker. */
+  arousal?: number | null;
+  /** Pooled dominance. Null when no window measured this speaker. */
+  dominance?: number | null;
+  display_name?: string | null;
   signals?: Record<string, number> | null;
   /** Durable person identity resolved from the stored acoustic voice profile. */
   identity?: SpeakerIdentity | null;

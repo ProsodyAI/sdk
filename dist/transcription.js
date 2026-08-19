@@ -16,6 +16,11 @@ export class Speaker {
     label;
     /** Total attributed speaking time, in ms. */
     talkMs;
+    /**
+     * This speaker's share of all attributed speaking time on the call, 0 to 1.
+     * Zero when nobody was attributed any speaking time.
+     */
+    talkShare;
     /** Number of transcript turns attributed to this speaker. */
     turnCount;
     /** This voice's measured baseline across the recording. */
@@ -24,6 +29,7 @@ export class Speaker {
         this.id = init.id;
         this.label = init.label;
         this.talkMs = init.talkMs;
+        this.talkShare = init.talkShare;
         this.turnCount = init.turnCount;
         this.state = init.state;
     }
@@ -45,6 +51,7 @@ export class Speaker {
             id: this.id,
             label: this.label,
             talkMs: this.talkMs,
+            talkShare: this.talkShare,
             turnCount: this.turnCount,
             state: this.state,
         };
@@ -107,10 +114,13 @@ export function transcriptionFromConversation(conversation, options) {
     }
     const ordered = [...conversation.getSpeakers()].sort((a, b) => ((firstHeard.get(a.speaker_id) ?? Number.MAX_SAFE_INTEGER)
         - (firstHeard.get(b.speaker_id) ?? Number.MAX_SAFE_INTEGER)));
+    const totalTalkMs = ordered.reduce((total, entry) => total + Math.max(0, entry.talk_ms), 0);
+    const shareOf = (talkMs) => (totalTalkMs > 0 ? Math.max(0, talkMs) / totalTalkMs : 0);
     const speakers = ordered.map((entry, index) => new Speaker({
         id: entry.speaker_id,
         label: speakerLabel(entry.speaker_id, index),
         talkMs: entry.talk_ms,
+        talkShare: shareOf(entry.talk_ms),
         turnCount: entry.turn_count,
         state: voiceProfileOf(conversation.getFrames(entry.speaker_id)),
     }));
@@ -124,6 +134,7 @@ export function transcriptionFromConversation(conversation, options) {
             id,
             label: speakerLabel(id, -1),
             talkMs: 0,
+            talkShare: 0,
             turnCount: 0,
             state: voiceProfileOf(conversation.getFrames(id)),
         });
@@ -151,6 +162,7 @@ export function transcriptionFromConversation(conversation, options) {
             return turns.filter((turn) => turn.speaker.id === id);
         },
         frames: conversation.getFrames(),
+        moments: conversation.getTopMoments(),
         vad: conversation.getVad(),
         conversation,
     };

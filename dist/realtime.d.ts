@@ -1,4 +1,4 @@
-import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
+import type { BargeInEvent, DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, StateDeltaEvent, TranscriptUpdateEvent, TurnBoundaryEvent, WarningEvent } from './types.js';
 import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
@@ -28,6 +28,12 @@ export interface ProsodyRealtimeHandlers {
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
     onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
+    /** The lane's state moved decisively against its own baseline. */
+    onStateDelta?: (event: StateDeltaEvent) => void;
+    /** The model committed the floor passing between voices. */
+    onTurnBoundary?: (event: TurnBoundaryEvent) => void;
+    /** A second voice entered against held speech. */
+    onBargeIn?: (event: BargeInEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;
     /** Fired on `frame_ack` (and after directives) for paced file replay. */
     onFrameAck?: (event: Record<string, unknown>) => void;

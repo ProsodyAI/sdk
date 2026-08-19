@@ -1,4 +1,5 @@
 import { measurementFromState, } from './conversation/prosody.js';
+import { byMagnitude, momentsFromEvents, } from './conversation/moments.js';
 import { VoiceFrame, } from './step.js';
 /**
  * Validate the stable batch envelope.
@@ -96,6 +97,19 @@ export class ConversationAnalysis {
                     values: delta.values,
                 }];
         });
+    }
+    /**
+     * Moments the model committed, in commit order.
+     *
+     * Each carries the magnitude the model published on its `state_delta`
+     * event. Empty when the deployment committed none.
+     */
+    getMoments(speakerId) {
+        return momentsFromEvents(this.result.events, this.result.turns).filter((moment) => speakerId === undefined || moment.speakerId === speakerId);
+    }
+    /** The moments that moved the speaker furthest, largest first. */
+    getTopMoments(limit = 10, speakerId) {
+        return byMagnitude(this.getMoments(speakerId)).slice(0, Math.max(0, limit));
     }
     /** The measurement bundle on the latest (or indexed) acoustic window. */
     getProsody(windowIndex) {

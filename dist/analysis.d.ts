@@ -1,4 +1,5 @@
 import { type MeasurementPath, type Prosody } from './conversation/prosody.js';
+import { type Moment } from './conversation/moments.js';
 import { VoiceFrame, type AffectVad } from './step.js';
 import type { AnalysisResult, AnalysisTurn, DiarizedSpeaker, ProsodyTimelinePoint } from './types.js';
 /** One measured value on the call clock, attributed to a speaker. */
@@ -61,6 +62,15 @@ export declare class ConversationAnalysis {
     getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[];
     /** Speaker-relative changes. The first window in each speaker lane has none. */
     getChanges(speakerId?: string): ChangePoint[];
+    /**
+     * Moments the model committed, in commit order.
+     *
+     * Each carries the magnitude the model published on its `state_delta`
+     * event. Empty when the deployment committed none.
+     */
+    getMoments(speakerId?: string): Moment[];
+    /** The moments that moved the speaker furthest, largest first. */
+    getTopMoments(limit?: number, speakerId?: string): Moment[];
     /** The measurement bundle on the latest (or indexed) acoustic window. */
     getProsody(windowIndex?: number): Prosody | null;
     /**

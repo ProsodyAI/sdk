@@ -13,7 +13,7 @@ export interface ProsodyEmbedding {
     energy_mean?: number;
     energy_std?: number;
 }
-export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_profiles' | 'session_end' | 'warning' | 'error';
+export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_profiles' | 'state_delta' | 'turn_boundary' | 'barge_in' | 'session_end' | 'warning' | 'error';
 /**
  * Live analysis event. `generation` / `seq` are optional on the API wire; when
  * a publisher includes them, clients may use them to drop stale packets.
@@ -116,6 +116,8 @@ export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update
     speaker_id: string;
     /** Durable person identity when the model has resolved this lane. */
     person_id?: string | null;
+    /** Label on the matched person when the org has one stored. */
+    display_name?: string | null;
     dominant_speaker_id?: string | null;
     speaker_changed: boolean;
     num_speakers: number;
@@ -130,6 +132,38 @@ export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update
 export interface SpeakerProfilesEvent extends ProsodyEventEnvelope<'speaker_profiles'> {
     profiles: SpeakerProfile[];
     timestamp_ms?: number | null;
+}
+/**
+ * The lane's state moved decisively against its own baseline.
+ *
+ * `magnitude` is the model's own readout of the departure, in state units.
+ * `frame_ms` is retrodictive to the excursion's onset; `commit_ms` is where
+ * the decision landed. Matches api/models/stream_events.py StateDelta.
+ */
+export interface StateDeltaEvent extends ProsodyEventEnvelope<'state_delta'> {
+    frame_ms: number;
+    commit_ms: number;
+    duration_ms: number;
+    magnitude: number;
+    resolved: boolean;
+}
+/**
+ * The model committed the floor passing between voices.
+ * Matches api/models/stream_events.py TurnBoundary.
+ */
+export interface TurnBoundaryEvent extends ProsodyEventEnvelope<'turn_boundary'> {
+    frame_ms: number;
+    commit_ms: number;
+}
+/**
+ * A second voice entered against held speech. Emitted at commit, and again
+ * when the overlap ends. Matches api/models/stream_events.py BargeIn.
+ */
+export interface BargeInEvent extends ProsodyEventEnvelope<'barge_in'> {
+    frame_ms: number;
+    commit_ms: number;
+    duration_ms: number;
+    resolved: boolean;
 }
 export interface SessionDiagnostic {
     bytes_received?: number;
@@ -159,4 +193,4 @@ export interface ServerErrorEvent extends ProsodyEventEnvelope<'error'> {
     code?: string;
     message: string;
 }
-export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | SpeakerUpdateEvent | SpeakerProfilesEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;
+export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | SpeakerUpdateEvent | SpeakerProfilesEvent | StateDeltaEvent | TurnBoundaryEvent | BargeInEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;

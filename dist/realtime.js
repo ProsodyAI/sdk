@@ -195,6 +195,16 @@ export class ProsodyRealtimeStream {
                 this.handlers.onSpeakerProfiles?.(event);
                 this.handlers.conversation?.apply(event);
                 break;
+            case 'state_delta':
+                this.handlers.onStateDelta?.(event);
+                this.handlers.conversation?.apply(event);
+                break;
+            case 'turn_boundary':
+                this.handlers.onTurnBoundary?.(event);
+                break;
+            case 'barge_in':
+                this.handlers.onBargeIn?.(event);
+                break;
             case 'session_end':
                 this.handlers.onSessionEnd?.(event);
                 this.handlers.conversation?.apply(event);

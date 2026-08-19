@@ -1,11 +1,14 @@
 import type {
+  BargeInEvent,
   DirectiveEvent,
   ProsodyEvent,
   ServerErrorEvent,
   SessionEndEvent,
   SpeakerProfilesEvent,
   SpeakerUpdateEvent,
+  StateDeltaEvent,
   TranscriptUpdateEvent,
+  TurnBoundaryEvent,
   WarningEvent,
 } from './types.js';
 import { parseProsodyEvent } from './session.js';
@@ -41,6 +44,12 @@ export interface ProsodyRealtimeHandlers {
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
   onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
+  /** The lane's state moved decisively against its own baseline. */
+  onStateDelta?: (event: StateDeltaEvent) => void;
+  /** The model committed the floor passing between voices. */
+  onTurnBoundary?: (event: TurnBoundaryEvent) => void;
+  /** A second voice entered against held speech. */
+  onBargeIn?: (event: BargeInEvent) => void;
   onSessionEnd?: (event: SessionEndEvent) => void;
   /** Fired on `frame_ack` (and after directives) for paced file replay. */
   onFrameAck?: (event: Record<string, unknown>) => void;
@@ -257,6 +266,16 @@ export class ProsodyRealtimeStream {
       case 'speaker_profiles':
         this.handlers.onSpeakerProfiles?.(event);
         this.handlers.conversation?.apply(event);
+        break;
+      case 'state_delta':
+        this.handlers.onStateDelta?.(event);
+        this.handlers.conversation?.apply(event);
+        break;
+      case 'turn_boundary':
+        this.handlers.onTurnBoundary?.(event);
+        break;
+      case 'barge_in':
+        this.handlers.onBargeIn?.(event);
         break;
       case 'session_end':
         this.handlers.onSessionEnd?.(event);

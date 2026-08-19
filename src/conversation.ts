@@ -6,6 +6,7 @@ import type {
   ProsodyEvent,
   SessionEndEvent,
   SpeakerUpdateEvent,
+  StateDeltaEvent,
   TranscriptUpdateEvent,
 } from './types.js';
 import { VoiceFrame, type AffectVad } from './step.js';
@@ -30,6 +31,11 @@ import {
   type Prosody,
 } from './conversation/prosody.js';
 import {
+  byMagnitude,
+  momentsFromStateDeltas,
+  type Moment,
+} from './conversation/moments.js';
+import {
   applySpeakerUpdateToSegments,
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
@@ -50,6 +56,7 @@ export {
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { byMagnitude, type Moment } from './conversation/moments.js';
 
 /**
  * Shared state model for diarized turns and voice measurements, over a
@@ -62,6 +69,7 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export class Conversation {
   private segments: LiveSegment[] = [];
   private steps: StepAnchor[] = [];
+  private deltas: StateDeltaEvent[] = [];
   private batch: ConversationAnalysis | null = null;
 
   /** Build a conversation from a batch analysis result. */
@@ -82,6 +90,10 @@ export class Conversation {
         acoustic_state: directive.acoustic_state ?? null,
         acoustic_change: directive.acoustic_change ?? null,
       });
+      return this;
+    }
+    if (type === 'state_delta') {
+      this.deltas.push(event as StateDeltaEvent);
       return this;
     }
     if (type === 'transcript_update') {
@@ -268,6 +280,25 @@ export class Conversation {
         values: delta.values,
       }];
     });
+  }
+
+  /**
+   * Moments the model committed, in commit order.
+   *
+   * The batch report carries them on `events`; a live session receives them
+   * as `state_delta` on the socket. Both arrive already measured, so the
+   * accessor reads the same shape either way.
+   */
+  getMoments(speakerId?: string): Moment[] {
+    if (this.batch) return this.batch.getMoments(speakerId);
+    return momentsFromStateDeltas(this.deltas, this.getTurns()).filter(
+      (moment) => speakerId === undefined || moment.speakerId === speakerId,
+    );
+  }
+
+  /** The moments that moved the speaker furthest, largest first. */
+  getTopMoments(limit = 10, speakerId?: string): Moment[] {
+    return byMagnitude(this.getMoments(speakerId)).slice(0, Math.max(0, limit));
   }
 
   private batchTurn(turn: AnalysisTurn): ConversationTurn {

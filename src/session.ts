@@ -1,4 +1,5 @@
 import type {
+  BargeInEvent,
   DirectiveEvent,
   ProsodyEvent,
   ProsodyEventType,
@@ -6,7 +7,9 @@ import type {
   SessionEndEvent,
   SpeakerProfilesEvent,
   SpeakerUpdateEvent,
+  StateDeltaEvent,
   TranscriptUpdateEvent,
+  TurnBoundaryEvent,
   WarningEvent,
 } from './types.js';
 import { VoiceFrame } from './step.js';
@@ -20,6 +23,9 @@ const PROSODY_EVENT_TYPES: ReadonlySet<ProsodyEventType> = new Set([
   'transcript_update',
   'speaker_update',
   'speaker_profiles',
+  'state_delta',
+  'turn_boundary',
+  'barge_in',
   'session_end',
   'warning',
   'error',
@@ -57,6 +63,12 @@ export interface ProsodySessionOptions {
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
   onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
+  /** The lane's state moved decisively against its own baseline. */
+  onStateDelta?: (event: StateDeltaEvent) => void;
+  /** The model committed the floor passing between voices. */
+  onTurnBoundary?: (event: TurnBoundaryEvent) => void;
+  /** A second voice entered against held speech. */
+  onBargeIn?: (event: BargeInEvent) => void;
   onSessionEnd?: (event: SessionEndEvent) => void;
   onWarning?: (event: WarningEvent) => void;
   onServerError?: (event: ServerErrorEvent) => void;
@@ -219,6 +231,16 @@ export class ProsodySession {
       case 'speaker_profiles':
         this.options.onSpeakerProfiles?.(event);
         this.options.conversation?.apply(event);
+        break;
+      case 'state_delta':
+        this.options.onStateDelta?.(event);
+        this.options.conversation?.apply(event);
+        break;
+      case 'turn_boundary':
+        this.options.onTurnBoundary?.(event);
+        break;
+      case 'barge_in':
+        this.options.onBargeIn?.(event);
         break;
       case 'session_end':
         this.options.onSessionEnd?.(event);

@@ -3,10 +3,12 @@ import { VoiceFrame, type AffectVad } from './step.js';
 import { type ChangePoint, type MeasurementPoint } from './analysis.js';
 import { type ConversationTurn } from './conversation/turn-model.js';
 import { type MeasurementPath, type Prosody } from './conversation/prosody.js';
+import { type Moment } from './conversation/moments.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
 export { prosodyFromState, prosodyFromWindow, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { byMagnitude, type Moment } from './conversation/moments.js';
 /**
  * Shared state model for diarized turns and voice measurements, over a
  * recording or a live socket.
@@ -18,6 +20,7 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export declare class Conversation {
     private segments;
     private steps;
+    private deltas;
     private batch;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result: AnalysisResult): Conversation;
@@ -46,5 +49,15 @@ export declare class Conversation {
     getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[];
     /** Speaker-relative changes. The first window in each speaker lane has none. */
     getChanges(speakerId?: string): ChangePoint[];
+    /**
+     * Moments the model committed, in commit order.
+     *
+     * The batch report carries them on `events`; a live session receives them
+     * as `state_delta` on the socket. Both arrive already measured, so the
+     * accessor reads the same shape either way.
+     */
+    getMoments(speakerId?: string): Moment[];
+    /** The moments that moved the speaker furthest, largest first. */
+    getTopMoments(limit?: number, speakerId?: string): Moment[];
     private batchTurn;
 }
