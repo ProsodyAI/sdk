@@ -2,11 +2,13 @@ import { VoiceFrame } from './step.js';
 import { ConversationAnalysis, } from './analysis.js';
 import { isKnownSpeaker, normalizeSpeakerId, } from './conversation/turn-model.js';
 import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
+import { byMagnitude, momentsFromStateDeltas, } from './conversation/moments.js';
 import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { byMagnitude } from './conversation/moments.js';
 /**
  * Shared state model for diarized turns and voice measurements, over a
  * recording or a live socket.
@@ -18,6 +20,7 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export class Conversation {
     segments = [];
     steps = [];
+    deltas = [];
     batch = null;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result) {
@@ -36,6 +39,10 @@ export class Conversation {
                 acoustic_state: directive.acoustic_state ?? null,
                 acoustic_change: directive.acoustic_change ?? null,
             });
+            return this;
+        }
+        if (type === 'state_delta') {
+            this.deltas.push(event);
             return this;
         }
         if (type === 'transcript_update') {
@@ -213,6 +220,22 @@ export class Conversation {
                     values: delta.values,
                 }];
         });
+    }
+    /**
+     * Moments the model committed, in commit order.
+     *
+     * The batch report carries them on `events`; a live session receives them
+     * as `state_delta` on the socket. Both arrive already measured, so the
+     * accessor reads the same shape either way.
+     */
+    getMoments(speakerId) {
+        if (this.batch)
+            return this.batch.getMoments(speakerId);
+        return momentsFromStateDeltas(this.deltas, this.getTurns()).filter((moment) => speakerId === undefined || moment.speakerId === speakerId);
+    }
+    /** The moments that moved the speaker furthest, largest first. */
+    getTopMoments(limit = 10, speakerId) {
+        return byMagnitude(this.getMoments(speakerId)).slice(0, Math.max(0, limit));
     }
     batchTurn(turn) {
         const state = turn.prosody?.acoustic_state ?? null;

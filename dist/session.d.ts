@@ -1,4 +1,4 @@
-import type { DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, TranscriptUpdateEvent, WarningEvent } from './types.js';
+import type { BargeInEvent, DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, StateDeltaEvent, TranscriptUpdateEvent, TurnBoundaryEvent, WarningEvent } from './types.js';
 import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 /** Default LiveKit data topic matching API `livekit_event_topic`. */
@@ -27,6 +27,12 @@ export interface ProsodySessionOptions {
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
     onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
+    /** The lane's state moved decisively against its own baseline. */
+    onStateDelta?: (event: StateDeltaEvent) => void;
+    /** The model committed the floor passing between voices. */
+    onTurnBoundary?: (event: TurnBoundaryEvent) => void;
+    /** A second voice entered against held speech. */
+    onBargeIn?: (event: BargeInEvent) => void;
     onSessionEnd?: (event: SessionEndEvent) => void;
     onWarning?: (event: WarningEvent) => void;
     onServerError?: (event: ServerErrorEvent) => void;

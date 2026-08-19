@@ -6,6 +6,9 @@ const PROSODY_EVENT_TYPES = new Set([
     'transcript_update',
     'speaker_update',
     'speaker_profiles',
+    'state_delta',
+    'turn_boundary',
+    'barge_in',
     'session_end',
     'warning',
     'error',
@@ -139,6 +142,16 @@ export class ProsodySession {
             case 'speaker_profiles':
                 this.options.onSpeakerProfiles?.(event);
                 this.options.conversation?.apply(event);
+                break;
+            case 'state_delta':
+                this.options.onStateDelta?.(event);
+                this.options.conversation?.apply(event);
+                break;
+            case 'turn_boundary':
+                this.options.onTurnBoundary?.(event);
+                break;
+            case 'barge_in':
+                this.options.onBargeIn?.(event);
                 break;
             case 'session_end':
                 this.options.onSessionEnd?.(event);

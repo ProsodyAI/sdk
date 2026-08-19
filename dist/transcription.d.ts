@@ -1,7 +1,9 @@
 import type { Conversation } from './conversation.js';
 import { type Prosody } from './conversation/prosody.js';
+import type { Moment } from './conversation/moments.js';
 import type { VoiceFrame, AffectVad } from './step.js';
 export type { Prosody, ProsodyChange } from './conversation/prosody.js';
+export type { Moment } from './conversation/moments.js';
 /**
  * Options for {@link ProsodyClient.transcribe}.
  */
@@ -89,6 +91,11 @@ export declare class Speaker {
     readonly label: string;
     /** Total attributed speaking time, in ms. */
     readonly talkMs: number;
+    /**
+     * This speaker's share of all attributed speaking time on the call, 0 to 1.
+     * Zero when nobody was attributed any speaking time.
+     */
+    readonly talkShare: number;
     /** Number of transcript turns attributed to this speaker. */
     readonly turnCount: number;
     /** This voice's measured baseline across the recording. */
@@ -97,6 +104,7 @@ export declare class Speaker {
         id: string;
         label: string;
         talkMs: number;
+        talkShare: number;
         turnCount: number;
         state: VoiceProfile;
     });
@@ -111,6 +119,7 @@ export declare class Speaker {
         id: string;
         label: string;
         talkMs: number;
+        talkShare: number;
         turnCount: number;
         state: VoiceProfile;
     };
@@ -145,6 +154,11 @@ export interface Transcription {
     turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
     /** Every measured frame across the call, in order. */
     frames: VoiceFrame[];
+    /**
+     * Moments the model committed, ordered by how far the speaker's state
+     * moved. This is the call's shortlist: the spans worth listening to.
+     */
+    moments: Moment[];
     /** Measured affect for the call, when the checkpoint publishes it. */
     vad: AffectVad | null;
     /** Lower-level object for trajectories and deltas. */
