@@ -147,6 +147,8 @@ export class LiveSession {
       },
       onTranscriptUpdate: () => this.emitUpdate(),
       onSpeakerUpdate: () => this.emitUpdate(),
+      // A committed delta changes what `snapshot().moments` reports.
+      onStateDelta: () => this.emitUpdate(),
       onSpeakerProfiles: (event) => {
         if (event.profiles?.length) this._speakerProfiles = event.profiles;
         this.emitUpdate();

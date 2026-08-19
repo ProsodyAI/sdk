@@ -109,8 +109,91 @@ describe('committed moments', () => {
     expect(Conversation.fromAnalysis(withoutEvents).getMoments()).toEqual([]);
   });
 
-  it('carries no moments on a live conversation', () => {
+  it('carries no moments before the socket commits one', () => {
     expect(new Conversation().getMoments()).toEqual([]);
+  });
+});
+
+/** One live transcript_update, enough to give the lane a span to attribute against. */
+function liveTranscript(speakerId: string, startMs: number, endMs: number) {
+  return {
+    type: 'transcript_update' as const,
+    session_id: 'live-1',
+    provider: 'prosody_ssm',
+    streaming: true,
+    result_id: `${speakerId}-${startMs}`,
+    start_ms: startMs,
+    end_ms: endMs,
+    is_final: true,
+    speech_final: true,
+    segments: [{
+      start_ms: startMs,
+      end_ms: endMs,
+      speaker_id: speakerId,
+      text: 'live words',
+      provider: 'prosody_ssm',
+      result_id: `${speakerId}-${startMs}`,
+      is_final: true,
+    }],
+  };
+}
+
+function liveDelta(frameMs: number, magnitude: number) {
+  return {
+    type: 'state_delta' as const,
+    session_id: 'live-1',
+    frame_ms: frameMs,
+    commit_ms: frameMs + 400,
+    duration_ms: 640,
+    magnitude,
+    resolved: false,
+  };
+}
+
+describe('live moments', () => {
+  it('collects state_delta off the socket', () => {
+    const conversation = new Conversation()
+      .apply(liveTranscript('speaker_0', 0, 8_000))
+      .apply(liveDelta(3_200, 0.44));
+
+    const moments = conversation.getMoments();
+    expect(moments).toHaveLength(1);
+    expect(moments[0]).toEqual({
+      frameMs: 3_200,
+      commitMs: 3_600,
+      durationMs: 640,
+      magnitude: 0.44,
+      resolved: false,
+      speakerId: 'speaker_0',
+    });
+  });
+
+  it('ranks live moments the same way batch does', () => {
+    const conversation = new Conversation()
+      .apply(liveTranscript('speaker_0', 0, 20_000))
+      .apply(liveDelta(1_000, 0.2))
+      .apply(liveDelta(5_000, 0.9))
+      .apply(liveDelta(9_000, 0.5));
+
+    expect(conversation.getTopMoments(2).map((m) => m.magnitude)).toEqual([0.9, 0.5]);
+  });
+
+  it('filters live moments by lane', () => {
+    const conversation = new Conversation()
+      .apply(liveTranscript('speaker_0', 0, 5_000))
+      .apply(liveTranscript('speaker_1', 5_000, 10_000))
+      .apply(liveDelta(2_000, 0.3))
+      .apply(liveDelta(7_000, 0.6));
+
+    expect(conversation.getMoments('speaker_1').map((m) => m.magnitude)).toEqual([0.6]);
+  });
+
+  it('leaves a moment unattributed when no committed turn covers it', () => {
+    const conversation = new Conversation()
+      .apply(liveTranscript('speaker_0', 0, 1_000))
+      .apply(liveDelta(50_000, 0.7));
+
+    expect(conversation.getMoments()[0].speakerId).toBeNull();
   });
 });
 

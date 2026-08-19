@@ -6,6 +6,7 @@ import type {
   ProsodyEvent,
   SessionEndEvent,
   SpeakerUpdateEvent,
+  StateDeltaEvent,
   TranscriptUpdateEvent,
 } from './types.js';
 import { VoiceFrame, type AffectVad } from './step.js';
@@ -29,7 +30,11 @@ import {
   type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
-import { byMagnitude, type Moment } from './conversation/moments.js';
+import {
+  byMagnitude,
+  momentsFromStateDeltas,
+  type Moment,
+} from './conversation/moments.js';
 import {
   applySpeakerUpdateToSegments,
   mergeTranscriptUpdateSegments,
@@ -64,6 +69,7 @@ export { byMagnitude, type Moment } from './conversation/moments.js';
 export class Conversation {
   private segments: LiveSegment[] = [];
   private steps: StepAnchor[] = [];
+  private deltas: StateDeltaEvent[] = [];
   private batch: ConversationAnalysis | null = null;
 
   /** Build a conversation from a batch analysis result. */
@@ -84,6 +90,10 @@ export class Conversation {
         acoustic_state: directive.acoustic_state ?? null,
         acoustic_change: directive.acoustic_change ?? null,
       });
+      return this;
+    }
+    if (type === 'state_delta') {
+      this.deltas.push(event as StateDeltaEvent);
       return this;
     }
     if (type === 'transcript_update') {
@@ -275,12 +285,15 @@ export class Conversation {
   /**
    * Moments the model committed, in commit order.
    *
-   * The batch report carries them on `events`. The live wire publishes
-   * measurement and attribution rather than committed deltas, so a live
-   * conversation has none.
+   * The batch report carries them on `events`; a live session receives them
+   * as `state_delta` on the socket. Both arrive already measured, so the
+   * accessor reads the same shape either way.
    */
   getMoments(speakerId?: string): Moment[] {
-    return this.batch?.getMoments(speakerId) ?? [];
+    if (this.batch) return this.batch.getMoments(speakerId);
+    return momentsFromStateDeltas(this.deltas, this.getTurns()).filter(
+      (moment) => speakerId === undefined || moment.speakerId === speakerId,
+    );
   }
 
   /** The moments that moved the speaker furthest, largest first. */
