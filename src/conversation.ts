@@ -29,6 +29,7 @@ import {
   type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
+import { byMagnitude, type Moment } from './conversation/moments.js';
 import {
   applySpeakerUpdateToSegments,
   mergeTranscriptUpdateSegments,
@@ -50,6 +51,7 @@ export {
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { byMagnitude, type Moment } from './conversation/moments.js';
 
 /**
  * Shared state model for diarized turns and voice measurements, over a
@@ -268,6 +270,22 @@ export class Conversation {
         values: delta.values,
       }];
     });
+  }
+
+  /**
+   * Moments the model committed, in commit order.
+   *
+   * The batch report carries them on `events`. The live wire publishes
+   * measurement and attribution rather than committed deltas, so a live
+   * conversation has none.
+   */
+  getMoments(speakerId?: string): Moment[] {
+    return this.batch?.getMoments(speakerId) ?? [];
+  }
+
+  /** The moments that moved the speaker furthest, largest first. */
+  getTopMoments(limit = 10, speakerId?: string): Moment[] {
+    return byMagnitude(this.getMoments(speakerId)).slice(0, Math.max(0, limit));
   }
 
   private batchTurn(turn: AnalysisTurn): ConversationTurn {

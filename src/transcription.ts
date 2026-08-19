@@ -4,9 +4,11 @@ import {
   type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
+import type { Moment } from './conversation/moments.js';
 import type { VoiceFrame, AffectVad } from './step.js';
 
 export type { Prosody, ProsodyChange } from './conversation/prosody.js';
+export type { Moment } from './conversation/moments.js';
 
 /**
  * Options for {@link ProsodyClient.transcribe}.
@@ -101,6 +103,11 @@ export class Speaker {
   readonly label: string;
   /** Total attributed speaking time, in ms. */
   readonly talkMs: number;
+  /**
+   * This speaker's share of all attributed speaking time on the call, 0 to 1.
+   * Zero when nobody was attributed any speaking time.
+   */
+  readonly talkShare: number;
   /** Number of transcript turns attributed to this speaker. */
   readonly turnCount: number;
   /** This voice's measured baseline across the recording. */
@@ -110,12 +117,14 @@ export class Speaker {
     id: string;
     label: string;
     talkMs: number;
+    talkShare: number;
     turnCount: number;
     state: VoiceProfile;
   }) {
     this.id = init.id;
     this.label = init.label;
     this.talkMs = init.talkMs;
+    this.talkShare = init.talkShare;
     this.turnCount = init.turnCount;
     this.state = init.state;
   }
@@ -141,6 +150,7 @@ export class Speaker {
       id: this.id,
       label: this.label,
       talkMs: this.talkMs,
+      talkShare: this.talkShare,
       turnCount: this.turnCount,
       state: this.state,
     };
@@ -178,6 +188,11 @@ export interface Transcription {
   turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
   /** Every measured frame across the call, in order. */
   frames: VoiceFrame[];
+  /**
+   * Moments the model committed, ordered by how far the speaker's state
+   * moved. This is the call's shortlist: the spans worth listening to.
+   */
+  moments: Moment[];
   /** Measured affect for the call, when the checkpoint publishes it. */
   vad: AffectVad | null;
   /** Lower-level object for trajectories and deltas. */
@@ -247,10 +262,16 @@ export function transcriptionFromConversation(
     - (firstHeard.get(b.speaker_id) ?? Number.MAX_SAFE_INTEGER)
   ));
 
+  const totalTalkMs = ordered.reduce((total, entry) => total + Math.max(0, entry.talk_ms), 0);
+  const shareOf = (talkMs: number): number => (
+    totalTalkMs > 0 ? Math.max(0, talkMs) / totalTalkMs : 0
+  );
+
   const speakers = ordered.map((entry, index) => new Speaker({
     id: entry.speaker_id,
     label: speakerLabel(entry.speaker_id, index),
     talkMs: entry.talk_ms,
+    talkShare: shareOf(entry.talk_ms),
     turnCount: entry.turn_count,
     state: voiceProfileOf(conversation.getFrames(entry.speaker_id)),
   }));
@@ -264,6 +285,7 @@ export function transcriptionFromConversation(
       id,
       label: speakerLabel(id, -1),
       talkMs: 0,
+      talkShare: 0,
       turnCount: 0,
       state: voiceProfileOf(conversation.getFrames(id)),
     });
@@ -292,6 +314,7 @@ export function transcriptionFromConversation(
       return turns.filter((turn) => turn.speaker.id === id);
     },
     frames: conversation.getFrames(),
+    moments: conversation.getTopMoments(),
     vad: conversation.getVad(),
     conversation,
   };
