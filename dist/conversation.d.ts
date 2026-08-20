@@ -5,7 +5,7 @@ import { type ConversationTurn } from './conversation/turn-model.js';
 import { type MeasurementPath, type Prosody } from './conversation/prosody.js';
 import { type Moment } from './conversation/moments.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
-export { prosodyFromState, prosodyFromWindow, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
+export { prosodyFromState, prosodyFromFrame, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
@@ -47,7 +47,7 @@ export declare class Conversation {
     getVoiceFrame(index: number): VoiceFrame | null;
     /** One measurement across the call, by typed path, optionally for one speaker. */
     getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[];
-    /** Speaker-relative changes. The first window in each speaker lane has none. */
+    /** Speaker-relative changes. The first frame in each speaker lane has none. */
     getChanges(speakerId?: string): ChangePoint[];
     /**
      * Moments the model committed, in commit order.

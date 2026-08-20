@@ -30,7 +30,7 @@ export interface ChangePoint {
  * Validate the stable batch envelope.
  *
  * ProsodySSM's product output is `acoustic_state`, the measured waveform
- * values per window, which arrives on `prosody_timeline` and on each turn.
+ * values per frame, which arrives on `prosody_timeline` and on each turn.
  * Valence / arousal / dominance are the trained affect head's readout; each
  * is `null` on an unvoiced frame, never a fabricated neutral. The head is
  * always trained, so a deployment that publishes only acoustic state is
@@ -60,19 +60,17 @@ export declare class ConversationAnalysis {
     getVoiceFrame(index: number): VoiceFrame | null;
     /** One physical measurement across the recording, optionally for one speaker. */
     getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[];
-    /** Speaker-relative changes. The first window in each speaker lane has none. */
+    /** Speaker-relative changes. The first frame in each speaker lane has none. */
     getChanges(speakerId?: string): ChangePoint[];
     /**
-     * Moments the model committed, in commit order.
-     *
-     * Each carries the magnitude the model published on its `state_delta`
-     * event. Empty when the deployment committed none.
+     * Committed `state_delta` moments, in commit order. Each carries the
+     * magnitude the model published. Empty when the deployment committed none.
      */
     getMoments(speakerId?: string): Moment[];
-    /** The moments that moved the speaker furthest, largest first. */
+    /** Committed moments sorted by descending magnitude. */
     getTopMoments(limit?: number, speakerId?: string): Moment[];
-    /** The measurement bundle on the latest (or indexed) acoustic window. */
-    getProsody(windowIndex?: number): Prosody | null;
+    /** The measurement bundle on the latest (or indexed) frame. */
+    getProsody(frameIndex?: number): Prosody | null;
     /**
      * Affect VAD for the whole file. Each component is `null` on an unvoiced
      * frame; the head is always trained. Null when every dimension is null.
@@ -84,15 +82,15 @@ export declare class ConversationAnalysis {
     getTimeline(): ProsodyTimelinePoint[];
 }
 /**
- * The measured windows of a call, in order.
+ * The measured frames of a call, in order.
  *
  * Empty when the upload was not diarized (`diarize: false`), since the timeline
  * is only built for a diarized call.
  */
 export declare function voiceFrames(result: AnalysisResult): ProsodyTimelinePoint[];
 /**
- * Read one measurement across a call, skipping windows where it was not
- * measurable (an unvoiced window carries `null` pitch, without any floor value).
+ * Read one measurement across a call, skipping frames where it was not
+ * measurable (an unvoiced frame carries `null` pitch, without any floor value).
  */
 export declare function measurementSeries(result: AnalysisResult, path: MeasurementPath): {
     start_ms: number;

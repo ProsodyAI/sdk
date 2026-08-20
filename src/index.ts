@@ -89,7 +89,7 @@ export {
 export {
   Conversation,
   prosodyFromState,
-  prosodyFromWindow,
+  prosodyFromFrame,
   mergeTranscriptUpdateSegments,
   buildTurnsFromSegments,
   byMagnitude,

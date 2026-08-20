@@ -182,7 +182,7 @@ turn.prosody.state.clipping           // signal health
 ```
 
 A field is `null` when the audio did not support the measurement. Pitch is
-`null` on an unvoiced window, because pitch does not exist on unphonated audio.
+`null` on an unvoiced frame, because pitch does not exist on unphonated audio.
 
 `turn.prosody.change` carries the signed movement against the speaker's own
 preceding audio, the same families and names as `state`:
@@ -192,10 +192,11 @@ turn.prosody.change?.intonation.pitch   // semitones against baseline
 turn.prosody.change?.stress.loudness    // dB against baseline
 ```
 
-## Every moment, measured
+## Frames
 
-`result.frames` is the call measured frame by frame. Each frame arrives
-attributed to a speaker, with its state, its movement, and its affect:
+`result.frames` lists the measured frames of the call in order. Each frame
+is attributed to a speaker and carries its state, its change, and its affect
+reading:
 
 ```typescript
 for (const frame of result.frames) {
@@ -268,7 +269,7 @@ try {
 - [Speaker](https://prosodyai.app/docs/reference/speaker)
 - [Prosody](https://prosodyai.app/docs/reference/prosody)
 - [LiveSession](https://prosodyai.app/docs/reference/live-session)
-- [LiveKit plugin](https://prosodyai.app/docs/livekit) — full-duplex speech, speaker lanes, and identity on the agent worker
+- [LiveKit plugin](https://prosodyai.app/docs/livekit): full-duplex speech, speaker lanes, and identity on the agent worker
 
 ## Contributing
 

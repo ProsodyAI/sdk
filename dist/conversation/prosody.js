@@ -60,8 +60,8 @@ function numberOf(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 /**
- * Map a wire acoustic state onto the measured window. Intonation reads null
- * when the window was unvoiced: pitch does not exist on unphonated audio.
+ * Map a wire acoustic state onto the measured frame. Intonation reads null
+ * when the frame was unvoiced: pitch does not exist on unphonated audio.
  */
 export function prosodyStateFromWire(state) {
     if (!state)
@@ -100,6 +100,6 @@ export function prosodyFromState(state, change) {
         return null;
     return { state: built, change: prosodyChangeFromWire(change?.values ?? null) };
 }
-export function prosodyFromWindow(window) {
-    return prosodyFromState(window.getAcousticState(), window.getAcousticChange());
+export function prosodyFromFrame(frame) {
+    return prosodyFromState(frame.getAcousticState(), frame.getAcousticChange());
 }

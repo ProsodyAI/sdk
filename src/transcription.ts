@@ -83,14 +83,14 @@ export interface VoiceProfile {
   /** Voice quality baseline: spectral tilt. */
   tilt: VoiceStat | null;
   /** Frames measured for this speaker. */
-  windowCount: number;
+  frameCount: number;
 }
 
 /**
  * One voice in this result.
  *
  * `id` is the identifier the API minted for this voice within this call.
- * Everything else in the response keys off it: turns, acoustic windows,
+ * Everything else in the response keys off it: turns, frames,
  * trajectories, deltas.
  *
  * Turns hold the same instance the result lists, so
@@ -188,10 +188,7 @@ export interface Transcription {
   turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
   /** Every measured frame across the call, in order. */
   frames: VoiceFrame[];
-  /**
-   * Moments the model committed, ordered by how far the speaker's state
-   * moved. This is the call's shortlist: the spans worth listening to.
-   */
+  /** Committed `state_delta` moments, ordered by descending magnitude. */
   moments: Moment[];
   /** Measured affect for the call, when the checkpoint publishes it. */
   vad: AffectVad | null;
@@ -204,10 +201,10 @@ function speakerLabel(id: string, index: number): string {
   return index >= 0 ? `Speaker ${index + 1}` : id;
 }
 
-function statOf(windows: VoiceFrame[], path: MeasurementPath): VoiceStat | null {
+function statOf(frames: VoiceFrame[], path: MeasurementPath): VoiceStat | null {
   const values: number[] = [];
-  for (const window of windows) {
-    const value = measurementFromState(window.getAcousticState(), path);
+  for (const frame of frames) {
+    const value = measurementFromState(frame.getAcousticState(), path);
     if (value !== null) values.push(value);
   }
   if (!values.length) return null;
@@ -224,24 +221,24 @@ function statOf(windows: VoiceFrame[], path: MeasurementPath): VoiceStat | null 
   };
 }
 
-function voiceProfileOf(windows: VoiceFrame[]): VoiceProfile {
+function voiceProfileOf(frames: VoiceFrame[]): VoiceProfile {
   return {
     intonation: {
-      pitch: statOf(windows, 'intonation.pitch'),
-      range: statOf(windows, 'intonation.range'),
-      slope: statOf(windows, 'intonation.slope'),
+      pitch: statOf(frames, 'intonation.pitch'),
+      range: statOf(frames, 'intonation.range'),
+      slope: statOf(frames, 'intonation.slope'),
     },
     stress: {
-      loudness: statOf(windows, 'stress.loudness'),
-      peak: statOf(windows, 'stress.peak'),
+      loudness: statOf(frames, 'stress.loudness'),
+      peak: statOf(frames, 'stress.peak'),
     },
     rhythm: {
-      voiced: statOf(windows, 'rhythm.voiced'),
-      pause: statOf(windows, 'rhythm.pause'),
-      onset: statOf(windows, 'rhythm.onset'),
+      voiced: statOf(frames, 'rhythm.voiced'),
+      pause: statOf(frames, 'rhythm.pause'),
+      onset: statOf(frames, 'rhythm.onset'),
     },
-    tilt: statOf(windows, 'tilt'),
-    windowCount: windows.length,
+    tilt: statOf(frames, 'tilt'),
+    frameCount: frames.length,
   };
 }
 

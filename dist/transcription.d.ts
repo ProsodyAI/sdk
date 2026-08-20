@@ -72,13 +72,13 @@ export interface VoiceProfile {
     /** Voice quality baseline: spectral tilt. */
     tilt: VoiceStat | null;
     /** Frames measured for this speaker. */
-    windowCount: number;
+    frameCount: number;
 }
 /**
  * One voice in this result.
  *
  * `id` is the identifier the API minted for this voice within this call.
- * Everything else in the response keys off it: turns, acoustic windows,
+ * Everything else in the response keys off it: turns, frames,
  * trajectories, deltas.
  *
  * Turns hold the same instance the result lists, so
@@ -154,10 +154,7 @@ export interface Transcription {
     turnsBySpeaker(speaker: Speaker | string): TranscribeTurn[];
     /** Every measured frame across the call, in order. */
     frames: VoiceFrame[];
-    /**
-     * Moments the model committed, ordered by how far the speaker's state
-     * moved. This is the call's shortlist: the spans worth listening to.
-     */
+    /** Committed `state_delta` moments, ordered by descending magnitude. */
     moments: Moment[];
     /** Measured affect for the call, when the checkpoint publishes it. */
     vad: AffectVad | null;

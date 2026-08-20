@@ -1,11 +1,11 @@
 import { VoiceFrame } from './step.js';
 import { ConversationAnalysis, } from './analysis.js';
 import { isKnownSpeaker, normalizeSpeakerId, } from './conversation/turn-model.js';
-import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
+import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
 import { byMagnitude, momentsFromStateDeltas, } from './conversation/moments.js';
 import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
-export { prosodyFromState, prosodyFromWindow, } from './conversation/prosody.js';
+export { prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude } from './conversation/moments.js';
@@ -133,9 +133,9 @@ export class Conversation {
             return turn?.prosody ?? null;
         }
         if (this.batch) {
-            const windows = this.batch.getFrames();
-            const last = windows[windows.length - 1];
-            return last ? prosodyFromWindow(last) : null;
+            const frames = this.batch.getFrames();
+            const last = frames[frames.length - 1];
+            return last ? prosodyFromFrame(last) : null;
         }
         const last = this.steps[this.steps.length - 1];
         if (!last?.acoustic_state)
@@ -147,29 +147,29 @@ export class Conversation {
         if (this.batch)
             return this.batch.getSpeakers();
         const turns = this.getTurns();
-        const windows = this.getFrames();
+        const frames = this.getFrames();
         const ids = new Set();
         for (const turn of turns)
             if (isKnownSpeaker(turn.speaker_id))
                 ids.add(turn.speaker_id);
-        for (const window of windows)
-            if (isKnownSpeaker(window.speakerId))
-                ids.add(window.speakerId);
+        for (const frame of frames)
+            if (isKnownSpeaker(frame.speakerId))
+                ids.add(frame.speakerId);
         return [...ids].map((speakerId) => ({
             speaker_id: speakerId,
             talk_ms: turns
                 .filter((turn) => turn.speaker_id === speakerId)
                 .reduce((total, turn) => total + Math.max(0, turn.end_ms - turn.start_ms), 0),
             turn_count: turns.filter((turn) => turn.speaker_id === speakerId).length,
-            window_count: windows.filter((window) => window.speakerId === speakerId).length,
+            window_count: frames.filter((frame) => frame.speakerId === speakerId).length,
         }));
     }
     /** Measured affect for the call. Each component is null on an unvoiced frame. */
     getVad() {
         if (this.batch)
             return this.batch.getVad();
-        const windows = this.getFrames();
-        const last = windows[windows.length - 1];
+        const frames = this.getFrames();
+        const last = frames[frames.length - 1];
         return last?.vad ?? null;
     }
     /** All measured frames, optionally limited to one recording-local speaker. */
@@ -181,41 +181,41 @@ export class Conversation {
             timestampMs: step.timestamp_ms,
             acousticState: step.acoustic_state,
             acousticChange: step.acoustic_change,
-        })).filter((window) => speakerId === undefined || window.speakerId === speakerId);
+        })).filter((frame) => speakerId === undefined || frame.speakerId === speakerId);
     }
     /** One frame by index, or null when out of range. */
     getVoiceFrame(index) {
-        const windows = this.getFrames();
-        if (!Number.isInteger(index) || index < 0 || index >= windows.length)
+        const frames = this.getFrames();
+        if (!Number.isInteger(index) || index < 0 || index >= frames.length)
             return null;
-        return windows[index] ?? null;
+        return frames[index] ?? null;
     }
     /** One measurement across the call, by typed path, optionally for one speaker. */
     getMeasurementSeries(path, speakerId) {
         if (this.batch)
             return this.batch.getMeasurementSeries(path, speakerId);
-        return this.getFrames(speakerId).flatMap((window) => {
-            const value = measurementFromState(window.getAcousticState(), path);
+        return this.getFrames(speakerId).flatMap((frame) => {
+            const value = measurementFromState(frame.getAcousticState(), path);
             return value === null ? [] : [{
-                    startMs: window.startMs,
-                    endMs: window.endMs,
-                    speakerId: window.speakerId,
+                    startMs: frame.startMs,
+                    endMs: frame.endMs,
+                    speakerId: frame.speakerId,
                     value,
                 }];
         });
     }
-    /** Speaker-relative changes. The first window in each speaker lane has none. */
+    /** Speaker-relative changes. The first frame in each speaker lane has none. */
     getChanges(speakerId) {
         if (this.batch)
             return this.batch.getChanges(speakerId);
-        return this.getFrames(speakerId).flatMap((window) => {
-            const delta = prosodyDeltaFromWire(window.getAcousticChange());
+        return this.getFrames(speakerId).flatMap((frame) => {
+            const delta = prosodyDeltaFromWire(frame.getAcousticChange());
             if (!delta)
                 return [];
             return [{
-                    startMs: window.startMs,
-                    endMs: window.endMs,
-                    speakerId: window.speakerId,
+                    startMs: frame.startMs,
+                    endMs: frame.endMs,
+                    speakerId: frame.speakerId,
                     reference: delta.reference,
                     values: delta.values,
                 }];

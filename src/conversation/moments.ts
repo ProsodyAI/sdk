@@ -1,13 +1,12 @@
 import type { AnalysisEvent, StateDeltaEvent } from '../types.js';
 
 /**
- * One moment the model committed: what this span moved in the speaker.
+ * One committed `state_delta` event, attributed to a lane.
  *
- * The magnitude is the model's own readout of how far the recurrent speaker
- * state travelled. It is computable only inside the model that has been
- * carrying the person's state, so this module reads the committed
- * `state_delta` and never derives a significance of its own from acoustic
- * values.
+ * The magnitude is the model's readout of how far the recurrent speaker
+ * state moved over this span. It is computable only inside the model that
+ * has been carrying the person's state, so this module parses the committed
+ * event and adds lane attribution.
  */
 export interface Moment {
   /** Where the evidence began on the model's 80ms frame clock, in ms. */
@@ -24,7 +23,7 @@ export interface Moment {
   speakerId: string | null;
 }
 
-/** The minimum a turn needs to attribute a moment. Batch and live both satisfy it. */
+/** The turn fields used to attribute a moment. Batch and live turns both carry them. */
 export interface TurnSpan {
   start_ms: number;
   end_ms: number;
@@ -88,7 +87,7 @@ export function momentsFromStateDeltas(
   return (deltas ?? []).map((delta) => toMoment(delta, spans));
 }
 
-/** The same moments ordered by how far the state moved, largest first. */
+/** Moments sorted by descending magnitude. */
 export function byMagnitude(moments: Moment[]): Moment[] {
   return [...moments].sort((a, b) => b.magnitude - a.magnitude);
 }

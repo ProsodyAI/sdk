@@ -3,7 +3,7 @@ import { measurementFromState, } from './conversation/prosody.js';
  * One voice in this result.
  *
  * `id` is the identifier the API minted for this voice within this call.
- * Everything else in the response keys off it: turns, acoustic windows,
+ * Everything else in the response keys off it: turns, frames,
  * trajectories, deltas.
  *
  * Turns hold the same instance the result lists, so
@@ -62,10 +62,10 @@ function speakerLabel(id, index) {
         return 'Unknown speaker';
     return index >= 0 ? `Speaker ${index + 1}` : id;
 }
-function statOf(windows, path) {
+function statOf(frames, path) {
     const values = [];
-    for (const window of windows) {
-        const value = measurementFromState(window.getAcousticState(), path);
+    for (const frame of frames) {
+        const value = measurementFromState(frame.getAcousticState(), path);
         if (value !== null)
             values.push(value);
     }
@@ -83,24 +83,24 @@ function statOf(windows, path) {
         count: sorted.length,
     };
 }
-function voiceProfileOf(windows) {
+function voiceProfileOf(frames) {
     return {
         intonation: {
-            pitch: statOf(windows, 'intonation.pitch'),
-            range: statOf(windows, 'intonation.range'),
-            slope: statOf(windows, 'intonation.slope'),
+            pitch: statOf(frames, 'intonation.pitch'),
+            range: statOf(frames, 'intonation.range'),
+            slope: statOf(frames, 'intonation.slope'),
         },
         stress: {
-            loudness: statOf(windows, 'stress.loudness'),
-            peak: statOf(windows, 'stress.peak'),
+            loudness: statOf(frames, 'stress.loudness'),
+            peak: statOf(frames, 'stress.peak'),
         },
         rhythm: {
-            voiced: statOf(windows, 'rhythm.voiced'),
-            pause: statOf(windows, 'rhythm.pause'),
-            onset: statOf(windows, 'rhythm.onset'),
+            voiced: statOf(frames, 'rhythm.voiced'),
+            pause: statOf(frames, 'rhythm.pause'),
+            onset: statOf(frames, 'rhythm.onset'),
         },
-        tilt: statOf(windows, 'tilt'),
-        windowCount: windows.length,
+        tilt: statOf(frames, 'tilt'),
+        frameCount: frames.length,
     };
 }
 export function transcriptionFromConversation(conversation, options) {
