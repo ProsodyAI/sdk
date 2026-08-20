@@ -33,7 +33,7 @@ export interface VoiceStat {
 export interface IntonationBaseline {
     /** Median F0. Null when no frame was voiced. */
     pitch: VoiceStat | null;
-    /** Pitch span. */
+    /** F0 span. */
     range: VoiceStat | null;
     /** Contour direction. */
     slope: VoiceStat | null;
@@ -42,7 +42,7 @@ export interface IntonationBaseline {
 export interface StressBaseline {
     /** Loudness. */
     loudness: VoiceStat | null;
-    /** Peak intensity. */
+    /** Peak loudness. */
     peak: VoiceStat | null;
 }
 /** Rhythm baseline across a speaker's frames. */

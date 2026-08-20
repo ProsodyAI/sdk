@@ -6,7 +6,7 @@ export interface AcousticProvenance {
 
 /**
  * Trained physical measurements over one span of waveform, in the units the
- * paralinguistics literature standardized: intensity in dBFS, F0 in Hz and
+ * paralinguistics literature standardized: loudness in dBFS, F0 in Hz and
  * semitones, voicing and pause ratios, spectral tilt. A value is `null`
  * when the audio cannot support it. Check `masks` before reading.
  */

@@ -61,7 +61,7 @@ function numberOf(value) {
 }
 /**
  * Map a wire acoustic state onto the measured frame. Intonation reads null
- * when the frame was unvoiced: pitch does not exist on unphonated audio.
+ * when the frame was unvoiced: F0 does not exist on unphonated audio.
  */
 export function prosodyStateFromWire(state) {
     if (!state)

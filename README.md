@@ -22,7 +22,7 @@ identity and prosody from one client.
 ProsodyAI measures the suprasegmental layer of speech: intonation, stress,
 rhythm, and voice quality, the prosodic properties that span syllables and
 phrases. The quantities are the ones the paralinguistics literature
-standardized: F0 on a semitone scale, intensity in dBFS, voicing and pause
+standardized: F0 on a semitone scale, loudness in dBFS, voicing and pause
 ratios, spectral tilt. Every measurement is speaker-relative. The same F0 is
 emphatic for one voice and habitual for another, so the baseline is the
 reference and the movement is the meaning.
@@ -178,7 +178,7 @@ at one moment, in physical units.
 turn.prosody.state.intonation.pitch    // median F0, Hz
 turn.prosody.state.intonation.range    // F0 span, semitones
 turn.prosody.state.intonation.slope    // contour direction: rising or falling
-turn.prosody.state.stress.loudness     // intensity, dBFS
+turn.prosody.state.stress.loudness     // loudness, dBFS
 turn.prosody.state.stress.peak         // loudest instant, dBFS
 turn.prosody.state.rhythm.voiced       // voicing ratio, 0 to 1
 turn.prosody.state.rhythm.pause        // pause ratio, 0 to 1

@@ -5,17 +5,17 @@ import type { AcousticChange, AcousticState } from '../types.js';
 export interface IntonationState {
   /** Median F0, Hz. Null when the frame was unvoiced. */
   pitch: number | null;
-  /** F0 span within the frame, semitones. Pitch span marks emphasis. */
+  /** F0 span within the frame, semitones. F0 span marks emphasis. */
   range: number | null;
   /** Contour direction, semitones per second: negative falls, positive rises. */
   slope: number | null;
 }
 
-/** Stress: the intensity of one frame. */
+/** Stress: the loudness of one frame. */
 export interface StressState {
-  /** Intensity, dBFS relative to full scale. */
+  /** Loudness, dBFS relative to full scale. */
   loudness: number | null;
-  /** Peak intensity in the frame, dBFS. */
+  /** Peak loudness in the frame, dBFS. */
   peak: number | null;
 }
 
@@ -47,7 +47,7 @@ export interface ProsodyState {
 export interface IntonationChange {
   /** F0 movement, semitones. */
   pitch: number | null;
-  /** Pitch span movement, semitones. */
+  /** F0 span movement, semitones. */
   range: number | null;
   /** Contour movement, semitones per second. */
   slope: number | null;
@@ -169,7 +169,7 @@ function numberOf(value: number | null | undefined): number | null {
 
 /**
  * Map a wire acoustic state onto the measured frame. Intonation reads null
- * when the frame was unvoiced: pitch does not exist on unphonated audio.
+ * when the frame was unvoiced: F0 does not exist on unphonated audio.
  */
 export function prosodyStateFromWire(state: AcousticState | null | undefined): ProsodyState | null {
   if (!state) return null;
