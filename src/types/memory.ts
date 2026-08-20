@@ -36,7 +36,7 @@ export interface MomentRecord {
 
 export interface RecallResult {
   person_id?: string | null;
-  is_returning: boolean;
+  resumed: boolean;
   memories: MomentRecord[];
   /** Distilled inner-monologue preamble, ready to prime an S2S model. */
   preamble: string;

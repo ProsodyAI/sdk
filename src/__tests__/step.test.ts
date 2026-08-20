@@ -62,7 +62,7 @@ describe('VoiceFrame consumer accessors', () => {
             dominance: 0,
             identity: {
               person_id: 'person_abc',
-              is_returning: true,
+              resumed: true,
               display_name: 'Alex',
             },
           },

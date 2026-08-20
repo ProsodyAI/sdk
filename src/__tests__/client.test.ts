@@ -342,14 +342,14 @@ describe('analyzeBase64', () => {
 
 describe('speaker identity', () => {
   it('lists the tenant speaker directory', async () => {
-    const fetch = mockFetchOk({ speakers: [], memory_total: 0, memory_enabled: false });
+    const fetch = mockFetchOk({ speakers: [], moment_total: 0, moments_enabled: false });
     const client = new ProsodyClient('key');
     await client.listSpeakers(25);
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=25');
   });
 
   it('exposes persistent identity as a developer speaker resource', async () => {
-    const fetch = mockFetchOk({ speakers: [], memory_total: 0, memory_enabled: false });
+    const fetch = mockFetchOk({ speakers: [], moment_total: 0, moments_enabled: false });
     const client = new ProsodyClient('key');
     await client.speakers.list(10);
     expect(fetch.mock.calls[0][0]).toBe('https://api.prosodyai.app/v1/voice/speakers?limit=10');
@@ -447,17 +447,17 @@ describe('cancellation', () => {
 
 describe('memory', () => {
   it('recalls a person\'s significant moments, recency-ranked', async () => {
-    const fetch = mockFetchOk({ person_id: 'p1', is_returning: true, memories: [], preamble: '' });
+    const fetch = mockFetchOk({ person_id: 'p1', resumed: true, memories: [], preamble: '' });
     const client = new ProsodyClient('key');
     const result = await client.memory.recall.post('p1', 10);
     const [url, init] = fetch.mock.calls[0];
     expect(url).toBe('https://api.prosodyai.app/v1/memory/recall');
     expect(JSON.parse(init.body)).toEqual({ person_id: 'p1', top_k: 10, include_recent: true });
-    expect(result.is_returning).toBe(true);
+    expect(result.resumed).toBe(true);
   });
 
   it('defaults topK to the route default', async () => {
-    const fetch = mockFetchOk({ person_id: 'p1', is_returning: false, memories: [], preamble: '' });
+    const fetch = mockFetchOk({ person_id: 'p1', resumed: false, memories: [], preamble: '' });
     const client = new ProsodyClient('key');
     await client.memory.recall.post('p1');
     expect(JSON.parse(fetch.mock.calls[0][1].body).top_k).toBe(5);

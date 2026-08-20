@@ -5,7 +5,7 @@ export interface SpeakerDirectoryEntry {
   last_heard_at?: number | null;
   last_seen_at?: number | null;
   last_session_id?: string | null;
-  memory_count: number;
+  moment_count: number;
   /** Person ids folded into this lineage by an operator merge. */
   merged_from?: string[] | null;
   enrollment_count?: number;
@@ -19,8 +19,8 @@ export interface SpeakerDirectoryEntry {
 
 export interface SpeakerDirectoryResult {
   speakers: SpeakerDirectoryEntry[];
-  memory_total: number;
-  memory_enabled: boolean;
+  moment_total: number;
+  moments_enabled: boolean;
 }
 
 /** One model-committed speaker lane from a previewed recording. */

@@ -47,7 +47,7 @@ export interface DiarizedSpeaker {
 export interface SpeakerIdentity {
   person_id?: string | null;
   display_name?: string | null;
-  is_returning?: boolean;
+  resumed?: boolean;
   name_source?: string | null;
 }
 
