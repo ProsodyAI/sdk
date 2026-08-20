@@ -2,11 +2,7 @@ import { type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState 
 import type { AcousticChange, AcousticState, DirectiveEvent, ProsodyTimelinePoint } from './types.js';
 /**
  * The emotional attributes for one frame or call: valence, arousal, and
- * dominance, the dimensional affect measures of the speech emotion
- * literature.
- *
- * The affect head is always trained. Each component is a signed reading on
- * the model's affect scale, or `null` on an unvoiced frame.
+ * dominance. Each component is `null` on an unvoiced frame.
  */
 export interface AffectVad {
     /** Valence: pleasant to unpleasant. Null on an unvoiced frame. */
@@ -17,16 +13,9 @@ export interface AffectVad {
     dominance: number | null;
 }
 /**
- * One measured interval of a call, as a consumer sees it.
- *
- * Built from a live `directive` event or a batch `prosody_timeline` frame.
- * Raw Mimi latents and recurrent state tensors stay internal; this surface
- * carries only the readouts: who spoke, when, how the voice sounded, how it
- * moved against that speaker's own baseline, and the affect reading.
- *
- * The `state`/`change` pair is the locked vocabulary: `state` is what was
- * measured, `change` is what it moved. Both share the same family shape
- * (intonation, stress, rhythm, tilt).
+ * One measured interval of a call, built from a live `directive` event or a
+ * batch `prosody_timeline` frame. `state` is what was measured; `change` is
+ * what it moved; both share the same family shape.
  */
 export declare class VoiceFrame {
     /** Conversation-local lane this frame was attributed to. */

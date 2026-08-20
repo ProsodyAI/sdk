@@ -14,10 +14,7 @@ export interface ProsodyEmbedding {
     energy_std?: number;
 }
 export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_profiles' | 'state_delta' | 'turn_boundary' | 'barge_in' | 'session_end' | 'warning' | 'error';
-/**
- * Live analysis event. `generation` / `seq` are optional on the API wire; when
- * a publisher includes them, clients may use them to drop stale packets.
- */
+/** Live analysis event. Optional `generation`/`seq` let clients drop stale packets. */
 export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
     session_id: string;
     generation?: number;
@@ -27,11 +24,7 @@ export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
 /** Media-plane mint request for `POST /v1/realtime/sessions`. */
 export interface RealtimeSessionCreateOptions {
     participantName?: string;
-    /**
-     * Join an existing session's room instead of creating one. Every
-     * participant in the room reaches the same model, so their voices advance
-     * one speaker-state timeline.
-     */
+    /** Join an existing session's room; every participant advances one speaker-state timeline. */
     sessionId?: string;
 }
 export interface RealtimeSessionCredentials {
@@ -58,7 +51,7 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     acoustic_state?: AcousticState | null;
     acoustic_change?: AcousticChange | null;
     prosody: AffectReading;
-    /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+    /** Valence reading. Null on an unvoiced frame. */
     valence: number | null;
     /** Arousal reading. Null on an unvoiced frame. */
     arousal: number | null;
@@ -78,10 +71,7 @@ export interface DirectiveEvent extends ProsodyEventEnvelope<'directive'> {
     /** Acoustic contour data for spectrogram rendering. */
     prosody_embedding: ProsodyEmbedding | null;
 }
-/**
- * Segments sharing a result_id replace the prior interim version. A final
- * update (`is_final: true`) commits that replacement.
- */
+/** Segments sharing a `result_id` replace the prior interim; `is_final: true` commits it. */
 export interface TranscriptUpdateSegment {
     start_ms: number;
     end_ms: number;
@@ -124,21 +114,14 @@ export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update
     backend?: string | null;
     is_agent: boolean;
 }
-/**
- * Rolling speaker lanes with identity attached.
- * Emitted again as the model accumulates enough voice evidence to resolve a
- * stored person.
- */
+/** Rolling speaker lanes with identity attached; re-emitted as a stored person resolves. */
 export interface SpeakerProfilesEvent extends ProsodyEventEnvelope<'speaker_profiles'> {
     profiles: SpeakerProfile[];
     timestamp_ms?: number | null;
 }
 /**
- * The lane's state moved decisively against its own baseline.
- *
- * `magnitude` is the model's own readout of the departure, in state units.
- * `frame_ms` is retrodictive to the excursion's onset; `commit_ms` is where
- * the decision landed. Matches api/models/stream_events.py StateDelta.
+ * The lane's state moved decisively against its own baseline. `frame_ms` is
+ * retrodictive to the excursion's onset; `commit_ms` is where the decision landed.
  */
 export interface StateDeltaEvent extends ProsodyEventEnvelope<'state_delta'> {
     frame_ms: number;
@@ -147,18 +130,12 @@ export interface StateDeltaEvent extends ProsodyEventEnvelope<'state_delta'> {
     magnitude: number;
     resolved: boolean;
 }
-/**
- * The model committed the floor passing between voices.
- * Matches api/models/stream_events.py TurnBoundary.
- */
+/** The model committed the floor passing between voices. */
 export interface TurnBoundaryEvent extends ProsodyEventEnvelope<'turn_boundary'> {
     frame_ms: number;
     commit_ms: number;
 }
-/**
- * A second voice entered against held speech. Emitted at commit, and again
- * when the overlap ends. Matches api/models/stream_events.py BargeIn.
- */
+/** A second voice entered against held speech. Emitted at commit and when the overlap ends. */
 export interface BargeInEvent extends ProsodyEventEnvelope<'barge_in'> {
     frame_ms: number;
     commit_ms: number;
@@ -169,10 +146,7 @@ export interface SessionDiagnostic {
     bytes_received?: number;
     chunks_received?: number;
     audio_silent?: boolean;
-    /**
-     * The organization's enrolled voice profiles predate the serving
-     * checkpoint, so none can resolve until people re-enroll under it.
-     */
+    /** Enrolled voice profiles predate the serving checkpoint; none resolve until re-enrollment. */
     known_speaker_space_mismatch?: boolean;
 }
 export interface SessionEndEvent extends ProsodyEventEnvelope<'session_end'> {

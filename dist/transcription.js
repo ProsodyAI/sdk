@@ -1,13 +1,7 @@
 import { measurementFromState, } from './conversation/prosody.js';
 /**
- * One voice in this result.
- *
- * `id` is the identifier the API minted for this voice within this call.
- * Everything else in the response keys off it: turns, frames,
- * trajectories, deltas.
- *
- * Turns hold the same instance the result lists, so
- * `turn.speaker === transcription.speakers[0]` holds.
+ * One voice in this result. Turns hold the same instance the result lists,
+ * so `turn.speaker === transcription.speakers[0]` holds.
  */
 export class Speaker {
     /** Speaker id, stable within this call. */
@@ -16,10 +10,7 @@ export class Speaker {
     label;
     /** Total attributed speaking time, in ms. */
     talkMs;
-    /**
-     * This speaker's share of all attributed speaking time on the call, 0 to 1.
-     * Zero when nobody was attributed any speaking time.
-     */
+    /** Share of all attributed speaking time on the call, 0 to 1. */
     talkShare;
     /** Number of transcript turns attributed to this speaker. */
     turnCount;

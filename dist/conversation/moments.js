@@ -19,12 +19,7 @@ function toMoment(delta, turns) {
         speakerId: laneAt(turns, delta.frame_ms),
     };
 }
-/**
- * The batch report's committed state deltas as typed moments, in commit order.
- *
- * Attribution reads the committed turn spans: a moment carries the lane that
- * held the floor where its evidence began.
- */
+/** The batch report's committed state deltas as typed moments, in commit order. */
 export function momentsFromEvents(events, turns) {
     const spans = turns ?? [];
     return (events ?? []).filter(isStateDelta).map((event) => toMoment(event, spans));

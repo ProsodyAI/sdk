@@ -4,18 +4,13 @@ import type { Moment } from './conversation/moments.js';
 import type { VoiceFrame, AffectVad } from './step.js';
 export type { Prosody, ProsodyChange } from './conversation/prosody.js';
 export type { Moment } from './conversation/moments.js';
-/**
- * Options for {@link ProsodyClient.transcribe}.
- */
+/** Options for {@link ProsodyClient.transcribe}. */
 export interface TranscribeOptions {
     language?: string;
     sessionId?: string;
     /** Run speaker diarization: label who spoke when within the recording. Defaults to true. */
     diarize?: boolean;
-    /**
-     * Attach vocal measurement to each turn (`turn.prosody`).
-     * Defaults to true: that is the product.
-     */
+    /** Attach vocal measurement to each turn (`turn.prosody`). Defaults to true. */
     prosody?: boolean;
 }
 /** Median and spread of one measured feature across a speaker's frames. */
@@ -55,12 +50,8 @@ export interface RhythmBaseline {
     onset: VoiceStat | null;
 }
 /**
- * A speaker's measured voice: the baseline everything speaker-relative is
- * measured against.
- *
- * These are physical measurements of that voice across the recording. Fields
- * are `null` when no frame supported the measurement (for example pitch on
- * audio with no voiced frames).
+ * A speaker's measured baseline across the recording. Fields are `null`
+ * when no frame supported the measurement.
  */
 export interface VoiceProfile {
     /** Intonation baseline. */
@@ -75,14 +66,8 @@ export interface VoiceProfile {
     frameCount: number;
 }
 /**
- * One voice in this result.
- *
- * `id` is the identifier the API minted for this voice within this call.
- * Everything else in the response keys off it: turns, frames,
- * trajectories, deltas.
- *
- * Turns hold the same instance the result lists, so
- * `turn.speaker === transcription.speakers[0]` holds.
+ * One voice in this result. Turns hold the same instance the result lists,
+ * so `turn.speaker === transcription.speakers[0]` holds.
  */
 export declare class Speaker {
     /** Speaker id, stable within this call. */
@@ -91,10 +76,7 @@ export declare class Speaker {
     readonly label: string;
     /** Total attributed speaking time, in ms. */
     readonly talkMs: number;
-    /**
-     * This speaker's share of all attributed speaking time on the call, 0 to 1.
-     * Zero when nobody was attributed any speaking time.
-     */
+    /** Share of all attributed speaking time on the call, 0 to 1. */
     readonly talkShare: number;
     /** Number of transcript turns attributed to this speaker. */
     readonly turnCount: number;
@@ -137,10 +119,7 @@ export interface TranscribeTurn {
     /** How the voice sounded and moved on this turn. Present when `prosody` is on (the default). */
     prosody?: Prosody | null;
 }
-/**
- * Result of {@link ProsodyClient.transcribe}: the transcript, the speakers,
- * every measured frame, and the call-level affect.
- */
+/** Result of {@link ProsodyClient.transcribe}. */
 export interface Transcription {
     /** Full transcript text. */
     text: string;
