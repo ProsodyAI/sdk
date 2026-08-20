@@ -1,7 +1,7 @@
 import { isKnownSpeaker, normalizeSpeakerId, overlapMs, } from './turn-model.js';
 /**
  * Attribute unlabeled live segments from committed step readouts: first by
- * overlap with each step's window, then by bridging finalized runs whose
+ * overlap with each step's span, then by bridging finalized runs whose
  * neighbors agree.
  */
 export function resolveLiveSpeakers(segments, steps) {

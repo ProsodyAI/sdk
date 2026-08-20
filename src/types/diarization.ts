@@ -4,19 +4,21 @@ import type { ProsodyTimelinePoint } from './analysis.js';
 /**
  * Per-speaker attribution accounting, and this speaker's pooled affect.
  *
- * V/A/D is the affect head's reading pooled over the windows attributed to
- * this speaker. All three are null for a speaker no window measured.
+ * Valence, arousal, and dominance are the emotional attributes of the speech
+ * emotion literature, read by the affect head and pooled over the frames
+ * attributed to this speaker. All three are null for a speaker no frame
+ * measured.
  */
 export interface PerSpeakerAnalysis {
   speaker_id: string;
   talk_ms: number;
   window_count: number;
   turn_count: number;
-  /** Pooled valence. Null when no window measured this speaker. */
+  /** Pooled valence. Null when no frame measured this speaker. */
   valence?: number | null;
-  /** Pooled arousal. Null when no window measured this speaker. */
+  /** Pooled arousal. Null when no frame measured this speaker. */
   arousal?: number | null;
-  /** Pooled dominance. Null when no window measured this speaker. */
+  /** Pooled dominance. Null when no frame measured this speaker. */
   dominance?: number | null;
   display_name?: string | null;
   signals?: Record<string, number> | null;

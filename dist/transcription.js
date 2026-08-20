@@ -12,7 +12,7 @@ import { measurementFromState, } from './conversation/prosody.js';
 export class Speaker {
     /** Speaker id, stable within this call. */
     id;
-    /** Display label (`Speaker 1`), ordered by first appearance in this result. */
+    /** Diarization label (`Speaker 1`), ordered by first appearance in this result. */
     label;
     /** Total attributed speaking time, in ms. */
     talkMs;

@@ -20,10 +20,12 @@ identity and prosody from one client.
 ---
 
 ProsodyAI measures the suprasegmental layer of speech: intonation, stress,
-rhythm, and voice quality, the properties that span syllables and phrases.
-Every measurement is speaker-relative. The same F0 is emphatic for one voice
-and habitual for another, so the baseline is the reference and the movement
-is the meaning.
+rhythm, and voice quality, the prosodic properties that span syllables and
+phrases. The quantities are the ones the paralinguistics literature
+standardized: F0 on a semitone scale, intensity in dBFS, voicing and pause
+ratios, spectral tilt. Every measurement is speaker-relative. The same F0 is
+emphatic for one voice and habitual for another, so the baseline is the
+reference and the movement is the meaning.
 
 This SDK exposes three transports, named after the API's own prefixes:
 
@@ -35,8 +37,8 @@ This SDK exposes three transports, named after the API's own prefixes:
 
 ## Features
 
-- **Recorded transcription** with diarization and prosody on by default
-- **Realtime analysis** over a single WebSocket, frame-paced
+- **Recorded transcription** with speaker diarization and prosody on by default
+- **Realtime analysis** over a single WebSocket, paced by the model's codec frame clock
 - **LiveKit** room credentials and event attachment for browser calls
 - **Speaker identity** directory and a preview-then-confirm enrollment flow
 - **Typed readouts**: `state` (what was measured) and `change` (what it moved), in family shape
@@ -79,7 +81,7 @@ for (const turn of result.turns) {
 ```
 
 `transcribe` accepts a local path, an HTTPS URL, or a Node.js `Buffer`.
-Diarization and prosody measurement are enabled by default.
+Speaker diarization and prosody measurement are enabled by default.
 
 ### Realtime WebSocket
 
@@ -152,7 +154,7 @@ worker does.
 const [speaker] = result.speakers;
 
 speaker.id;                              // stable within this call
-speaker.label;                           // display label ("Speaker 1")
+speaker.label;                           // diarization label ("Speaker 1")
 speaker.talkSeconds;                     // attributed speaking time
 speaker.state.intonation.pitch?.median;  // their baseline pitch
 speaker.state.stress.loudness?.median;   // their baseline loudness
@@ -161,28 +163,32 @@ result.getSpeaker(speaker.id);
 result.turnsBySpeaker(speaker);
 ```
 
-`speaker.id` is recording-local. Durable cross-session identity is a separate
-resource. See [Speaker directory and enrollment](#speaker-directory-and-enrollment).
+Diarization answers who spoke when: each turn and frame carries the label of
+the speaker the model attributed it to. `speaker.id` is recording-local.
+Durable cross-session identity is a separate resource. See
+[Speaker directory and enrollment](#speaker-directory-and-enrollment).
 
 ## What a frame measures
 
-Each frame reports the prosodic layer for one speaker at one moment.
+A frame is one measured interval of the call, on the clock of the model's
+streaming audio codec. Each frame reports the prosodic layer for one speaker
+at one moment, in physical units.
 
 ```typescript
 turn.prosody.state.intonation.pitch    // median F0, Hz
-turn.prosody.state.intonation.range    // pitch span, semitones
-turn.prosody.state.intonation.slope    // rising or falling contour
+turn.prosody.state.intonation.range    // F0 span, semitones
+turn.prosody.state.intonation.slope    // contour direction: rising or falling
 turn.prosody.state.stress.loudness     // intensity, dBFS
 turn.prosody.state.stress.peak         // loudest instant, dBFS
-turn.prosody.state.rhythm.voiced       // fraction phonated, 0 to 1
-turn.prosody.state.rhythm.pause        // fraction silent, 0 to 1
-turn.prosody.state.rhythm.onset        // phonation restarts per second
-turn.prosody.state.tilt                // voice quality: spectral slope
+turn.prosody.state.rhythm.voiced       // voicing ratio, 0 to 1
+turn.prosody.state.rhythm.pause        // pause ratio, 0 to 1
+turn.prosody.state.rhythm.onset        // phonation onsets per second
+turn.prosody.state.tilt                // voice quality: spectral tilt
 turn.prosody.state.clipping           // signal health
 ```
 
 A field is `null` when the audio did not support the measurement. Pitch is
-`null` on an unvoiced frame, because pitch does not exist on unphonated audio.
+`null` on an unvoiced frame, because F0 does not exist on unphonated audio.
 
 `turn.prosody.change` carries the signed movement against the speaker's own
 preceding audio, the same families and names as `state`:
@@ -195,18 +201,22 @@ turn.prosody.change?.stress.loudness    // dB against baseline
 ## Frames
 
 `result.frames` lists the measured frames of the call in order. Each frame
-is attributed to a speaker and carries its state, its change, and its affect
-reading:
+is attributed to a speaker and carries its state, its change, and its
+emotional-attribute reading:
 
 ```typescript
 for (const frame of result.frames) {
-  frame.speakerId;                 // whose lane this frame belongs to
+  frame.speakerId;                 // the speaker this frame was attributed to
   frame.startMs;                   // where it sits on the call clock
   frame.state.intonation.pitch;    // how they sounded
   frame.change?.intonation.pitch;  // how they moved
   frame.vad;                       // valence/arousal/dominance, when available
 }
 ```
+
+`frame.vad` is the dimensional affect reading of the speech emotion
+literature: valence (negative to positive), arousal (calm to active), and
+dominance (weak to strong). Each component is `null` on an unvoiced frame.
 
 ## Speaker directory and enrollment
 
@@ -224,10 +234,10 @@ await prosody.speakers.confirmEnrollment(
 );
 ```
 
-Enrollment uses a preview-confirm transaction. Preview returns the detected
-lanes; confirm persists the supplied mappings. This is where durable,
-cross-session `person_id` identity comes from, distinct from the
-recording-local `speaker.id` on a `Transcription`.
+Enrollment uses a preview-confirm transaction. Preview returns the speakers
+detected in the recording; confirm persists the supplied mappings. This is
+where durable, cross-session `person_id` identity comes from, distinct from
+the recording-local `speaker.id` on a `Transcription`.
 
 ## Configuration
 
@@ -269,7 +279,7 @@ try {
 - [Speaker](https://prosodyai.app/docs/reference/speaker)
 - [Prosody](https://prosodyai.app/docs/reference/prosody)
 - [LiveSession](https://prosodyai.app/docs/reference/live-session)
-- [LiveKit plugin](https://prosodyai.app/docs/livekit): full-duplex speech, speaker lanes, and identity on the agent worker
+- [LiveKit plugin](https://prosodyai.app/docs/livekit): full-duplex speech, speaker identity, and committed events on the agent worker
 
 ## Contributing
 

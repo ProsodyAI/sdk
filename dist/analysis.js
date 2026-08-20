@@ -118,8 +118,9 @@ export class ConversationAnalysis {
         return this.getVoiceFrame(frameIndex)?.getProsody() ?? null;
     }
     /**
-     * Affect VAD for the whole file. Each component is `null` on an unvoiced
-     * frame; the head is always trained. Null when every dimension is null.
+     * The emotional attributes (valence, arousal, dominance) for the whole
+     * file. Each component is `null` on an unvoiced frame; the head is always
+     * trained. Null when every dimension is null.
      */
     getVad() {
         const { valence, arousal, dominance } = this.result.prosody;

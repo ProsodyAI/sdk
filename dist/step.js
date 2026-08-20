@@ -2,7 +2,7 @@ import { prosodyDeltaFromWire, prosodyFromState, prosodyStateFromWire, } from '.
 /**
  * One measured interval of a call, as a consumer sees it.
  *
- * Built from a live `directive` event or a batch `prosody_timeline` window.
+ * Built from a live `directive` event or a batch `prosody_timeline` frame.
  * Raw Mimi latents and recurrent state tensors stay internal; this surface
  * carries only the readouts: who spoke, when, how the voice sounded, how it
  * moved against that speaker's own baseline, and the affect reading.
@@ -53,7 +53,7 @@ export class VoiceFrame {
             affect: affectVadFrom(event.valence, event.arousal, event.dominance),
         });
     }
-    /** Build a frame from one diarized batch window on `prosody_timeline`. */
+    /** Build a frame from one diarized batch point on `prosody_timeline`. */
     static fromTimelinePoint(point) {
         return new VoiceFrame({
             speakerId: point.speaker_id ?? 'unknown',

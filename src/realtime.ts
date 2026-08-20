@@ -30,7 +30,7 @@ export interface ProsodyRealtimeConfig {
   source?: string;
   /** Match demo stream-file seek: analysis clock starts at this offset. */
   sourceOffsetMs?: number;
-  /** Analysis window length in seconds. Defaults to 1. */
+  /** Analysis chunk length in seconds. Defaults to 1. */
   chunkSeconds?: number;
   /** WebSocket constructor. Inject in tests; defaults to global WebSocket. */
   WebSocketImpl?: typeof WebSocket;
@@ -39,7 +39,7 @@ export interface ProsodyRealtimeConfig {
 export interface ProsodyRealtimeHandlers {
   onConfigAck?: (event: Record<string, unknown>) => void;
   onDirective?: (event: DirectiveEvent) => void;
-  onVoiceFrame?: (window: VoiceFrame) => void;
+  onVoiceFrame?: (frame: VoiceFrame) => void;
   conversation?: Conversation;
   onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
   onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
@@ -250,8 +250,8 @@ export class ProsodyRealtimeStream {
     switch (event.type) {
       case 'directive': {
         this.handlers.onDirective?.(event);
-        const window = VoiceFrame.fromDirective(event);
-        this.handlers.onVoiceFrame?.(window);
+        const frame = VoiceFrame.fromDirective(event);
+        this.handlers.onVoiceFrame?.(frame);
         this.handlers.conversation?.apply(event);
         break;
       }

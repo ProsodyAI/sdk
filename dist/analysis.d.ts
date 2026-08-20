@@ -72,8 +72,9 @@ export declare class ConversationAnalysis {
     /** The measurement bundle on the latest (or indexed) frame. */
     getProsody(frameIndex?: number): Prosody | null;
     /**
-     * Affect VAD for the whole file. Each component is `null` on an unvoiced
-     * frame; the head is always trained. Null when every dimension is null.
+     * The emotional attributes (valence, arousal, dominance) for the whole
+     * file. Each component is `null` on an unvoiced frame; the head is always
+     * trained. Null when every dimension is null.
      */
     getVad(): AffectVad | null;
     /** Valence for the whole file, or for one turn. Null on an unvoiced frame. */

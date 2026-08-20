@@ -135,7 +135,7 @@ export declare class ProsodyClient {
      * carries no ranking vector, so the route's recency mode answers.
      */
     private recallMemory;
-    /** Submit a corrected V/A/D reading for a prediction, for model feedback. */
+    /** Submit corrected emotional attributes (valence, arousal, dominance) for a prediction, for model feedback. */
     submitCorrection(options: FeedbackCorrectionOptions, signal?: AbortSignal): Promise<{
         status: string;
     }>;

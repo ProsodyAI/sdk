@@ -10,7 +10,7 @@ export type { Moment } from './conversation/moments.js';
 export interface TranscribeOptions {
     language?: string;
     sessionId?: string;
-    /** Label speakers within the recording. Defaults to true. */
+    /** Run speaker diarization: label who spoke when within the recording. Defaults to true. */
     diarize?: boolean;
     /**
      * Attach vocal measurement to each turn (`turn.prosody`).
@@ -60,7 +60,7 @@ export interface RhythmBaseline {
  *
  * These are physical measurements of that voice across the recording. Fields
  * are `null` when no frame supported the measurement (for example pitch on
- * audio with no voiced frames). No embedding or voiceprint vector is exposed.
+ * audio with no voiced frames).
  */
 export interface VoiceProfile {
     /** Intonation baseline. */
@@ -87,7 +87,7 @@ export interface VoiceProfile {
 export declare class Speaker {
     /** Speaker id, stable within this call. */
     readonly id: string;
-    /** Display label (`Speaker 1`), ordered by first appearance in this result. */
+    /** Diarization label (`Speaker 1`), ordered by first appearance in this result. */
     readonly label: string;
     /** Total attributed speaking time, in ms. */
     readonly talkMs: number;
@@ -156,7 +156,7 @@ export interface Transcription {
     frames: VoiceFrame[];
     /** Committed `state_delta` moments, ordered by descending magnitude. */
     moments: Moment[];
-    /** Measured affect for the call, when the checkpoint publishes it. */
+    /** Emotional attributes (valence, arousal, dominance) for the call, when the checkpoint publishes them. */
     vad: AffectVad | null;
     /** Lower-level object for trajectories and deltas. */
     conversation: Conversation;

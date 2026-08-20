@@ -176,8 +176,9 @@ export class ConversationAnalysis {
   }
 
   /**
-   * Affect VAD for the whole file. Each component is `null` on an unvoiced
-   * frame; the head is always trained. Null when every dimension is null.
+   * The emotional attributes (valence, arousal, dominance) for the whole
+   * file. Each component is `null` on an unvoiced frame; the head is always
+   * trained. Null when every dimension is null.
    */
   getVad(): AffectVad | null {
     const { valence, arousal, dominance } = this.result.prosody;
