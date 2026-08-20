@@ -71,7 +71,7 @@ export interface RhythmBaseline {
  *
  * These are physical measurements of that voice across the recording. Fields
  * are `null` when no frame supported the measurement (for example pitch on
- * audio with no voiced frames). No embedding or voiceprint vector is exposed.
+ * audio with no voiced frames).
  */
 export interface VoiceProfile {
   /** Intonation baseline. */

@@ -25,8 +25,8 @@ export interface PerSpeakerAnalysis {
 }
 
 /**
- * One recording-local identity lane. This consumer type deliberately carries
- * no voiceprint, embedding, person ID, or cross-conversation identity.
+ * One recording-local identity lane. `speaker_id` is a session-local label
+ * scoped to this recording.
  */
 export interface DiarizedSpeaker {
   speaker_id: string;
@@ -38,8 +38,9 @@ export interface DiarizedSpeaker {
 /**
  * Identity resolved for one session-local speaker lane.
  *
- * `speaker_id` can change between calls. `person_id` is the tenant-scoped,
- * durable identity that survives sessions and devices.
+ * `speaker_id` is a session-local label and can change between calls.
+ * `person_id` is the pseudonymous id of a profile the organization enrolled;
+ * it is stable across that organization's sessions.
  */
 export interface SpeakerIdentity {
   person_id?: string | null;
