@@ -26,14 +26,8 @@ export interface LiveSessionOptions {
     onEvent?: (event: ProsodyEvent | Record<string, unknown>) => void;
 }
 /**
- * Live analysis over the **Prosody WebSocket** (`WS /v1/stream/realtime`).
- *
- * Opens a direct API session, sends PCM or Opus bytes, and builds a
- * {@link Conversation} from wire events. LiveKit media uses
- * {@link ProsodyClient.realtime}.
- *
- * Apps (including the website demo) supply audio; this class owns start/stop,
- * frame pacing, and the conversation spine.
+ * Live analysis over `WS /v1/stream/realtime`: sends PCM or Opus bytes and
+ * builds a {@link Conversation} from wire events.
  */
 export declare class LiveSession {
     private _conversation;
@@ -54,23 +48,15 @@ export declare class LiveSession {
     get speakerProfiles(): SpeakerProfile[];
     get sessionEnd(): SessionEndEvent | null;
     get readyState(): number;
-    /**
-     * Open `WS /v1/stream/realtime` and send the config frame.
-     * Resolves on `config_ack`.
-     */
+    /** Open the socket and send the config frame. Resolves on `config_ack`. */
     start(overrides?: LiveSessionStartOptions): Promise<void>;
     /** Send one PCM (or Opus) audio chunk. */
     send(chunk: ArrayBuffer | Uint8Array | Buffer | Int16Array): void;
     /** Send one JSON control frame (e.g. `voice_profile_update`) as a text message. */
     sendControl(message: Record<string, unknown>): void;
-    /**
-     * Wait until the server acks the current analysis second (`directive` or
-     * `frame_ack`). Used for paced file replay.
-     */
+    /** Wait until the server acks the current analysis second. Used for paced file replay. */
     waitForFrame(timeoutMs?: number): Promise<void>;
-    /**
-     * Ask for `session_end`, wait for it (optional), then close the socket.
-     */
+    /** Ask for `session_end`, wait for it (optional), then close the socket. */
     stop(options?: {
         waitForSessionEndMs?: number;
     }): Promise<SessionEndEvent | null>;

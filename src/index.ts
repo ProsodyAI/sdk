@@ -1,6 +1,5 @@
 export type {
   ProsodyFeatures,
-  ProsodySignals,
   AcousticProvenance,
   AcousticStateValues,
   AcousticStateMasks,

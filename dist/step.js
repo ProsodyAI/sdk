@@ -1,15 +1,8 @@
 import { prosodyDeltaFromWire, prosodyFromState, prosodyStateFromWire, } from './conversation/prosody.js';
 /**
- * One measured interval of a call, as a consumer sees it.
- *
- * Built from a live `directive` event or a batch `prosody_timeline` frame.
- * Raw Mimi latents and recurrent state tensors stay internal; this surface
- * carries only the readouts: who spoke, when, how the voice sounded, how it
- * moved against that speaker's own baseline, and the affect reading.
- *
- * The `state`/`change` pair is the locked vocabulary: `state` is what was
- * measured, `change` is what it moved. Both share the same family shape
- * (intonation, stress, rhythm, tilt).
+ * One measured interval of a call, built from a live `directive` event or a
+ * batch `prosody_timeline` frame. `state` is what was measured; `change` is
+ * what it moved; both share the same family shape.
  */
 export class VoiceFrame {
     /** Conversation-local lane this frame was attributed to. */
@@ -98,12 +91,7 @@ export class VoiceFrame {
         return prosodyDeltaFromWire(this.wireChange);
     }
 }
-/**
- * Build an `AffectVad` from the wire's nullable dimensions. Returns `null`
- * when every dimension is null (an unvoiced frame with no affect reading);
- * the head is always trained, so a null dimension means unvoiced, never a
- * fabricated neutral.
- */
+/** Build an `AffectVad` from the wire; `null` when every dimension is null. */
 function affectVadFrom(valence, arousal, dominance) {
     if (valence == null && arousal == null && dominance == null)
         return null;

@@ -41,12 +41,8 @@ export function parseProsodyEvent(input) {
     return value;
 }
 /**
- * Consumes Prosody analysis events off a LiveKit room's data topic.
- *
- * Audio rides the LiveKit media plane; an agent worker (or the Python
- * `livekit-plugins-prosodyai` plugin) bridges the track to the analysis
- * WebSocket and republishes events to this topic. This class parses, orders
- * by `generation`/`seq` when present, and fans out to typed handlers.
+ * Consumes Prosody analysis events off a LiveKit room's data topic: parses,
+ * orders by `generation`/`seq` when present, and fans out to typed handlers.
  */
 export class ProsodySession {
     room;

@@ -1,12 +1,8 @@
 import type { AcousticChange, AcousticState } from './acoustic.js';
 import type { ProsodyTimelinePoint } from './analysis.js';
 /**
- * Per-speaker attribution accounting, and this speaker's pooled affect.
- *
- * Valence, arousal, and dominance are the emotional attributes of the speech
- * emotion literature, read by the affect head and pooled over the frames
- * attributed to this speaker. All three are null for a speaker no frame
- * measured.
+ * Per-speaker attribution accounting, with affect pooled over the frames
+ * attributed to this speaker.
  */
 export interface PerSpeakerAnalysis {
     speaker_id: string;
@@ -20,14 +16,10 @@ export interface PerSpeakerAnalysis {
     /** Pooled dominance. Null when no frame measured this speaker. */
     dominance?: number | null;
     display_name?: string | null;
-    signals?: Record<string, number> | null;
     /** Durable person identity resolved from the stored acoustic voice profile. */
     identity?: SpeakerIdentity | null;
 }
-/**
- * One recording-local identity lane. `speaker_id` is a session-local label
- * scoped to this recording.
- */
+/** One recording-local identity lane; `speaker_id` is scoped to this recording. */
 export interface DiarizedSpeaker {
     speaker_id: string;
     talk_ms: number;
@@ -35,11 +27,8 @@ export interface DiarizedSpeaker {
     window_count: number;
 }
 /**
- * Identity resolved for one session-local speaker lane.
- *
- * `speaker_id` is a session-local label and can change between calls.
- * `person_id` is the pseudonymous id of a profile the organization enrolled;
- * it is stable across that organization's sessions.
+ * Identity resolved for one session-local speaker lane. `speaker_id` can
+ * change between calls; `person_id` is stable across the organization's sessions.
  */
 export interface SpeakerIdentity {
     person_id?: string | null;
@@ -83,7 +72,7 @@ export interface TranscriptSegment {
     end_ms: number;
     text: string;
     speaker_id: string;
-    /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+    /** Valence reading. Null on an unvoiced frame. */
     valence: number | null;
     /** Arousal reading. Null on an unvoiced frame. */
     arousal: number | null;

@@ -59,12 +59,8 @@ export { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 
 /**
- * Shared state model for diarized turns and voice measurements, over a
- * recording or a live socket.
- *
- * Live: feed Prosody wire events via `apply`. Batch: build from
- * `Conversation.fromAnalysis`. The same object backs `LiveSession` and the
- * batch `Transcription.conversation`.
+ * Shared state model for diarized turns and voice measurements. Live: feed
+ * wire events via `apply`. Batch: build from `Conversation.fromAnalysis`.
  */
 export class Conversation {
   private segments: LiveSegment[] = [];
@@ -187,10 +183,7 @@ export class Conversation {
     return turns[index] ?? null;
   }
 
-  /**
-   * Measurement bundle for a turn (overlap-weighted best step) or latest step.
-   * Pass `turnIndex` for a turn; omit for the most recent recurrent step.
-   */
+  /** Measurement bundle for a turn (`turnIndex`) or the most recent recurrent step. */
   getProsody(turnIndex?: number): Prosody | null {
     if (turnIndex !== undefined) {
       const turn = this.getTurn(turnIndex);
@@ -282,13 +275,7 @@ export class Conversation {
     });
   }
 
-  /**
-   * Moments the model committed, in commit order.
-   *
-   * The batch report carries them on `events`; a live session receives them
-   * as `state_delta` on the socket. Both arrive already measured, so the
-   * accessor reads the same shape either way.
-   */
+  /** Moments the model committed, in commit order. */
   getMoments(speakerId?: string): Moment[] {
     if (this.batch) return this.batch.getMoments(speakerId);
     return momentsFromStateDeltas(this.deltas, this.getTurns()).filter(

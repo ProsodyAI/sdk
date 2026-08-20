@@ -58,29 +58,17 @@ type RealtimeConnectOpts = {
 };
 
 /**
- * Developer client authenticated with a `psk_*` API key.
- *
- * Three modes, named after the API's own prefixes:
- *
- * 1. **analyze**: REST batch, {@link ProsodyClient.transcribe} →
- *    `POST /v1/analyze/audio`
- * 2. **stream**: {@link ProsodyClient.stream} → `WS /v1/stream/realtime`
- *    (you send PCM/Opus; events come back)
- * 3. **realtime**: {@link ProsodyClient.realtime} → the LiveKit WebRTC
- *    media plane; mint a room, consume analysis events on the data topic.
- *    Audio does not go over the Prosody WebSocket from the browser.
- *
- * The Python LiveKit plugin bridges a LiveKit track → analysis WS on the
- * agent worker. That is an agent concern, and this client leaves it there.
+ * Developer client authenticated with a `psk_*` API key. Three modes:
+ * {@link ProsodyClient.transcribe} for REST batch analysis,
+ * {@link ProsodyClient.stream} for the analysis WebSocket, and
+ * {@link ProsodyClient.realtime} for the LiveKit media plane.
  */
 export class ProsodyClient {
   private readonly opts: RequestOptions;
   readonly apiKey: string;
   readonly baseUrl: string;
 
-  /**
-   * The analysis WebSocket transport (`WS /v1/stream/realtime`).
-   */
+  /** The analysis WebSocket transport (`WS /v1/stream/realtime`). */
   readonly stream: {
     /** Session with Conversation: `start` → `send` → `stop`. */
     session: (options?: RealtimeSessionOpts) => LiveSession;
@@ -91,28 +79,18 @@ export class ProsodyClient {
     ) => ProsodyRealtimeStream;
   };
 
-  /**
-   * The LiveKit media plane (WebRTC). Audio rides LiveKit; Prosody events
-   * arrive on the room data topic after a worker/plugin is analyzing the
-   * track.
-   */
+  /** The LiveKit media plane: audio rides LiveKit; events arrive on the room data topic. */
   readonly realtime: {
     /** Mint room credentials (`POST /v1/realtime/sessions`). Server-side only. */
     createSession: (
       options?: RealtimeSessionCreateOptions,
       signal?: AbortSignal,
     ) => Promise<RealtimeSessionCredentials>;
-    /**
-     * Attach to an existing LiveKit room and receive Prosody events from the
-     * data channel. Does not open a Prosody WebSocket.
-     */
+    /** Attach to an existing LiveKit room and receive Prosody events from the data channel. */
     attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => ProsodySession;
   };
 
-  /**
-   * The batch analysis namespace. {@link ProsodyClient.conversations.analyze}
-   * returns a `Conversation` (turns, speakers, frames, deltas).
-   */
+  /** Batch analysis: analyze one recording into a `Conversation`. */
   readonly conversations: {
     /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyze: (
@@ -121,10 +99,7 @@ export class ProsodyClient {
       signal?: AbortSignal,
     ) => Promise<Conversation>;
   };
-  /**
-   * Speaker identity: list resolved people, and enroll new voices in a
-   * two-step preview-then-confirm flow.
-   */
+  /** Speaker identity: list resolved people and enroll voices (preview, then confirm). */
   readonly speakers: {
     /** People resolved from stored speaker profiles within this API key's data scope. */
     list: (limit?: number, signal?: AbortSignal) => Promise<SpeakerDirectoryResult>;
@@ -142,10 +117,7 @@ export class ProsodyClient {
     ) => Promise<VoiceEnrollmentResult>;
   };
 
-  /**
-   * Operator surface: a saved person's persisted significant moments.
-   * Shipped for internal tooling and absent from the published docs.
-   */
+  /** Operator surface: a saved person's persisted significant moments. */
   readonly memory: {
     recall: {
       /** `POST /v1/memory/recall`: `memory.recall.post(personId, topK)`. */
@@ -191,10 +163,7 @@ export class ProsodyClient {
 
   // ──────────────────────── Transcription (REST) ────────────────────
 
-  /**
-   * Transcribe a recording over REST. Diarization and vocal measurement are
-   * options (`prosody` defaults true).
-   */
+  /** Transcribe a recording over REST; diarization and vocal measurement are options. */
   async transcribe(
     audio: string | Buffer,
     options?: TranscribeOptions,
@@ -206,11 +175,7 @@ export class ProsodyClient {
 
   // ──────────────────────────── Analysis ────────────────────────────
 
-  /**
-   * Raw batch analysis result (`POST /v1/analyze/audio`). Returns the parsed
-   * `AnalysisResult` directly; prefer {@link ProsodyClient.transcribe} or
-   * {@link ProsodyClient.analyzeConversation} for typed readouts.
-   */
+  /** Raw batch analysis result (`POST /v1/analyze/audio`), parsed as `AnalysisResult`. */
   async analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
     const formData = await audioFormData(audio);
     if (options?.language) formData.append('language', options.language);
@@ -242,10 +207,7 @@ export class ProsodyClient {
     return (await this.analyzeConversation(audio, options, signal)).getTurns();
   }
 
-  /**
-   * The timing skeleton of the conversation: one `{speaker_id, start_ms,
-   * end_ms}` per turn on the model's 80ms frame clock. Carries no text.
-   */
+  /** Turn timing on the model's 80ms frame clock: `{speaker_id, start_ms, end_ms}`, no text. */
   async getTurnBoundaries(
     audio: string | Buffer,
     options?: AnalysisOptions,
@@ -267,11 +229,7 @@ export class ProsodyClient {
     }));
   }
 
-  /**
-   * The committed conversation events in commit order: turn boundaries,
-   * barge-ins, and state deltas, each with its retrodictive `frame_ms` on the
-   * 80ms frame clock.
-   */
+  /** Committed conversation events in commit order, each with its retrodictive `frame_ms`. */
   async getEvents(
     audio: string | Buffer,
     options?: AnalysisOptions,
@@ -363,10 +321,7 @@ export class ProsodyClient {
 
   // ───────────────────────────── Memory ────────────────────────────
 
-  /**
-   * A saved person's top-K significant moments, recency-ranked: the call
-   * carries no ranking vector, so the route's recency mode answers.
-   */
+  /** A saved person's top-K significant moments, recency-ranked. */
   private async recallMemory(
     personId: string,
     topK = 5,
@@ -467,10 +422,7 @@ export class ProsodyClient {
     });
   }
 
-  /**
-   * Mint LiveKit room credentials for {@link ProsodyClient.realtime.createSession}.
-   * Server-side only: it holds `psk_*`.
-   */
+  /** Mint LiveKit room credentials. Server-side only: it holds `psk_*`. */
   private async createRealtimeSession(
     options: RealtimeSessionCreateOptions = {},
     signal?: AbortSignal,

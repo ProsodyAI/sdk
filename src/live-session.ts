@@ -42,14 +42,8 @@ export interface LiveSessionOptions {
 }
 
 /**
- * Live analysis over the **Prosody WebSocket** (`WS /v1/stream/realtime`).
- *
- * Opens a direct API session, sends PCM or Opus bytes, and builds a
- * {@link Conversation} from wire events. LiveKit media uses
- * {@link ProsodyClient.realtime}.
- *
- * Apps (including the website demo) supply audio; this class owns start/stop,
- * frame pacing, and the conversation spine.
+ * Live analysis over `WS /v1/stream/realtime`: sends PCM or Opus bytes and
+ * builds a {@link Conversation} from wire events.
  */
 export class LiveSession {
   private _conversation = new Conversation();
@@ -96,10 +90,7 @@ export class LiveSession {
     return this.stream?.readyState ?? WebSocket.CLOSED;
   }
 
-  /**
-   * Open `WS /v1/stream/realtime` and send the config frame.
-   * Resolves on `config_ack`.
-   */
+  /** Open the socket and send the config frame. Resolves on `config_ack`. */
   async start(overrides: LiveSessionStartOptions = {}): Promise<void> {
     if (this._started) {
       await this.stop({ waitForSessionEndMs: 0 });
@@ -204,10 +195,7 @@ export class LiveSession {
     this.stream.sendControl(message);
   }
 
-  /**
-   * Wait until the server acks the current analysis second (`directive` or
-   * `frame_ack`). Used for paced file replay.
-   */
+  /** Wait until the server acks the current analysis second. Used for paced file replay. */
   waitForFrame(timeoutMs = 10_000): Promise<void> {
     if (!this._started) {
       return Promise.reject(new Error('LiveSession is not started'));
@@ -226,9 +214,7 @@ export class LiveSession {
     });
   }
 
-  /**
-   * Ask for `session_end`, wait for it (optional), then close the socket.
-   */
+  /** Ask for `session_end`, wait for it (optional), then close the socket. */
   async stop(options: { waitForSessionEndMs?: number } = {}): Promise<SessionEndEvent | null> {
     const waitMs = options.waitForSessionEndMs ?? 20_000;
     const stream = this.stream;

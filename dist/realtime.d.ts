@@ -44,11 +44,8 @@ export interface ProsodyRealtimeHandlers {
     onClose?: (code: number, reason: string) => void;
 }
 /**
- * Lower-level live analysis client for `WS /v1/stream/realtime`.
- *
- * Trusted servers and Node workers supply a developer `psk_*` key. Browser
- * LiveKit clients mint a room and consume republished events with
- * `ProsodySession`.
+ * Lower-level live analysis client for `WS /v1/stream/realtime`. Requires a
+ * developer `psk_*` key, so it belongs on trusted servers and Node workers.
  */
 export declare class ProsodyRealtimeStream {
     private readonly config;

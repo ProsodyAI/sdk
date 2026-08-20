@@ -46,14 +46,8 @@ export interface ChangePoint {
 }
 
 /**
- * Validate the stable batch envelope.
- *
- * ProsodySSM's product output is `acoustic_state`, the measured waveform
- * values per frame, which arrives on `prosody_timeline` and on each turn.
- * Valence / arousal / dominance are the trained affect head's readout; each
- * is `null` on an unvoiced frame, never a fabricated neutral. The head is
- * always trained, so a deployment that publishes only acoustic state is
- * still a correct deployment.
+ * Validate the stable batch envelope. Affect dimensions may each be `null`
+ * on an unvoiced frame; a payload with only acoustic state is valid.
  */
 export function parseAnalysisResult(value: unknown): AnalysisResult {
   if (!isRecord(value)) {
@@ -75,12 +69,7 @@ export function parseAnalysisResult(value: unknown): AnalysisResult {
   return value as unknown as AnalysisResult;
 }
 
-/**
- * Consumer view of one analyzed recording.
- *
- * Accessors over the measured acoustic timeline, transcript, and recording-local
- * committed identity lanes. Persistent identity lives under `client.speakers`.
- */
+/** Consumer view of one analyzed recording: timeline, transcript, and lanes. */
 export class ConversationAnalysis {
   private readonly result: AnalysisResult;
 
@@ -151,10 +140,7 @@ export class ConversationAnalysis {
     });
   }
 
-  /**
-   * Committed `state_delta` moments, in commit order. Each carries the
-   * magnitude the model published. Empty when the deployment committed none.
-   */
+  /** Committed `state_delta` moments, in commit order. */
   getMoments(speakerId?: string): Moment[] {
     return momentsFromEvents(this.result.events, this.result.turns).filter(
       (moment) => speakerId === undefined || moment.speakerId === speakerId,
@@ -175,11 +161,7 @@ export class ConversationAnalysis {
     return this.getVoiceFrame(frameIndex)?.getProsody() ?? null;
   }
 
-  /**
-   * The emotional attributes (valence, arousal, dominance) for the whole
-   * file. Each component is `null` on an unvoiced frame; the head is always
-   * trained. Null when every dimension is null.
-   */
+  /** File-level emotional attributes. Null when every dimension is null. */
   getVad(): AffectVad | null {
     const { valence, arousal, dominance } = this.result.prosody;
     if (valence == null && arousal == null && dominance == null) return null;
@@ -242,20 +224,12 @@ function recordingSpeakers(result: AnalysisResult): DiarizedSpeaker[] {
   });
 }
 
-/**
- * The measured frames of a call, in order.
- *
- * Empty when the upload was not diarized (`diarize: false`), since the timeline
- * is only built for a diarized call.
- */
+/** The measured frames of a call, in order. Empty when `diarize: false`. */
 export function voiceFrames(result: AnalysisResult): ProsodyTimelinePoint[] {
   return (result.prosody_timeline ?? []).filter((point) => point.acoustic_state != null);
 }
 
-/**
- * Read one measurement across a call, skipping frames where it was not
- * measurable (an unvoiced frame carries `null` pitch, without any floor value).
- */
+/** Read one measurement across a call, skipping frames where it was not measurable. */
 export function measurementSeries(
   result: AnalysisResult,
   path: MeasurementPath,

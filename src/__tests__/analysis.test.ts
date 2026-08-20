@@ -33,7 +33,9 @@ describe('parseAnalysisResult', () => {
           valence: 0.42,
           arousal: 0.36,
           dominance: 0.58,
-          signals: { rapport: 0.82 },
+          acoustic_state: {
+            values: { rms_dbfs: -20.8 },
+          },
         },
       }],
       diarization: {

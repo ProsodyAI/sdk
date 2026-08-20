@@ -4,10 +4,8 @@ export interface AcousticProvenance {
     feature_version?: string;
 }
 /**
- * Trained physical measurements over one span of waveform, in the units the
- * paralinguistics literature standardized: loudness in dBFS, F0 in Hz and
- * semitones, voicing and pause ratios, spectral tilt. A value is `null`
- * when the audio cannot support it. Check `masks` before reading.
+ * Physical measurements over one span of waveform. A value is `null` when
+ * the audio cannot support it; check `masks` before reading.
  */
 export interface AcousticStateValues {
     rms_dbfs?: number | null;
@@ -57,9 +55,7 @@ export interface AcousticChangeValues {
     voice_onset_rate_hz_change?: number | null;
     [feature: string]: number | null | undefined;
 }
-/**
- * Delivery movement against the same speaker's previous measured audio.
- */
+/** Delivery movement against the same speaker's previous measured audio. */
 export interface AcousticChange {
     values?: AcousticChangeValues;
     reference?: string;

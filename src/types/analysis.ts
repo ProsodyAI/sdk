@@ -1,10 +1,7 @@
 import type { AcousticChange, AcousticState } from './acoustic.js';
 import type { DiarizationResult, PerSpeakerAnalysis } from './diarization.js';
 
-/**
- * The affect head's readout on a batch analysis (wire `ProsodyFeatures`).
- * A dimension is `null` on an unvoiced frame; the head is always trained.
- */
+/** The affect readout on a batch analysis (wire `ProsodyFeatures`). */
 export interface ProsodyFeatures {
   /** Vocal tone: -1 (negative) to +1 (positive). Null on an unvoiced frame. */
   valence: number | null;
@@ -12,30 +9,14 @@ export interface ProsodyFeatures {
   arousal: number | null;
   /** Assertiveness: 0 (submissive) to 1 (dominant). Null on an unvoiced frame. */
   dominance: number | null;
-}
-
-export interface ProsodySignals {
-  engagement?: number;
-  stress?: number;
-  certainty?: number;
-  rapport?: number;
-  empathy?: number;
-  tempo?: number;
-  intensity?: number;
-  expressiveness?: number;
-  [signal: string]: number | undefined;
-}
-
-/** Per-turn delivery (interview / call review product). */
-export interface TurnProsody {
-  valence: number | null;
-  arousal: number | null;
-  dominance: number | null;
-  signals?: ProsodySignals | Record<string, number> | null;
-  /** The trained measurement for the frames covering this turn. */
+  /** The trained acoustic measurement on a voiced span. */
   acoustic_state?: AcousticState | null;
+  /** Movement against the speaker's prior measured audio. */
   acoustic_change?: AcousticChange | null;
 }
+
+/** Per-turn delivery: the same readout, scoped to one turn's frames. */
+export type TurnProsody = ProsodyFeatures;
 
 export interface KPIOutcomeEntry {
   kpi_id: string;
@@ -50,20 +31,17 @@ export interface ProsodyTimelinePoint {
   start_ms: number;
   end_ms: number;
   speaker_id?: string;
-  /** Valence reading. Null on an unvoiced frame; the head is always trained. */
+  /** Valence reading. Null on an unvoiced frame. */
   valence: number | null;
   /** Arousal reading. Null on an unvoiced frame. */
   arousal: number | null;
   /** Dominance reading. Null on an unvoiced frame. */
   dominance: number | null;
-  signals?: Record<string, number> | null;
-  sequence_signals?: Record<string, number> | null;
-  seq_frame?: Record<string, number | number[]> | null;
   /**
-   * Per-80ms acoustic trajectory for this point. Each key maps to a list
-   * aligned to the model's codec frame grid; unvoiced frames carry null.
+   * Per-80ms acoustic trajectory, one row per frame on the codec frame grid.
+   * Each row maps feature name to that frame's value; unmeasured frames carry null.
    */
-  sequence_frames?: Record<string, Array<number | null>> | null;
+  sequence_frames?: Array<Record<string, number | null>> | null;
   /** What this frame measured. Present on every frame of a diarized call. */
   acoustic_state?: AcousticState | null;
   /** Absent on a speaker's first frame, which has no prior baseline. */
@@ -75,7 +53,7 @@ export interface AnalysisTurn {
   end_ms: number;
   speaker_id: string;
   text: string;
-  prosody?: TurnProsody | null;
+  prosody: ProsodyFeatures;
 }
 
 /**
@@ -86,7 +64,8 @@ export interface AnalysisTurn {
 export type AnalysisEvent =
   | { type: 'turn_boundary'; frame_ms: number; commit_ms: number }
   | { type: 'barge_in'; frame_ms: number; commit_ms: number; duration_ms: number; resolved: boolean }
-  | { type: 'state_delta'; frame_ms: number; commit_ms: number; duration_ms: number; magnitude: number; resolved: boolean };
+  | { type: 'state_delta'; frame_ms: number; commit_ms: number; duration_ms: number; magnitude: number; resolved: boolean }
+  | { type: 'entity_span'; frame_ms: number; commit_ms: number; duration_ms: number; kind: string };
 
 /** The timing skeleton of a conversation: who holds the floor, and when. */
 export interface TurnBoundary {
@@ -132,10 +111,7 @@ export interface AnalysisOptions {
   sessionId?: string;
   /** Return diarized turns and call-level analysis. Defaults to true. */
   diarize?: boolean;
-  /**
-   * Include vocal measurement on transcript turns when using
-   * {@link ProsodyClient.transcribe}. Defaults to true.
-   */
+  /** Include vocal measurement on transcript turns. Defaults to true. */
   prosody?: boolean;
 }
 

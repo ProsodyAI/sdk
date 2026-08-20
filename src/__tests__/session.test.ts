@@ -216,7 +216,6 @@ describe('ProsodySession', () => {
         valence: -0.2,
         arousal: 0.7,
         dominance: 0.6,
-        signals: { stress: 0.72 },
       }],
       diagnostic: {
         bytes_received: 640_000,

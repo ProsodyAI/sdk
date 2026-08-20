@@ -27,22 +27,11 @@ export interface ChangePoint {
     values: NonNullable<Prosody['change']>;
 }
 /**
- * Validate the stable batch envelope.
- *
- * ProsodySSM's product output is `acoustic_state`, the measured waveform
- * values per frame, which arrives on `prosody_timeline` and on each turn.
- * Valence / arousal / dominance are the trained affect head's readout; each
- * is `null` on an unvoiced frame, never a fabricated neutral. The head is
- * always trained, so a deployment that publishes only acoustic state is
- * still a correct deployment.
+ * Validate the stable batch envelope. Affect dimensions may each be `null`
+ * on an unvoiced frame; a payload with only acoustic state is valid.
  */
 export declare function parseAnalysisResult(value: unknown): AnalysisResult;
-/**
- * Consumer view of one analyzed recording.
- *
- * Accessors over the measured acoustic timeline, transcript, and recording-local
- * committed identity lanes. Persistent identity lives under `client.speakers`.
- */
+/** Consumer view of one analyzed recording: timeline, transcript, and lanes. */
 export declare class ConversationAnalysis {
     private readonly result;
     constructor(data: AnalysisResult);
@@ -62,37 +51,22 @@ export declare class ConversationAnalysis {
     getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[];
     /** Speaker-relative changes. The first frame in each speaker lane has none. */
     getChanges(speakerId?: string): ChangePoint[];
-    /**
-     * Committed `state_delta` moments, in commit order. Each carries the
-     * magnitude the model published. Empty when the deployment committed none.
-     */
+    /** Committed `state_delta` moments, in commit order. */
     getMoments(speakerId?: string): Moment[];
     /** Committed moments sorted by descending magnitude. */
     getTopMoments(limit?: number, speakerId?: string): Moment[];
     /** The measurement bundle on the latest (or indexed) frame. */
     getProsody(frameIndex?: number): Prosody | null;
-    /**
-     * The emotional attributes (valence, arousal, dominance) for the whole
-     * file. Each component is `null` on an unvoiced frame; the head is always
-     * trained. Null when every dimension is null.
-     */
+    /** File-level emotional attributes. Null when every dimension is null. */
     getVad(): AffectVad | null;
     /** Valence for the whole file, or for one turn. Null on an unvoiced frame. */
     getValence(turnIndex?: number): number | null;
     /** Raw API timeline for consumers that need the wire shape. */
     getTimeline(): ProsodyTimelinePoint[];
 }
-/**
- * The measured frames of a call, in order.
- *
- * Empty when the upload was not diarized (`diarize: false`), since the timeline
- * is only built for a diarized call.
- */
+/** The measured frames of a call, in order. Empty when `diarize: false`. */
 export declare function voiceFrames(result: AnalysisResult): ProsodyTimelinePoint[];
-/**
- * Read one measurement across a call, skipping frames where it was not
- * measurable (an unvoiced frame carries `null` pitch, without any floor value).
- */
+/** Read one measurement across a call, skipping frames where it was not measurable. */
 export declare function measurementSeries(result: AnalysisResult, path: MeasurementPath): {
     start_ms: number;
     end_ms: number;
