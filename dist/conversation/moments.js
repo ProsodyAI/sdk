@@ -34,7 +34,7 @@ export function momentsFromStateDeltas(deltas, turns) {
     const spans = turns ?? [];
     return (deltas ?? []).map((delta) => toMoment(delta, spans));
 }
-/** The same moments ordered by how far the state moved, largest first. */
+/** Moments sorted by descending magnitude. */
 export function byMagnitude(moments) {
     return [...moments].sort((a, b) => b.magnitude - a.magnitude);
 }

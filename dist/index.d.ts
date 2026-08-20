@@ -4,7 +4,7 @@ export type { LiveKitParticipantLike, LiveKitDataReceivedHandler, LiveKitRoomLik
 export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
 export { parseAnalysisResult, ConversationAnalysis, type MeasurementPoint, type ChangePoint, voiceFrames, measurementSeries, } from './analysis.js';
 export { VoiceFrame, type AffectVad, } from './step.js';
-export { Conversation, prosodyFromState, prosodyFromWindow, mergeTranscriptUpdateSegments, buildTurnsFromSegments, byMagnitude, type ConversationTurn, type MeasurementPath, type Moment, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation.js';
+export { Conversation, prosodyFromState, prosodyFromFrame, mergeTranscriptUpdateSegments, buildTurnsFromSegments, byMagnitude, type ConversationTurn, type MeasurementPath, type Moment, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';

@@ -385,7 +385,7 @@ export class ProsodyClient {
 
   // ───────────────────────────── Feedback ──────────────────────────
 
-  /** Submit a corrected V/A/D reading for a prediction, for model feedback. */
+  /** Submit corrected emotional attributes (valence, arousal, dominance) for a prediction, for model feedback. */
   async submitCorrection(options: FeedbackCorrectionOptions, signal?: AbortSignal): Promise<{ status: string }> {
     const hasCorrection = options.correctedValence !== undefined
       || options.correctedArousal !== undefined

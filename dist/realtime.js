@@ -178,8 +178,8 @@ export class ProsodyRealtimeStream {
         switch (event.type) {
             case 'directive': {
                 this.handlers.onDirective?.(event);
-                const window = VoiceFrame.fromDirective(event);
-                this.handlers.onVoiceFrame?.(window);
+                const frame = VoiceFrame.fromDirective(event);
+                this.handlers.onVoiceFrame?.(frame);
                 this.handlers.conversation?.apply(event);
                 break;
             }

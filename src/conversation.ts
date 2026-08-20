@@ -26,7 +26,7 @@ import {
   measurementFromState,
   prosodyDeltaFromWire,
   prosodyFromState,
-  prosodyFromWindow,
+  prosodyFromFrame,
   type MeasurementPath,
   type Prosody,
 } from './conversation/prosody.js';
@@ -44,7 +44,7 @@ import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
 export {
   prosodyFromState,
-  prosodyFromWindow,
+  prosodyFromFrame,
   type MeasurementPath,
   type Prosody,
   type ProsodyChange,
@@ -197,9 +197,9 @@ export class Conversation {
       return turn?.prosody ?? null;
     }
     if (this.batch) {
-      const windows = this.batch.getFrames();
-      const last = windows[windows.length - 1];
-      return last ? prosodyFromWindow(last) : null;
+      const frames = this.batch.getFrames();
+      const last = frames[frames.length - 1];
+      return last ? prosodyFromFrame(last) : null;
     }
     const last = this.steps[this.steps.length - 1];
     if (!last?.acoustic_state) return null;
@@ -210,25 +210,25 @@ export class Conversation {
   getSpeakers(): DiarizedSpeaker[] {
     if (this.batch) return this.batch.getSpeakers();
     const turns = this.getTurns();
-    const windows = this.getFrames();
+    const frames = this.getFrames();
     const ids = new Set<string>();
     for (const turn of turns) if (isKnownSpeaker(turn.speaker_id)) ids.add(turn.speaker_id);
-    for (const window of windows) if (isKnownSpeaker(window.speakerId)) ids.add(window.speakerId);
+    for (const frame of frames) if (isKnownSpeaker(frame.speakerId)) ids.add(frame.speakerId);
     return [...ids].map((speakerId) => ({
       speaker_id: speakerId,
       talk_ms: turns
         .filter((turn) => turn.speaker_id === speakerId)
         .reduce((total, turn) => total + Math.max(0, turn.end_ms - turn.start_ms), 0),
       turn_count: turns.filter((turn) => turn.speaker_id === speakerId).length,
-      window_count: windows.filter((window) => window.speakerId === speakerId).length,
+      window_count: frames.filter((frame) => frame.speakerId === speakerId).length,
     }));
   }
 
   /** Measured affect for the call. Each component is null on an unvoiced frame. */
   getVad(): AffectVad | null {
     if (this.batch) return this.batch.getVad();
-    const windows = this.getFrames();
-    const last = windows[windows.length - 1];
+    const frames = this.getFrames();
+    const last = frames[frames.length - 1];
     return last?.vad ?? null;
   }
 
@@ -242,40 +242,40 @@ export class Conversation {
         acousticState: step.acoustic_state,
         acousticChange: step.acoustic_change,
       }),
-    ).filter((window) => speakerId === undefined || window.speakerId === speakerId);
+    ).filter((frame) => speakerId === undefined || frame.speakerId === speakerId);
   }
 
   /** One frame by index, or null when out of range. */
   getVoiceFrame(index: number): VoiceFrame | null {
-    const windows = this.getFrames();
-    if (!Number.isInteger(index) || index < 0 || index >= windows.length) return null;
-    return windows[index] ?? null;
+    const frames = this.getFrames();
+    if (!Number.isInteger(index) || index < 0 || index >= frames.length) return null;
+    return frames[index] ?? null;
   }
 
   /** One measurement across the call, by typed path, optionally for one speaker. */
   getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[] {
     if (this.batch) return this.batch.getMeasurementSeries(path, speakerId);
-    return this.getFrames(speakerId).flatMap((window) => {
-      const value = measurementFromState(window.getAcousticState(), path);
+    return this.getFrames(speakerId).flatMap((frame) => {
+      const value = measurementFromState(frame.getAcousticState(), path);
       return value === null ? [] : [{
-        startMs: window.startMs,
-        endMs: window.endMs,
-        speakerId: window.speakerId,
+        startMs: frame.startMs,
+        endMs: frame.endMs,
+        speakerId: frame.speakerId,
         value,
       }];
     });
   }
 
-  /** Speaker-relative changes. The first window in each speaker lane has none. */
+  /** Speaker-relative changes. The first frame in each speaker lane has none. */
   getChanges(speakerId?: string): ChangePoint[] {
     if (this.batch) return this.batch.getChanges(speakerId);
-    return this.getFrames(speakerId).flatMap((window) => {
-      const delta = prosodyDeltaFromWire(window.getAcousticChange());
+    return this.getFrames(speakerId).flatMap((frame) => {
+      const delta = prosodyDeltaFromWire(frame.getAcousticChange());
       if (!delta) return [];
       return [{
-        startMs: window.startMs,
-        endMs: window.endMs,
-        speakerId: window.speakerId,
+        startMs: frame.startMs,
+        endMs: frame.endMs,
+        speakerId: frame.speakerId,
         reference: delta.reference,
         values: delta.values,
       }];

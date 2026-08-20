@@ -126,8 +126,8 @@ export class ProsodySession {
         switch (event.type) {
             case 'directive': {
                 this.options.onDirective?.(event);
-                const window = VoiceFrame.fromDirective(event);
-                this.options.onVoiceFrame?.(window);
+                const frame = VoiceFrame.fromDirective(event);
+                this.options.onVoiceFrame?.(frame);
                 this.options.conversation?.apply(event);
                 break;
             }

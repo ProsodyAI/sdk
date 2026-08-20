@@ -1,36 +1,36 @@
 import type { VoiceFrame } from '../step.js';
 import type { AcousticChange, AcousticState } from '../types.js';
 
-/** Intonation: the F0 contour of one window. */
+/** Intonation: the F0 contour of one frame. */
 export interface IntonationState {
-  /** Median F0, Hz. Null when the window was unvoiced. */
+  /** Median F0, Hz. Null when the frame was unvoiced. */
   pitch: number | null;
-  /** F0 span within the window, semitones. Pitch span marks emphasis. */
+  /** F0 span within the frame, semitones. F0 span marks emphasis. */
   range: number | null;
   /** Contour direction, semitones per second: negative falls, positive rises. */
   slope: number | null;
 }
 
-/** Stress: the intensity of one window. */
+/** Stress: the loudness of one frame. */
 export interface StressState {
-  /** Intensity, dBFS relative to full scale. */
+  /** Loudness, dBFS relative to full scale. */
   loudness: number | null;
-  /** Peak intensity in the window, dBFS. */
+  /** Peak loudness in the frame, dBFS. */
   peak: number | null;
 }
 
-/** Rhythm: the timing of phonation and silence in one window. */
+/** Rhythm: the timing of phonation and silence in one frame. */
 export interface RhythmState {
-  /** Fraction of the window phonated, 0-1. */
+  /** Fraction of the frame phonated, 0-1. */
   voiced: number | null;
-  /** Fraction of the window in silence, 0-1. */
+  /** Fraction of the frame in silence, 0-1. */
   pause: number | null;
   /** Phonation onsets per second; correlates with articulation rate. */
   onset: number | null;
 }
 
 /**
- * The suprasegmental readout of one window: intonation, stress, rhythm, and
+ * The suprasegmental readout of one frame: intonation, stress, rhythm, and
  * voice quality in physical units.
  */
 export interface ProsodyState {
@@ -47,7 +47,7 @@ export interface ProsodyState {
 export interface IntonationChange {
   /** F0 movement, semitones. */
   pitch: number | null;
-  /** Pitch span movement, semitones. */
+  /** F0 span movement, semitones. */
   range: number | null;
   /** Contour movement, semitones per second. */
   slope: number | null;
@@ -69,7 +69,7 @@ export interface RhythmChange {
 }
 
 /**
- * What one window moved, field by field with `ProsodyState`. Signed: zero is
+ * What one frame moved, field by field with `ProsodyState`. Signed: zero is
  * a real reading, `null` means the measurement was not supported.
  */
 export interface ProsodyChange {
@@ -79,10 +79,10 @@ export interface ProsodyChange {
   tilt: number | null;
 }
 
-/** One window of prosody: what was measured, and what it moved. */
+/** One frame of prosody: what was measured, and what it moved. */
 export interface Prosody {
   state: ProsodyState;
-  /** Speaker-relative movement. Null on the speaker's first window. */
+  /** Speaker-relative movement. Null on the speaker's first frame. */
   change: ProsodyChange | null;
 }
 
@@ -168,8 +168,8 @@ function numberOf(value: number | null | undefined): number | null {
 }
 
 /**
- * Map a wire acoustic state onto the measured window. Intonation reads null
- * when the window was unvoiced: pitch does not exist on unphonated audio.
+ * Map a wire acoustic state onto the measured frame. Intonation reads null
+ * when the frame was unvoiced: F0 does not exist on unphonated audio.
  */
 export function prosodyStateFromWire(state: AcousticState | null | undefined): ProsodyState | null {
   if (!state) return null;
@@ -217,6 +217,6 @@ export function prosodyFromState(
   return { state: built, change: prosodyChangeFromWire(change?.values ?? null) };
 }
 
-export function prosodyFromWindow(window: VoiceFrame): Prosody | null {
-  return prosodyFromState(window.getAcousticState(), window.getAcousticChange());
+export function prosodyFromFrame(frame: VoiceFrame): Prosody | null {
+  return prosodyFromState(frame.getAcousticState(), frame.getAcousticChange());
 }

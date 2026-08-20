@@ -1,7 +1,9 @@
 import { type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState } from './conversation/prosody.js';
 import type { AcousticChange, AcousticState, DirectiveEvent, ProsodyTimelinePoint } from './types.js';
 /**
- * Measured valence, arousal, and dominance for one frame or call.
+ * The emotional attributes for one frame or call: valence, arousal, and
+ * dominance, the dimensional affect measures of the speech emotion
+ * literature.
  *
  * The affect head is always trained. Each component is a signed reading on
  * the model's affect scale, or `null` on an unvoiced frame.
@@ -17,7 +19,7 @@ export interface AffectVad {
 /**
  * One measured interval of a call, as a consumer sees it.
  *
- * Built from a live `directive` event or a batch `prosody_timeline` window.
+ * Built from a live `directive` event or a batch `prosody_timeline` frame.
  * Raw Mimi latents and recurrent state tensors stay internal; this surface
  * carries only the readouts: who spoke, when, how the voice sounded, how it
  * moved against that speaker's own baseline, and the affect reading.
@@ -46,7 +48,7 @@ export declare class VoiceFrame {
     private constructor();
     /** Build a frame from a live `directive` event off `/v1/stream/realtime`. */
     static fromDirective(event: DirectiveEvent): VoiceFrame;
-    /** Build a frame from one diarized batch window on `prosody_timeline`. */
+    /** Build a frame from one diarized batch point on `prosody_timeline`. */
     static fromTimelinePoint(point: ProsodyTimelinePoint): VoiceFrame;
     /** Build a frame from a live step without a full directive payload. */
     static fromLiveStep(args: {

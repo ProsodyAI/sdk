@@ -170,9 +170,8 @@ export interface SessionDiagnostic {
     chunks_received?: number;
     audio_silent?: boolean;
     /**
-     * The organization has enrolled voiceprints and zero carry the serving
-     * embedding space, so returning voices cannot be recognized until
-     * speakers re-enroll under the serving checkpoint.
+     * The organization's enrolled voice profiles predate the serving
+     * checkpoint, so none can resolve until people re-enroll under it.
      */
     known_speaker_space_mismatch?: boolean;
 }

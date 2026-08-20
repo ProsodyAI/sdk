@@ -124,7 +124,7 @@ describe('ProsodySession', () => {
         identity: {
           person_id: 'person:a',
           display_name: 'Speaker A',
-          is_returning: true,
+          resumed: true,
         },
       }],
     });
@@ -132,7 +132,7 @@ describe('ProsodySession', () => {
     expect(onSpeakerProfiles).toHaveBeenCalledOnce();
     expect(onSpeakerProfiles.mock.calls[0][0].profiles[0].identity).toMatchObject({
       person_id: 'person:a',
-      is_returning: true,
+      resumed: true,
     });
   });
 

@@ -49,7 +49,7 @@ export interface ChangePoint {
  * Validate the stable batch envelope.
  *
  * ProsodySSM's product output is `acoustic_state`, the measured waveform
- * values per window, which arrives on `prosody_timeline` and on each turn.
+ * values per frame, which arrives on `prosody_timeline` and on each turn.
  * Valence / arousal / dominance are the trained affect head's readout; each
  * is `null` on an unvoiced frame, never a fabricated neutral. The head is
  * always trained, so a deployment that publishes only acoustic state is
@@ -118,33 +118,33 @@ export class ConversationAnalysis {
 
   /** One frame by index, or null when out of range. */
   getVoiceFrame(index: number): VoiceFrame | null {
-    const windows = this.getFrames();
-    if (!Number.isInteger(index) || index < 0 || index >= windows.length) return null;
-    return windows[index] ?? null;
+    const frames = this.getFrames();
+    if (!Number.isInteger(index) || index < 0 || index >= frames.length) return null;
+    return frames[index] ?? null;
   }
 
   /** One physical measurement across the recording, optionally for one speaker. */
   getMeasurementSeries(path: MeasurementPath, speakerId?: string): MeasurementPoint[] {
-    return this.getFrames(speakerId).flatMap((window) => {
-      const value = measurementFromState(window.getAcousticState(), path);
+    return this.getFrames(speakerId).flatMap((frame) => {
+      const value = measurementFromState(frame.getAcousticState(), path);
       return value === null ? [] : [{
-        startMs: window.startMs,
-        endMs: window.endMs,
-        speakerId: window.speakerId,
+        startMs: frame.startMs,
+        endMs: frame.endMs,
+        speakerId: frame.speakerId,
         value,
       }];
     });
   }
 
-  /** Speaker-relative changes. The first window in each speaker lane has none. */
+  /** Speaker-relative changes. The first frame in each speaker lane has none. */
   getChanges(speakerId?: string): ChangePoint[] {
-    return this.getFrames(speakerId).flatMap((window) => {
-      const delta = window.getChange();
+    return this.getFrames(speakerId).flatMap((frame) => {
+      const delta = frame.getChange();
       if (!delta) return [];
       return [{
-        startMs: window.startMs,
-        endMs: window.endMs,
-        speakerId: window.speakerId,
+        startMs: frame.startMs,
+        endMs: frame.endMs,
+        speakerId: frame.speakerId,
         reference: delta.reference,
         values: delta.values,
       }];
@@ -152,10 +152,8 @@ export class ConversationAnalysis {
   }
 
   /**
-   * Moments the model committed, in commit order.
-   *
-   * Each carries the magnitude the model published on its `state_delta`
-   * event. Empty when the deployment committed none.
+   * Committed `state_delta` moments, in commit order. Each carries the
+   * magnitude the model published. Empty when the deployment committed none.
    */
   getMoments(speakerId?: string): Moment[] {
     return momentsFromEvents(this.result.events, this.result.turns).filter(
@@ -163,23 +161,24 @@ export class ConversationAnalysis {
     );
   }
 
-  /** The moments that moved the speaker furthest, largest first. */
+  /** Committed moments sorted by descending magnitude. */
   getTopMoments(limit = 10, speakerId?: string): Moment[] {
     return byMagnitude(this.getMoments(speakerId)).slice(0, Math.max(0, limit));
   }
 
-  /** The measurement bundle on the latest (or indexed) acoustic window. */
-  getProsody(windowIndex?: number): Prosody | null {
-    if (windowIndex === undefined) {
-      const windows = this.getFrames();
-      return windows[windows.length - 1]?.getProsody() ?? null;
+  /** The measurement bundle on the latest (or indexed) frame. */
+  getProsody(frameIndex?: number): Prosody | null {
+    if (frameIndex === undefined) {
+      const frames = this.getFrames();
+      return frames[frames.length - 1]?.getProsody() ?? null;
     }
-    return this.getVoiceFrame(windowIndex)?.getProsody() ?? null;
+    return this.getVoiceFrame(frameIndex)?.getProsody() ?? null;
   }
 
   /**
-   * Affect VAD for the whole file. Each component is `null` on an unvoiced
-   * frame; the head is always trained. Null when every dimension is null.
+   * The emotional attributes (valence, arousal, dominance) for the whole
+   * file. Each component is `null` on an unvoiced frame; the head is always
+   * trained. Null when every dimension is null.
    */
   getVad(): AffectVad | null {
     const { valence, arousal, dominance } = this.result.prosody;
@@ -204,7 +203,7 @@ function recordingSpeakers(result: AnalysisResult): DiarizedSpeaker[] {
   const seen = new Set<string>();
   const turnCounts = new Map<string, number>();
   const turnDurations = new Map<string, number>();
-  const windowCounts = new Map<string, number>();
+  const frameCounts = new Map<string, number>();
   const add = (speakerId: string | undefined): void => {
     if (speakerId && !seen.has(speakerId)) {
       seen.add(speakerId);
@@ -225,7 +224,7 @@ function recordingSpeakers(result: AnalysisResult): DiarizedSpeaker[] {
   for (const point of result.prosody_timeline ?? []) {
     add(point.speaker_id);
     if (point.speaker_id) {
-      windowCounts.set(point.speaker_id, (windowCounts.get(point.speaker_id) ?? 0) + 1);
+      frameCounts.set(point.speaker_id, (frameCounts.get(point.speaker_id) ?? 0) + 1);
     }
   }
 
@@ -238,13 +237,13 @@ function recordingSpeakers(result: AnalysisResult): DiarizedSpeaker[] {
       speaker_id: speakerId,
       talk_ms: summary?.talk_ms ?? turnDurations.get(speakerId) ?? 0,
       turn_count: turnCounts.get(speakerId) ?? 0,
-      window_count: summary?.window_count ?? windowCounts.get(speakerId) ?? 0,
+      window_count: summary?.window_count ?? frameCounts.get(speakerId) ?? 0,
     };
   });
 }
 
 /**
- * The measured windows of a call, in order.
+ * The measured frames of a call, in order.
  *
  * Empty when the upload was not diarized (`diarize: false`), since the timeline
  * is only built for a diarized call.
@@ -254,8 +253,8 @@ export function voiceFrames(result: AnalysisResult): ProsodyTimelinePoint[] {
 }
 
 /**
- * Read one measurement across a call, skipping windows where it was not
- * measurable (an unvoiced window carries `null` pitch, without any floor value).
+ * Read one measurement across a call, skipping frames where it was not
+ * measurable (an unvoiced frame carries `null` pitch, without any floor value).
  */
 export function measurementSeries(
   result: AnalysisResult,

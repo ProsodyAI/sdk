@@ -16,7 +16,9 @@ import type {
 } from './types.js';
 
 /**
- * Measured valence, arousal, and dominance for one frame or call.
+ * The emotional attributes for one frame or call: valence, arousal, and
+ * dominance, the dimensional affect measures of the speech emotion
+ * literature.
  *
  * The affect head is always trained. Each component is a signed reading on
  * the model's affect scale, or `null` on an unvoiced frame.
@@ -33,7 +35,7 @@ export interface AffectVad {
 /**
  * One measured interval of a call, as a consumer sees it.
  *
- * Built from a live `directive` event or a batch `prosody_timeline` window.
+ * Built from a live `directive` event or a batch `prosody_timeline` frame.
  * Raw Mimi latents and recurrent state tensors stay internal; this surface
  * carries only the readouts: who spoke, when, how the voice sounded, how it
  * moved against that speaker's own baseline, and the affect reading.
@@ -95,7 +97,7 @@ export class VoiceFrame {
     });
   }
 
-  /** Build a frame from one diarized batch window on `prosody_timeline`. */
+  /** Build a frame from one diarized batch point on `prosody_timeline`. */
   static fromTimelinePoint(point: ProsodyTimelinePoint): VoiceFrame {
     return new VoiceFrame({
       speakerId: point.speaker_id ?? 'unknown',

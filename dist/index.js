@@ -1,7 +1,7 @@
 export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
 export { parseAnalysisResult, ConversationAnalysis, voiceFrames, measurementSeries, } from './analysis.js';
 export { VoiceFrame, } from './step.js';
-export { Conversation, prosodyFromState, prosodyFromWindow, mergeTranscriptUpdateSegments, buildTurnsFromSegments, byMagnitude, } from './conversation.js';
+export { Conversation, prosodyFromState, prosodyFromFrame, mergeTranscriptUpdateSegments, buildTurnsFromSegments, byMagnitude, } from './conversation.js';
 export { ProsodyClient } from './client.js';
 export { LiveSession, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, } from './transcription.js';

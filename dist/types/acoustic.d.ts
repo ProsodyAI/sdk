@@ -4,8 +4,10 @@ export interface AcousticProvenance {
     feature_version?: string;
 }
 /**
- * Trained physical measurements over one waveform window. A value is `null`
- * when the window cannot support it. Check `masks` before reading.
+ * Trained physical measurements over one span of waveform, in the units the
+ * paralinguistics literature standardized: loudness in dBFS, F0 in Hz and
+ * semitones, voicing and pause ratios, spectral tilt. A value is `null`
+ * when the audio cannot support it. Check `masks` before reading.
  */
 export interface AcousticStateValues {
     rms_dbfs?: number | null;
@@ -42,7 +44,7 @@ export interface AcousticState {
     frames?: AcousticStateFrames | null;
     provenance?: AcousticProvenance;
 }
-/** Signed deltas against the reference window. Zero is a real reading. */
+/** Signed deltas against the reference span. Zero is a real reading. */
 export interface AcousticChangeValues {
     rms_db_change?: number | null;
     peak_db_change?: number | null;
@@ -56,7 +58,7 @@ export interface AcousticChangeValues {
     [feature: string]: number | null | undefined;
 }
 /**
- * Delivery movement against the same speaker's previous measured window.
+ * Delivery movement against the same speaker's previous measured audio.
  */
 export interface AcousticChange {
     values?: AcousticChangeValues;

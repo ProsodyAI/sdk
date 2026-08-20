@@ -32,7 +32,7 @@ export interface TurnProsody {
   arousal: number | null;
   dominance: number | null;
   signals?: ProsodySignals | Record<string, number> | null;
-  /** The trained measurement for the window covering this turn. */
+  /** The trained measurement for the frames covering this turn. */
   acoustic_state?: AcousticState | null;
   acoustic_change?: AcousticChange | null;
 }
@@ -60,13 +60,13 @@ export interface ProsodyTimelinePoint {
   sequence_signals?: Record<string, number> | null;
   seq_frame?: Record<string, number | number[]> | null;
   /**
-   * Per-80ms acoustic trajectory for this window. Each key maps to a list
-   * aligned to the model's frame grid; unvoiced frames carry null.
+   * Per-80ms acoustic trajectory for this point. Each key maps to a list
+   * aligned to the model's codec frame grid; unvoiced frames carry null.
    */
   sequence_frames?: Record<string, Array<number | null>> | null;
-  /** What this window measured. Present on every window of a diarized call. */
+  /** What this frame measured. Present on every frame of a diarized call. */
   acoustic_state?: AcousticState | null;
-  /** Absent on a speaker's first window because there is nothing to compare against. */
+  /** Absent on a speaker's first frame, which has no prior baseline. */
   acoustic_change?: AcousticChange | null;
 }
 

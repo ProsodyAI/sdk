@@ -21,7 +21,7 @@ export interface ProsodySessionOptions {
     participantIdentity?: string;
     onDirective?: (event: DirectiveEvent) => void;
     /** Physical measurements and speaker-relative deltas for each directive. */
-    onVoiceFrame?: (window: VoiceFrame) => void;
+    onVoiceFrame?: (frame: VoiceFrame) => void;
     /** Optional conversation object that receives parsed session events. */
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
