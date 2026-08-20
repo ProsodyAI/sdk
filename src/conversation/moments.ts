@@ -1,13 +1,6 @@
 import type { AnalysisEvent, StateDeltaEvent } from '../types.js';
 
-/**
- * One committed `state_delta` event, attributed to a lane.
- *
- * The magnitude is the model's readout of how far the recurrent speaker
- * state moved over this span. It is computable only inside the model that
- * has been carrying the person's state, so this module parses the committed
- * event and adds lane attribution.
- */
+/** One committed `state_delta` event, attributed to a lane. */
 export interface Moment {
   /** Where the evidence began on the model's 80ms frame clock, in ms. */
   frameMs: number;
@@ -64,12 +57,7 @@ function toMoment(delta: CommittedDelta, turns: TurnSpan[]): Moment {
   };
 }
 
-/**
- * The batch report's committed state deltas as typed moments, in commit order.
- *
- * Attribution reads the committed turn spans: a moment carries the lane that
- * held the floor where its evidence began.
- */
+/** The batch report's committed state deltas as typed moments, in commit order. */
 export function momentsFromEvents(
   events: AnalysisEvent[] | null | undefined,
   turns: TurnSpan[] | null | undefined,

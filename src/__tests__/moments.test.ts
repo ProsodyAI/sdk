@@ -5,7 +5,7 @@ import type { AnalysisResult } from '../types.js';
 
 /**
  * A batch report carrying committed conversation events. The magnitudes are
- * the model's own readout, so the SDK ranks them and never recomputes them.
+ * the model's own readout; the SDK only ranks them.
  */
 function report(): AnalysisResult {
   return {

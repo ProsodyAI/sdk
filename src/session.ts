@@ -42,10 +42,7 @@ export type LiveKitDataReceivedHandler = (
   topic?: string,
 ) => void;
 
-/**
- * Structural subset of `livekit-client`'s Room. Keeping the dependency
- * peer-free lets applications use their existing LiveKit version.
- */
+/** Structural subset of `livekit-client`'s Room, so no peer dependency is required. */
 export interface LiveKitRoomLike {
   on(event: 'dataReceived', listener: LiveKitDataReceivedHandler): unknown;
   off(event: 'dataReceived', listener: LiveKitDataReceivedHandler): unknown;
@@ -114,12 +111,8 @@ export function parseProsodyEvent(input: EventInput): ProsodyEvent {
 }
 
 /**
- * Consumes Prosody analysis events off a LiveKit room's data topic.
- *
- * Audio rides the LiveKit media plane; an agent worker (or the Python
- * `livekit-plugins-prosodyai` plugin) bridges the track to the analysis
- * WebSocket and republishes events to this topic. This class parses, orders
- * by `generation`/`seq` when present, and fans out to typed handlers.
+ * Consumes Prosody analysis events off a LiveKit room's data topic: parses,
+ * orders by `generation`/`seq` when present, and fans out to typed handlers.
  */
 export class ProsodySession {
   private readonly room: LiveKitRoomLike;
