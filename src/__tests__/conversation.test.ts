@@ -173,6 +173,7 @@ describe('Conversation', () => {
           text,
           provider: 'prosody_ssm',
           is_final: true,
+          result_id: `model-${start_ms}`,
         }],
       });
     }
@@ -218,6 +219,7 @@ describe('Conversation', () => {
           text,
           provider: 'prosody_ssm',
           is_final: true,
+          result_id: `model-${start_ms}`,
         }],
       });
       if (periodAt.has(index)) {

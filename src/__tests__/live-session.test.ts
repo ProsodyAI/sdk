@@ -194,6 +194,7 @@ describe('LiveSession', () => {
           speaker_id: 'speaker_1',
           text,
           is_final: true,
+          result_id: `model-${start_ms}`,
         }],
       });
     }
