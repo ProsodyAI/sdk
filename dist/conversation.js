@@ -7,7 +7,7 @@ import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
-export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude } from './conversation/moments.js';
 /**
  * Shared state model for diarized turns and voice measurements. Live: feed
@@ -17,6 +17,7 @@ export class Conversation {
     segments = [];
     steps = [];
     deltas = [];
+    turnBoundaries = [];
     batch = null;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result) {
@@ -39,6 +40,13 @@ export class Conversation {
         }
         if (type === 'state_delta') {
             this.deltas.push(event);
+            return this;
+        }
+        if (type === 'turn_boundary') {
+            const frameMs = Number(event.frame_ms);
+            if (Number.isFinite(frameMs) && !this.turnBoundaries.includes(frameMs)) {
+                this.turnBoundaries = [...this.turnBoundaries, frameMs].sort((a, b) => a - b);
+            }
             return this;
         }
         if (type === 'transcript_update') {
@@ -110,7 +118,7 @@ export class Conversation {
         if (this.batch) {
             return this.batch.getTurns().map((turn) => this.batchTurn(turn));
         }
-        return buildTurnsFromSegments(this.segments, this.steps);
+        return buildTurnsFromSegments(this.segments, this.steps, this.turnBoundaries);
     }
     /** One turn by index, or null when out of range. */
     getTurn(index) {

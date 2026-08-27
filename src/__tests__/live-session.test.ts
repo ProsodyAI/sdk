@@ -158,4 +158,58 @@ describe('LiveSession', () => {
     pushJson(sockets[0], { type: 'frame_ack', session_id: 's' });
     await expect(waiting).resolves.toBeUndefined();
   });
+
+  it('snapshot folds 80 ms words at turn_boundary', async () => {
+    const sockets = installFakeWebSocket();
+    const session = new LiveSession({
+      apiKey: 'k',
+      baseUrl: 'http://localhost:8080',
+    });
+    const started = session.start();
+    await Promise.resolve();
+    pushJson(sockets[0], { type: 'config_ack', session_id: 's' });
+    await started;
+
+    const words = [
+      [0, 80, 'Anton'],
+      [80, 160, 'Vanko'],
+      [160, 240, 'was'],
+      [240, 320, 'deported.'],
+      [2000, 2080, 'However'],
+      [2080, 2160, 'he was'],
+      [2160, 2240, 'accused.'],
+    ] as const;
+    for (const [start_ms, end_ms, text] of words) {
+      pushJson(sockets[0], {
+        type: 'transcript_update',
+        session_id: 's',
+        result_id: `model-${start_ms}`,
+        is_final: true,
+        speech_final: false,
+        start_ms,
+        end_ms,
+        segments: [{
+          start_ms,
+          end_ms,
+          speaker_id: 'speaker_1',
+          text,
+          is_final: true,
+          result_id: `model-${start_ms}`,
+        }],
+      });
+    }
+    pushJson(sockets[0], {
+      type: 'turn_boundary',
+      session_id: 's',
+      frame_ms: 2000,
+      commit_ms: 2080,
+    });
+
+    const snap = session.snapshot();
+    expect(snap.turns.map((turn) => turn.text)).toEqual([
+      'Anton Vanko was deported.',
+      'However he was accused.',
+    ]);
+    expect(snap.turns.every((turn) => turn.speaker.id === 'speaker_1')).toBe(true);
+  });
 });

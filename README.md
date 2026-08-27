@@ -41,6 +41,7 @@ This SDK exposes three transports, named after the API's own prefixes:
 - **Realtime analysis** over a single WebSocket, paced by the model's codec frame clock
 - **LiveKit** room credentials and event attachment for browser calls
 - **Speaker identity** directory and a preview-then-confirm enrollment flow
+- **Acoustic IPA transcription**: timed phoneme segments read off the audio itself
 - **Typed readouts**: `state` (what was measured) and `change` (what it moved), in family shape
 - **Strict TypeScript**, zero runtime dependencies, ESM, tree-shakeable
 
@@ -217,6 +218,27 @@ for (const frame of result.frames) {
 `frame.vad` is the dimensional affect reading of the speech emotion
 literature: valence (negative to positive), arousal (calm to active), and
 dominance (weak to strong). Each component is `null` on an unvoiced frame.
+
+## Phonetics
+
+`prosody.ipa` transcribes what the audio *sounds like*: IPA symbols with
+their timings, read off the acoustic stream itself — no transcript, no
+dictionary. One 80ms frame is roughly one phoneme, so "nope" versus "mope"
+is decided by the word-initial nasal's spectrum:
+
+```typescript
+const result = await prosody.ipa('./nope.wav');
+
+result.ipa;       // "noʊp"
+result.segments;  // [{ ipa: 'n', start_s: 0, end_s: 0.16, confidence: 0.91 }, …]
+```
+
+Each segment is one symbol's run on the 80ms grid with its mean posterior
+confidence. Word boundaries arrive as spaces, so `result.ipa` reads as
+spaced words. The head is a CTC classifier on frozen Mimi latents, trained
+against silver labels from a wav2vec2 phoneme recognizer; the eval report
+(per-phoneme error rate and the nasal confusions) publishes alongside the
+model.
 
 ## Speaker directory and enrollment
 

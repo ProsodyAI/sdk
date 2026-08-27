@@ -145,6 +145,7 @@ export class ProsodySession {
                 break;
             case 'turn_boundary':
                 this.options.onTurnBoundary?.(event);
+                this.options.conversation?.apply(event);
                 break;
             case 'barge_in':
                 this.options.onBargeIn?.(event);

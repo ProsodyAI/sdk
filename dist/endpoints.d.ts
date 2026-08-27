@@ -1,5 +1,6 @@
 import type { RequestOptions } from './http.js';
 import type { RecallResult } from './types/memory.js';
+import type { IpaTranscription } from './types/phonetics.js';
 import type { RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 /**
  * One REST endpoint: method, path, and response type. The response type rides
@@ -25,6 +26,7 @@ export declare const endpoints: {
     readonly confirmEnrollment: Endpoint<VoiceEnrollmentResult>;
     readonly createRealtimeSession: Endpoint<RealtimeSessionCredentials>;
     readonly memoryRecall: Endpoint<RecallResult>;
+    readonly phoneticsIpa: Endpoint<IpaTranscription>;
     readonly health: Endpoint<{
         status: string;
     }>;

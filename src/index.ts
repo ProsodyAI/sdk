@@ -137,4 +137,9 @@ export type {
   RealtimeSessionCredentials,
 } from './types.js';
 
+export type {
+  IpaTranscription,
+  PhonemeSegment,
+} from './types/phonetics.js';
+
 export { ProsodyClient as default } from './client.js';

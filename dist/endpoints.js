@@ -13,6 +13,7 @@ export const endpoints = {
     confirmEnrollment: endpoint('POST', '/v1/voice/enrollments/confirm'),
     createRealtimeSession: endpoint('POST', '/v1/realtime/sessions'),
     memoryRecall: endpoint('POST', '/v1/memory/recall'),
+    phoneticsIpa: endpoint('POST', '/v1/phonetics/ipa'),
     health: endpoint('GET', '/health'),
 };
 export function callJSON(target, opts, payload, signal) {

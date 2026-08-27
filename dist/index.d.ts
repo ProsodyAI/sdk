@@ -13,4 +13,5 @@ export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './sessi
 export { ProsodyRealtimeStream, realtimeWsUrl, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';
 export { createWavBuffer } from './wav.js';
 export type { RealtimeSessionCreateOptions, RealtimeSessionCredentials, } from './types.js';
+export type { IpaTranscription, PhonemeSegment, } from './types/phonetics.js';
 export { ProsodyClient as default } from './client.js';

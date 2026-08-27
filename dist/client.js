@@ -63,6 +63,16 @@ export class ProsodyClient {
         const conversation = await this.analyzeConversation(audio, options, signal);
         return transcriptionFromConversation(conversation, options);
     }
+    // ──────────────────────────── Phonetics ───────────────────────────
+    /**
+     * Acoustic IPA transcription (`POST /v1/phonetics/ipa`): the recording as
+     * timed IPA segments, read off the audio itself. "nope" versus "mope" is
+     * decided by the word-initial nasal's spectrum, not by parsing text.
+     */
+    async ipa(audio, signal) {
+        const formData = await audioFormData(audio, { allowUrl: false });
+        return callForm(endpoints.phoneticsIpa, this.opts, formData, signal);
+    }
     // ──────────────────────────── Analysis ────────────────────────────
     /** Raw batch analysis result (`POST /v1/analyze/audio`), parsed as `AnalysisResult`. */
     async analyze(audio, options, signal) {

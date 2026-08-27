@@ -1,6 +1,7 @@
 import type { AnalysisEvent, AnalysisOptions, AnalysisResult, DiarizedSpeaker, PCMOptions, TurnBoundary, FeedbackCorrectionOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import type { RecallResult } from './types/memory.js';
+import type { IpaTranscription } from './types/phonetics.js';
 import { Conversation } from './conversation.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
 import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
@@ -66,6 +67,12 @@ export declare class ProsodyClient {
     constructor(config: ProsodyClientConfig | string);
     /** Transcribe a recording over REST; diarization and vocal measurement are options. */
     transcribe(audio: string | Buffer, options?: TranscribeOptions, signal?: AbortSignal): Promise<Transcription>;
+    /**
+     * Acoustic IPA transcription (`POST /v1/phonetics/ipa`): the recording as
+     * timed IPA segments, read off the audio itself. "nope" versus "mope" is
+     * decided by the word-initial nasal's spectrum, not by parsing text.
+     */
+    ipa(audio: string | Buffer, signal?: AbortSignal): Promise<IpaTranscription>;
     /** Raw batch analysis result (`POST /v1/analyze/audio`), parsed as `AnalysisResult`. */
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     /** Analyze one recording into a diarized conversation with vocal measurements. */
