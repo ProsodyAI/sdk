@@ -56,7 +56,7 @@ export {
   applySpeakerUpdateToSegments,
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
-export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 
 /**

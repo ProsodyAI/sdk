@@ -7,7 +7,7 @@ import { type Moment } from './conversation/moments.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
 export { prosodyFromState, prosodyFromFrame, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
-export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 /**
  * Shared state model for diarized turns and voice measurements. Live: feed

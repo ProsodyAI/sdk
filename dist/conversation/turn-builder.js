@@ -1,6 +1,17 @@
 import { resolveLiveSpeakers } from './speaker-resolution.js';
 import { isKnownSpeaker, normalizeSpeakerId, overlapMs, } from './turn-model.js';
 import { prosodyFromState } from './prosody.js';
+/** Append one ASR delta onto a turn. Punctuation sticks; words take a space. */
+export function appendTranscriptPiece(existing, incoming) {
+    const piece = incoming.trim();
+    if (!piece)
+        return existing;
+    if (!existing)
+        return piece;
+    if (/^[.,!?;:]/.test(piece))
+        return `${existing}${piece}`;
+    return `${existing} ${piece}`;
+}
 /** Build speaker-owned turns and attach overlapping vocal measurements.
  *
  * When the model has committed ``turn_boundary`` edges, those are the
@@ -38,7 +49,7 @@ export function buildTurnsFromSegments(segments, steps, turnBoundaries = []) {
         const unknownInterim = seg.is_final === false && !isKnownSpeaker(speakerId);
         const shouldStartNew = !last || (speakerChanged && !unknownInterim);
         if (!shouldStartNew && last) {
-            last.text = `${last.text} ${text}`.trim();
+            last.text = appendTranscriptPiece(last.text, text);
             last.end_ms = Math.max(last.end_ms, seg.end_ms);
             last.final = seg.is_final === true;
             if (!last.prosody)
@@ -97,7 +108,7 @@ function buildBoundaryTurns(segments, steps, turnBoundaries) {
         if (isKnownSpeaker(speakerId)) {
             span.speakerWeights.set(speakerId, (span.speakerWeights.get(speakerId) ?? 0) + weightMs);
         }
-        span.text = `${span.text} ${text}`.trim();
+        span.text = appendTranscriptPiece(span.text, text);
         span.final = seg.is_final === true;
         if (index === 0)
             span.start_ms = Math.min(span.start_ms, seg.start_ms);

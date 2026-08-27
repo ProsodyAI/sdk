@@ -7,7 +7,7 @@ import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
 export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
-export { buildTurnsFromSegments } from './conversation/turn-builder.js';
+export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude } from './conversation/moments.js';
 /**
  * Shared state model for diarized turns and voice measurements. Live: feed
