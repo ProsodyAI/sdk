@@ -8,6 +8,7 @@ import type {
   SpeakerUpdateEvent,
   StateDeltaEvent,
   TranscriptUpdateEvent,
+  TurnBoundaryEvent,
 } from './types.js';
 import { VoiceFrame, type AffectVad } from './step.js';
 import {
@@ -66,6 +67,7 @@ export class Conversation {
   private segments: LiveSegment[] = [];
   private steps: StepAnchor[] = [];
   private deltas: StateDeltaEvent[] = [];
+  private turnBoundaries: number[] = [];
   private batch: ConversationAnalysis | null = null;
 
   /** Build a conversation from a batch analysis result. */
@@ -90,6 +92,13 @@ export class Conversation {
     }
     if (type === 'state_delta') {
       this.deltas.push(event as StateDeltaEvent);
+      return this;
+    }
+    if (type === 'turn_boundary') {
+      const frameMs = Number((event as TurnBoundaryEvent).frame_ms);
+      if (Number.isFinite(frameMs) && !this.turnBoundaries.includes(frameMs)) {
+        this.turnBoundaries = [...this.turnBoundaries, frameMs].sort((a, b) => a - b);
+      }
       return this;
     }
     if (type === 'transcript_update') {
@@ -173,7 +182,7 @@ export class Conversation {
     if (this.batch) {
       return this.batch.getTurns().map((turn) => this.batchTurn(turn));
     }
-    return buildTurnsFromSegments(this.segments, this.steps);
+    return buildTurnsFromSegments(this.segments, this.steps, this.turnBoundaries);
   }
 
   /** One turn by index, or null when out of range. */

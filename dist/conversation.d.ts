@@ -17,6 +17,7 @@ export declare class Conversation {
     private segments;
     private steps;
     private deltas;
+    private turnBoundaries;
     private batch;
     /** Build a conversation from a batch analysis result. */
     static fromAnalysis(result: AnalysisResult): Conversation;

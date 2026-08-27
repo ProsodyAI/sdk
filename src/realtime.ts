@@ -149,6 +149,9 @@ export class ProsodyRealtimeStream {
             || payload.type === 'transcript_update'
             || payload.type === 'speaker_update'
             || payload.type === 'speaker_profiles'
+            || payload.type === 'state_delta'
+            || payload.type === 'turn_boundary'
+            || payload.type === 'barge_in'
             || payload.type === 'session_end'
           ) {
             // Wire events may omit generation/seq; parseProsodyEvent allows that.
@@ -270,6 +273,7 @@ export class ProsodyRealtimeStream {
         break;
       case 'turn_boundary':
         this.handlers.onTurnBoundary?.(event);
+        this.handlers.conversation?.apply(event);
         break;
       case 'barge_in':
         this.handlers.onBargeIn?.(event);

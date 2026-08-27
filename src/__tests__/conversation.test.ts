@@ -143,4 +143,46 @@ describe('Conversation', () => {
     expect(turns).toHaveLength(2);
     expect(turns.map((t) => t.speaker_id)).toEqual(['speaker_0', 'speaker_1']);
   });
+
+  it('live: turn_boundary cuts the transcript into utterances', () => {
+    const conversation = new Conversation();
+    const words = [
+      [0, 80, 'Anton'],
+      [80, 160, 'Vanko'],
+      [160, 240, 'was'],
+      [240, 320, 'deported.'],
+      [2000, 2080, 'However'],
+      [2080, 2160, 'he was'],
+      [2160, 2240, 'accused.'],
+    ] as const;
+    for (const [start_ms, end_ms, text] of words) {
+      conversation.apply({
+        type: 'transcript_update',
+        session_id: 's',
+        result_id: `model-${start_ms}`,
+        is_final: true,
+        speech_final: false,
+        provider: 'prosody_ssm',
+        streaming: true,
+        start_ms,
+        end_ms,
+        segments: [{
+          start_ms,
+          end_ms,
+          speaker_id: 'speaker_1',
+          text,
+          provider: 'prosody_ssm',
+          is_final: true,
+        }],
+      });
+    }
+    conversation.apply({ type: 'turn_boundary', frame_ms: 2000, commit_ms: 2080 });
+
+    const turns = conversation.getTurns();
+    expect(turns.map((turn) => turn.text)).toEqual([
+      'Anton Vanko was deported.',
+      'However he was accused.',
+    ]);
+    expect(turns.every((turn) => turn.speaker_id === 'speaker_1')).toBe(true);
+  });
 });
