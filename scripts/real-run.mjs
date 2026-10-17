@@ -7,7 +7,7 @@ import { ProsodyClient, Conversation } from '../dist/index.js';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const API_KEY = process.env.PROSODYAI_API_KEY || '';
 const BASE_URL = process.env.PROSODYAI_API_URL || 'http://localhost:8791';
-const AUDIO = process.env.PROSODYAI_AUDIO || join(ROOT, 'diarization_check/output/clip.wav');
+const AUDIO = process.env.PROSODYAI_AUDIO || join(ROOT, 'experiments/diarization_check/output/clip.wav');
 const OUT = process.env.PROSODYAI_OUT || join(ROOT, 'tmp-sdk-run.txt');
 
 const lines = [];
