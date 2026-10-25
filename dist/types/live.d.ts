@@ -21,22 +21,6 @@ export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
     seq?: number;
     type: T;
 }
-/** Media-plane mint request for `POST /v1/realtime/sessions`. */
-export interface RealtimeSessionCreateOptions {
-    participantName?: string;
-    /** Join an existing session's room; every participant advances one speaker-state timeline. */
-    sessionId?: string;
-}
-export interface RealtimeSessionCredentials {
-    session_id: string;
-    room_name: string;
-    participant_identity: string;
-    server_url: string;
-    participant_token: string;
-    expires_at: string;
-    event_topic: string;
-    control_topic: string;
-}
 /** The three affect dimensions as a nested block (stream `Prosody`). */
 export interface AffectReading {
     /** Valence reading. Null on an unvoiced frame. */

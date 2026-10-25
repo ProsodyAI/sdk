@@ -187,7 +187,7 @@ describe('Conversation', () => {
     expect(turns.every((turn) => turn.speaker_id === 'speaker_1')).toBe(true);
   });
 
-  it('live: jarvis transcript_update dump folds into the batch paragraph', () => {
+  it('live: fragmented transcript_update stream folds into the batch paragraph', () => {
     const conversation = new Conversation();
     const words = [
       'Anton', 'Vanko', 'was', 'the', 'Soviet', 'physicist', 'who', 'defected',

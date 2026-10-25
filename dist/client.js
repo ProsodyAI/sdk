@@ -6,13 +6,11 @@ import { audioFormData } from './forms.js';
 import { ProsodyRealtimeStream, } from './realtime.js';
 import { createWavBuffer } from './wav.js';
 import { LiveSession } from './live-session.js';
-import { ProsodySession, } from './session.js';
 import { transcriptionFromConversation, } from './transcription.js';
 /**
- * Developer client authenticated with a `psk_*` API key. Three modes:
- * {@link ProsodyClient.transcribe} for REST batch analysis,
- * {@link ProsodyClient.stream} for the analysis WebSocket, and
- * {@link ProsodyClient.realtime} for the LiveKit media plane.
+ * Developer client authenticated with a `psk_*` API key. Two modes:
+ * {@link ProsodyClient.transcribe} for REST batch analysis of a recording, and
+ * {@link ProsodyClient.stream} for live analysis over the WebSocket.
  */
 export class ProsodyClient {
     opts;
@@ -20,8 +18,6 @@ export class ProsodyClient {
     baseUrl;
     /** The analysis WebSocket transport (`WS /v1/stream/realtime`). */
     stream;
-    /** The LiveKit media plane: audio rides LiveKit; events arrive on the room data topic. */
-    realtime;
     /** Batch analysis: analyze one recording into a `Conversation`. */
     conversations;
     /** Speaker identity: list resolved people and enroll voices (preview, then confirm). */
@@ -47,14 +43,6 @@ export class ProsodyClient {
         this.stream = Object.freeze({
             session: (options) => this.openRealtimeSession(options),
             connect: (handlers, options) => this.openRealtimeStream(handlers, options),
-        });
-        this.realtime = Object.freeze({
-            createSession: (options = {}, signal) => this.createRealtimeSession(options, signal),
-            attach: (room, options) => {
-                const session = new ProsodySession(room, options);
-                session.start();
-                return session;
-            },
         });
     }
     // ──────────────────────── Transcription (REST) ────────────────────
@@ -253,13 +241,6 @@ export class ProsodyClient {
             onClose,
             onEvent,
         });
-    }
-    /** Mint LiveKit room credentials. Server-side only: it holds `psk_*`. */
-    async createRealtimeSession(options = {}, signal) {
-        return callJSON(endpoints.createRealtimeSession, this.opts, {
-            participant_name: options.participantName,
-            session_id: options.sessionId,
-        }, signal);
     }
 }
 function assertFeedbackRange(field, value, minimum, maximum) {

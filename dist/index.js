@@ -6,7 +6,7 @@ export { ProsodyClient } from './client.js';
 export { LiveSession, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, } from './transcription.js';
 export { applySpeakerUpdateToSegments, } from './conversation.js';
-export { PROSODY_EVENT_TOPIC, ProsodySession, parseProsodyEvent, } from './session.js';
+export { parseProsodyEvent } from './events.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, } from './realtime.js';
 export { createWavBuffer } from './wav.js';
 export { ProsodyClient as default } from './client.js';

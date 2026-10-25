@@ -57,12 +57,6 @@ export type {
 } from './types.js';
 
 export type { ProsodyClientConfig, RetryConfig } from './config.js';
-export type {
-  LiveKitParticipantLike,
-  LiveKitDataReceivedHandler,
-  LiveKitRoomLike,
-  ProsodySessionOptions,
-} from './session.js';
 
 export {
   ProsodyError,
@@ -118,11 +112,7 @@ export {
 export {
   applySpeakerUpdateToSegments,
 } from './conversation.js';
-export {
-  PROSODY_EVENT_TOPIC,
-  ProsodySession,
-  parseProsodyEvent,
-} from './session.js';
+export { parseProsodyEvent } from './events.js';
 export {
   ProsodyRealtimeStream,
   realtimeWsUrl,
@@ -131,11 +121,6 @@ export {
   type RealtimeEncoding,
 } from './realtime.js';
 export { createWavBuffer } from './wav.js';
-
-export type {
-  RealtimeSessionCreateOptions,
-  RealtimeSessionCredentials,
-} from './types.js';
 
 export type {
   IpaTranscription,

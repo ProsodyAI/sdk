@@ -1,4 +1,4 @@
-import { parseProsodyEvent } from './session.js';
+import { parseProsodyEvent } from './events.js';
 import { VoiceFrame } from './step.js';
 /**
  * Lower-level live analysis client for `WS /v1/stream/realtime`. Requires a
