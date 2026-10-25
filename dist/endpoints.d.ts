@@ -1,7 +1,7 @@
 import type { RequestOptions } from './http.js';
 import type { RecallResult } from './types/memory.js';
 import type { IpaTranscription } from './types/phonetics.js';
-import type { RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
+import type { SpeakerDirectoryResult, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 /**
  * One REST endpoint: method, path, and response type. The response type rides
  * along as a phantom so call sites stay typed from the table alone.
@@ -24,7 +24,6 @@ export declare const endpoints: {
     readonly listSpeakers: Endpoint<SpeakerDirectoryResult>;
     readonly previewEnrollment: Endpoint<VoiceEnrollmentPreview>;
     readonly confirmEnrollment: Endpoint<VoiceEnrollmentResult>;
-    readonly createRealtimeSession: Endpoint<RealtimeSessionCredentials>;
     readonly memoryRecall: Endpoint<RecallResult>;
     readonly phoneticsIpa: Endpoint<IpaTranscription>;
     readonly health: Endpoint<{

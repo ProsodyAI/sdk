@@ -1,11 +1,10 @@
-import type { AnalysisEvent, AnalysisOptions, AnalysisResult, DiarizedSpeaker, PCMOptions, TurnBoundary, FeedbackCorrectionOptions, SessionOutcomeOptions, RealtimeSessionCreateOptions, RealtimeSessionCredentials, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
+import type { AnalysisEvent, AnalysisOptions, AnalysisResult, DiarizedSpeaker, PCMOptions, TurnBoundary, FeedbackCorrectionOptions, SessionOutcomeOptions, SpeakerDirectoryResult, VoiceEnrollmentMapping, VoiceEnrollmentPreview, VoiceEnrollmentResult } from './types.js';
 import type { ProsodyClientConfig } from './config.js';
 import type { RecallResult } from './types/memory.js';
 import type { IpaTranscription } from './types/phonetics.js';
 import { Conversation } from './conversation.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
 import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
-import { ProsodySession, type LiveKitRoomLike, type ProsodySessionOptions } from './session.js';
 import { type Transcription, type TranscribeOptions } from './transcription.js';
 type RealtimeSessionOpts = LiveSessionStartOptions & Pick<LiveSessionOptions, 'onUpdate' | 'onError' | 'onClose' | 'onEvent' | 'WebSocketImpl'>;
 type RealtimeConnectOpts = {
@@ -20,10 +19,9 @@ type RealtimeConnectOpts = {
     WebSocketImpl?: typeof WebSocket;
 };
 /**
- * Developer client authenticated with a `psk_*` API key. Three modes:
- * {@link ProsodyClient.transcribe} for REST batch analysis,
- * {@link ProsodyClient.stream} for the analysis WebSocket, and
- * {@link ProsodyClient.realtime} for the LiveKit media plane.
+ * Developer client authenticated with a `psk_*` API key. Two modes:
+ * {@link ProsodyClient.transcribe} for REST batch analysis of a recording, and
+ * {@link ProsodyClient.stream} for live analysis over the WebSocket.
  */
 export declare class ProsodyClient {
     private readonly opts;
@@ -35,13 +33,6 @@ export declare class ProsodyClient {
         session: (options?: RealtimeSessionOpts) => LiveSession;
         /** Low-level stream if you want handlers without Conversation. */
         connect: (handlers?: ProsodyRealtimeHandlers, options?: RealtimeConnectOpts) => ProsodyRealtimeStream;
-    };
-    /** The LiveKit media plane: audio rides LiveKit; events arrive on the room data topic. */
-    readonly realtime: {
-        /** Mint room credentials (`POST /v1/realtime/sessions`). Server-side only. */
-        createSession: (options?: RealtimeSessionCreateOptions, signal?: AbortSignal) => Promise<RealtimeSessionCredentials>;
-        /** Attach to an existing LiveKit room and receive Prosody events from the data channel. */
-        attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => ProsodySession;
     };
     /** Batch analysis: analyze one recording into a `Conversation`. */
     readonly conversations: {
@@ -111,7 +102,5 @@ export declare class ProsodyClient {
     }>;
     private openRealtimeStream;
     private openRealtimeSession;
-    /** Mint LiveKit room credentials. Server-side only: it holds `psk_*`. */
-    private createRealtimeSession;
 }
 export {};

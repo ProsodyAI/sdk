@@ -32,6 +32,6 @@ export interface RecallResult {
     person_id?: string | null;
     resumed: boolean;
     memories: MomentRecord[];
-    /** Distilled inner-monologue preamble, ready to prime an S2S model. */
+    /** Text preamble distilled from the recalled moments. */
     preamble: string;
 }

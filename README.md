@@ -6,8 +6,8 @@
 
 TypeScript SDK for ProsodyAI.
 
-Transcribe recorded calls, stream live voice analysis, and read speaker
-identity and prosody from one client.
+Acoustic analysis of recorded and live speech: diarized turns, speaker
+identity, per-speaker prosody measurements, and memory recall from one client.
 
 [![npm version](https://img.shields.io/npm/v/@prosodyai/sdk?color=cb77df&label=npm)](https://www.npmjs.com/package/@prosodyai/sdk)
 [![CI](https://github.com/ProsodyAI/sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/ProsodyAI/sdk/actions/workflows/ci.yml)
@@ -27,20 +27,24 @@ ratios, spectral tilt. Every measurement is speaker-relative. The same F0 is
 emphatic for one voice and habitual for another, so the baseline is the
 reference and the movement is the meaning.
 
-This SDK exposes three transports, named after the API's own prefixes:
+This SDK exposes two transports, named after the API's own prefixes:
 
 | Transport | Method | What it does |
 | --- | --- | --- |
-| **analyze** | `prosody.transcribe()` | REST batch over `POST /v1/analyze/audio` |
+| **analyze** | `prosody.transcribe()`, `prosody.analyze()` | REST batch over `POST /v1/analyze/audio` |
 | **stream** | `prosody.stream` | WebSocket at `WS /v1/stream/realtime`; you send PCM/Opus, events come back |
-| **realtime** | `prosody.realtime` | [LiveKit](https://prosodyai.app/docs/livekit) WebRTC media plane; mint a room, read events on the data topic |
+
+Around them sit the resources that outlive one call: `prosody.speakers` for
+the speaker directory and enrollment, and `prosody.memory.recall` for a saved
+person's significant moments.
 
 ## Features
 
 - **Recorded transcription** with speaker diarization and prosody on by default
 - **Realtime analysis** over a single WebSocket, paced by the model's codec frame clock
-- **LiveKit** room credentials and event attachment for browser calls
+- **Measurement series**: `voiceFrames` and `measurementSeries` read one quantity across a call
 - **Speaker identity** directory and a preview-then-confirm enrollment flow
+- **Memory recall** of a saved person's significant moments
 - **Acoustic IPA transcription**: timed phoneme segments read off the audio itself
 - **Typed readouts**: `state` (what was measured) and `change` (what it moved), in family shape
 - **Strict TypeScript**, zero runtime dependencies, ESM, tree-shakeable
@@ -106,48 +110,6 @@ for (const chunk of chunks) {
   await session.waitForFrame();
 }
 ```
-
-### LiveKit
-
-For a browser call, audio never touches the Prosody WebSocket from the client.
-It rides LiveKit's WebRTC media plane. A server-side LiveKit Agent worker runs
-the Python [`livekit-plugins-prosodyai`](https://pypi.org/project/livekit-plugins-prosodyai/)
-plugin, which bridges the participant's track to the Prosody analysis API and
-republishes the committed readouts back onto the room's data topic
-(`prosody.events.v1`). This SDK mints the room credentials on the trusted
-server, then attaches to the room in the browser and decodes those events into
-typed handlers. See the [LiveKit plugin guide](https://prosodyai.app/docs/livekit)
-for install, the realtime model, and the committed event stream.
-
-Trusted server (holds `psk_*`):
-
-```typescript
-const credentials = await prosody.realtime.createSession({
-  participantName: 'caller',
-});
-// Hand `credentials` to the browser; the Agent worker joins the same room.
-```
-
-Browser, after `room.connect()`:
-
-```typescript
-const session = prosody.realtime.attach(room, {
-  sessionId: credentials.session_id,
-  onVoiceFrame: (frame) => render(frame),     // each committed measurement
-  onTranscriptUpdate: (event) => render(event),
-  onSpeakerUpdate: (event) => render(event),
-});
-
-session.start();   // subscribe to prosody.events.v1
-// ...later
-session.stop();
-```
-
-`attach` returns a `ProsodySession` that orders events by `generation`/`seq`
-when the wire carries them, drops stale LiveKit republishes, and fans out to
-`onVoiceFrame`, `onTranscriptUpdate`, `onSpeakerUpdate`, `onSessionEnd`, and
-the rest of the typed family. The browser holds no API key; only the Agent
-worker does.
 
 ## Speakers
 
@@ -219,6 +181,22 @@ for (const frame of result.frames) {
 literature: valence (negative to positive), arousal (calm to active), and
 dominance (weak to strong). Each component is `null` on an unvoiced frame.
 
+## Measurement series
+
+For the raw batch result, `voiceFrames` returns the measured frames and
+`measurementSeries` reads one quantity across the call by its family path,
+skipping frames where it was not measurable:
+
+```typescript
+import { measurementSeries, voiceFrames } from '@prosodyai/sdk';
+
+const raw = await prosody.analyze('./call.wav');
+
+voiceFrames(raw);                           // measured frames, in order
+measurementSeries(raw, 'intonation.pitch'); // [{ start_ms, end_ms, speaker_id, value }, …]
+measurementSeries(raw, 'stress.loudness');
+```
+
 ## Phonetics
 
 `prosody.ipa` transcribes what the audio *sounds like*: IPA symbols with
@@ -261,6 +239,21 @@ detected in the recording; confirm persists the supplied mappings. This is
 where durable, cross-session `person_id` identity comes from, distinct from
 the recording-local `speaker.id` on a `Transcription`.
 
+## Memory recall
+
+A saved person's significant moments, recency-ranked, each with the measured
+facts that selected it:
+
+```typescript
+const recall = await prosody.memory.recall.post(personId, 5);
+
+for (const moment of recall.memories) {
+  moment.metadata.at_ms;              // onset on its session's clock
+  moment.metadata.significance;       // magnitude of the measured state delta
+  moment.metadata.text;               // words around the moment
+}
+```
+
 ## Configuration
 
 ```typescript
@@ -301,7 +294,7 @@ try {
 - [Speaker](https://prosodyai.app/docs/reference/speaker)
 - [Prosody](https://prosodyai.app/docs/reference/prosody)
 - [LiveSession](https://prosodyai.app/docs/reference/live-session)
-- [LiveKit plugin](https://prosodyai.app/docs/livekit): full-duplex speech, speaker identity, and committed events on the agent worker
+- [Live analysis](https://prosodyai.app/docs/live)
 
 ## Contributing
 

@@ -11,7 +11,6 @@ export const endpoints = {
     listSpeakers: endpoint('GET', '/v1/voice/speakers'),
     previewEnrollment: endpoint('POST', '/v1/voice/enrollments/preview'),
     confirmEnrollment: endpoint('POST', '/v1/voice/enrollments/confirm'),
-    createRealtimeSession: endpoint('POST', '/v1/realtime/sessions'),
     memoryRecall: endpoint('POST', '/v1/memory/recall'),
     phoneticsIpa: endpoint('POST', '/v1/phonetics/ipa'),
     health: endpoint('GET', '/health'),

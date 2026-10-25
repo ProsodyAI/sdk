@@ -11,7 +11,7 @@ import type {
   TurnBoundaryEvent,
   WarningEvent,
 } from './types.js';
-import { parseProsodyEvent } from './session.js';
+import { parseProsodyEvent } from './events.js';
 import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 

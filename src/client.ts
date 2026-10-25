@@ -7,8 +7,6 @@ import type {
   TurnBoundary,
   FeedbackCorrectionOptions,
   SessionOutcomeOptions,
-  RealtimeSessionCreateOptions,
-  RealtimeSessionCredentials,
   SpeakerDirectoryResult,
   VoiceEnrollmentMapping,
   VoiceEnrollmentPreview,
@@ -30,11 +28,6 @@ import {
 } from './realtime.js';
 import { createWavBuffer } from './wav.js';
 import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
-import {
-  ProsodySession,
-  type LiveKitRoomLike,
-  type ProsodySessionOptions,
-} from './session.js';
 import {
   transcriptionFromConversation,
   type Transcription,
@@ -59,10 +52,9 @@ type RealtimeConnectOpts = {
 };
 
 /**
- * Developer client authenticated with a `psk_*` API key. Three modes:
- * {@link ProsodyClient.transcribe} for REST batch analysis,
- * {@link ProsodyClient.stream} for the analysis WebSocket, and
- * {@link ProsodyClient.realtime} for the LiveKit media plane.
+ * Developer client authenticated with a `psk_*` API key. Two modes:
+ * {@link ProsodyClient.transcribe} for REST batch analysis of a recording, and
+ * {@link ProsodyClient.stream} for live analysis over the WebSocket.
  */
 export class ProsodyClient {
   private readonly opts: RequestOptions;
@@ -78,17 +70,6 @@ export class ProsodyClient {
       handlers?: ProsodyRealtimeHandlers,
       options?: RealtimeConnectOpts,
     ) => ProsodyRealtimeStream;
-  };
-
-  /** The LiveKit media plane: audio rides LiveKit; events arrive on the room data topic. */
-  readonly realtime: {
-    /** Mint room credentials (`POST /v1/realtime/sessions`). Server-side only. */
-    createSession: (
-      options?: RealtimeSessionCreateOptions,
-      signal?: AbortSignal,
-    ) => Promise<RealtimeSessionCredentials>;
-    /** Attach to an existing LiveKit room and receive Prosody events from the data channel. */
-    attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => ProsodySession;
   };
 
   /** Batch analysis: analyze one recording into a `Conversation`. */
@@ -148,17 +129,6 @@ export class ProsodyClient {
         handlers?: ProsodyRealtimeHandlers,
         options?: RealtimeConnectOpts,
       ) => this.openRealtimeStream(handlers, options),
-    });
-    this.realtime = Object.freeze({
-      createSession: (
-        options: RealtimeSessionCreateOptions = {},
-        signal?: AbortSignal,
-      ) => this.createRealtimeSession(options, signal),
-      attach: (room: LiveKitRoomLike, options: ProsodySessionOptions) => {
-        const session = new ProsodySession(room, options);
-        session.start();
-        return session;
-      },
     });
   }
 
@@ -433,17 +403,6 @@ export class ProsodyClient {
       onClose,
       onEvent,
     });
-  }
-
-  /** Mint LiveKit room credentials. Server-side only: it holds `psk_*`. */
-  private async createRealtimeSession(
-    options: RealtimeSessionCreateOptions = {},
-    signal?: AbortSignal,
-  ): Promise<RealtimeSessionCredentials> {
-    return callJSON(endpoints.createRealtimeSession, this.opts, {
-      participant_name: options.participantName,
-      session_id: options.sessionId,
-    }, signal);
   }
 }
 
