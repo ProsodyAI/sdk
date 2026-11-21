@@ -19,8 +19,11 @@ export function parseProsodyEvent(input) {
     const generation = value.generation;
     const seq = value.seq;
     const type = value.type;
-    if (typeof sessionId !== 'string' || !sessionId) {
-        throw new Error('Prosody event missing session_id');
+    // session_id is the socket's own scope: conversation events (state_delta,
+    // turn_boundary, barge_in) may arrive without repeating it. When present
+    // it must be a string; a missing id is never fatal to a live socket.
+    if (sessionId !== undefined && sessionId !== null && typeof sessionId !== 'string') {
+        throw new Error('Prosody event session_id must be a string');
     }
     // generation/seq are optional on the API wire today; when present they must
     // be non-negative integers so clients can drop stale or repeated events.

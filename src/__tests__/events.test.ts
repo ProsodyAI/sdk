@@ -46,4 +46,24 @@ describe('parseProsodyEvent', () => {
     });
     expect(event.session_id).toBe('call-123');
   });
+
+  it('accepts a conversation event that does not repeat the session id', () => {
+    // state_delta, turn_boundary and barge_in are scoped by the socket
+    // itself; a missing session_id must never kill a live session.
+    const event = parseProsodyEvent({
+      type: 'state_delta',
+      frame_ms: 4160,
+      commit_ms: 4800,
+      duration_ms: 640,
+      magnitude: 1.375,
+      resolved: false,
+    });
+    expect(event.type).toBe('state_delta');
+  });
+
+  it('rejects a non-string session id', () => {
+    expect(() => parseProsodyEvent({ type: 'directive', session_id: 7 })).toThrow(
+      'session_id must be a string',
+    );
+  });
 });
