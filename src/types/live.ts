@@ -23,6 +23,7 @@ export interface ProsodyEmbedding {
 export type ProsodyEventType =
   | 'directive'
   | 'transcript_update'
+  | 'transcript_revision'
   | 'speaker_update'
   | 'speaker_profiles'
   | 'state_delta'
@@ -107,6 +108,23 @@ export interface TranscriptUpdateEvent extends ProsodyEventEnvelope<'transcript_
   words?: TranscriptWord[];
 }
 
+/**
+ * The settled words for one closed span of audio. The second pass
+ * re-decoded `[start_ms, end_ms)` as one contiguous utterance; `segments`
+ * are its words, all final. Drop the transcript results whose midpoint
+ * falls inside the span and keep these in their place.
+ */
+export interface TranscriptRevisionEvent extends ProsodyEventEnvelope<'transcript_revision'> {
+  provider: string;
+  streaming: boolean;
+  result_id: string;
+  start_ms: number;
+  end_ms: number;
+  is_final: boolean;
+  speech_final: boolean;
+  segments: TranscriptUpdateSegment[];
+}
+
 /** Committed identity-lane attribution for one live interval. */
 export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update'> {
   start_ms: number;
@@ -186,6 +204,7 @@ export interface ServerErrorEvent extends ProsodyEventEnvelope<'error'> {
 export type ProsodyEvent =
   | DirectiveEvent
   | TranscriptUpdateEvent
+  | TranscriptRevisionEvent
   | SpeakerUpdateEvent
   | SpeakerProfilesEvent
   | StateDeltaEvent

@@ -1,6 +1,7 @@
 const PROSODY_EVENT_TYPES = new Set([
     'directive',
     'transcript_update',
+    'transcript_revision',
     'speaker_update',
     'speaker_profiles',
     'state_delta',

@@ -3,6 +3,7 @@ import type { ProsodyEvent, ProsodyEventType } from './types.js';
 const PROSODY_EVENT_TYPES: ReadonlySet<ProsodyEventType> = new Set([
   'directive',
   'transcript_update',
+  'transcript_revision',
   'speaker_update',
   'speaker_profiles',
   'state_delta',

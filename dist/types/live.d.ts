@@ -13,7 +13,7 @@ export interface ProsodyEmbedding {
     energy_mean?: number;
     energy_std?: number;
 }
-export type ProsodyEventType = 'directive' | 'transcript_update' | 'speaker_update' | 'speaker_profiles' | 'state_delta' | 'turn_boundary' | 'barge_in' | 'session_end' | 'warning' | 'error';
+export type ProsodyEventType = 'directive' | 'transcript_update' | 'transcript_revision' | 'speaker_update' | 'speaker_profiles' | 'state_delta' | 'turn_boundary' | 'barge_in' | 'session_end' | 'warning' | 'error';
 /** Live analysis event. Optional `generation`/`seq` let clients drop stale packets. */
 export interface ProsodyEventEnvelope<T extends ProsodyEventType> {
     session_id: string;
@@ -83,6 +83,22 @@ export interface TranscriptUpdateEvent extends ProsodyEventEnvelope<'transcript_
     segments: TranscriptUpdateSegment[];
     words?: TranscriptWord[];
 }
+/**
+ * The settled words for one closed span of audio. The second pass
+ * re-decoded `[start_ms, end_ms)` as one contiguous utterance; `segments`
+ * are its words, all final. Drop the transcript results whose midpoint
+ * falls inside the span and keep these in their place.
+ */
+export interface TranscriptRevisionEvent extends ProsodyEventEnvelope<'transcript_revision'> {
+    provider: string;
+    streaming: boolean;
+    result_id: string;
+    start_ms: number;
+    end_ms: number;
+    is_final: boolean;
+    speech_final: boolean;
+    segments: TranscriptUpdateSegment[];
+}
 /** Committed identity-lane attribution for one live interval. */
 export interface SpeakerUpdateEvent extends ProsodyEventEnvelope<'speaker_update'> {
     start_ms: number;
@@ -150,4 +166,4 @@ export interface ServerErrorEvent extends ProsodyEventEnvelope<'error'> {
     code?: string;
     message: string;
 }
-export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | SpeakerUpdateEvent | SpeakerProfilesEvent | StateDeltaEvent | TurnBoundaryEvent | BargeInEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;
+export type ProsodyEvent = DirectiveEvent | TranscriptUpdateEvent | TranscriptRevisionEvent | SpeakerUpdateEvent | SpeakerProfilesEvent | StateDeltaEvent | TurnBoundaryEvent | BargeInEvent | SessionEndEvent | WarningEvent | ServerErrorEvent;

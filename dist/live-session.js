@@ -85,6 +85,7 @@ export class LiveSession {
                 this.releaseFrameWaiters();
             },
             onTranscriptUpdate: () => this.emitUpdate(),
+            onTranscriptRevision: () => this.emitUpdate(),
             onTurnBoundary: () => this.emitUpdate(),
             onSpeakerUpdate: () => this.emitUpdate(),
             // A committed delta changes what `snapshot().moments` reports.

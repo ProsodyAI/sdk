@@ -6,7 +6,7 @@ import { type MeasurementPath, type Prosody } from './conversation/prosody.js';
 import { type Moment } from './conversation/moments.js';
 export type { ConversationTurn } from './conversation/turn-model.js';
 export { prosodyFromState, prosodyFromFrame, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
-export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+export { applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 /**
