@@ -2,6 +2,8 @@ import type { BargeInEvent, DirectiveEvent, ProsodyEvent, ServerErrorEvent, Sess
 import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
+/** What a live session asks the listening side to do with its audio. */
+export type ListeningCapability = 'transcription' | 'diarization' | 'acoustic_state';
 export interface ProsodyRealtimeConfig {
     apiKey: string;
     baseUrl?: string;
@@ -17,6 +19,12 @@ export interface ProsodyRealtimeConfig {
     sourceOffsetMs?: number;
     /** Analysis chunk length in seconds. Defaults to 1. */
     chunkSeconds?: number;
+    /**
+     * The capabilities this session runs. Omit for all of them. A session
+     * without `acoustic_state` is transcribed (and diarized, if asked) without
+     * the acoustic model, which is what a telephone line usually wants.
+     */
+    capabilities?: ListeningCapability[];
     /** WebSocket constructor. Inject in tests; defaults to global WebSocket. */
     WebSocketImpl?: typeof WebSocket;
 }

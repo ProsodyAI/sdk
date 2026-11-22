@@ -226,6 +226,7 @@ export class ProsodyClient {
             source: options?.source,
             sourceOffsetMs: options?.sourceOffsetMs,
             chunkSeconds: options?.chunkSeconds,
+            capabilities: options?.capabilities,
             WebSocketImpl: options?.WebSocketImpl,
         }, handlers ?? {});
     }

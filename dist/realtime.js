@@ -173,6 +173,9 @@ export class ProsodyRealtimeStream {
         if (encoding === 'opus') {
             config.container = this.config.container ?? 'ogg';
         }
+        if (this.config.capabilities?.length) {
+            config.capabilities = this.config.capabilities;
+        }
         return config;
     }
     dispatch(event) {

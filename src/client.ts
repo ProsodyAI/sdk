@@ -24,6 +24,7 @@ import { audioFormData } from './forms.js';
 import {
   ProsodyRealtimeStream,
   type ProsodyRealtimeHandlers,
+  type ListeningCapability,
   type RealtimeEncoding,
 } from './realtime.js';
 import { createWavBuffer } from './wav.js';
@@ -48,6 +49,7 @@ type RealtimeConnectOpts = {
   source?: string;
   sourceOffsetMs?: number;
   chunkSeconds?: number;
+  capabilities?: ListeningCapability[];
   WebSocketImpl?: typeof WebSocket;
 };
 
@@ -378,6 +380,7 @@ export class ProsodyClient {
         source: options?.source,
         sourceOffsetMs: options?.sourceOffsetMs,
         chunkSeconds: options?.chunkSeconds,
+        capabilities: options?.capabilities,
         WebSocketImpl: options?.WebSocketImpl,
       },
       handlers ?? {},
