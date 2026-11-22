@@ -97,6 +97,74 @@ describe('Conversation', () => {
     expect(conversation.getProsody()?.state.stress.loudness).toBe(-20);
   });
 
+  it('live: a transcript_revision replaces the streamed words of its span', () => {
+    const conversation = new Conversation();
+    const streamed = [
+      { text: 'Bred', start_ms: 0, end_ms: 400 },
+      { text: 'Hadcock', start_ms: 400, end_ms: 900 },
+      { text: 'builds', start_ms: 1000, end_ms: 1400 },
+    ];
+    for (const [index, word] of streamed.entries()) {
+      conversation.apply({
+        type: 'transcript_update',
+        session_id: 's',
+        result_id: `model-speaker_0-${word.start_ms}-${index}`,
+        is_final: true,
+        speech_final: false,
+        provider: 'prosody_ssm',
+        streaming: true,
+        start_ms: word.start_ms,
+        end_ms: word.end_ms,
+        segments: [{
+          start_ms: word.start_ms,
+          end_ms: word.end_ms,
+          speaker_id: 'speaker_0',
+          text: word.text,
+          provider: 'prosody_ssm',
+          result_id: `model-speaker_0-${word.start_ms}-${index}`,
+          is_final: true,
+        }],
+      });
+    }
+    conversation.apply({
+      type: 'transcript_revision',
+      session_id: 's',
+      result_id: 'model-rev-0',
+      is_final: true,
+      speech_final: false,
+      provider: 'prosody_ssm',
+      streaming: true,
+      start_ms: 0,
+      end_ms: 960,
+      segments: [
+        {
+          start_ms: 0,
+          end_ms: 420,
+          speaker_id: 'speaker_0',
+          text: 'Brett',
+          provider: 'prosody_ssm',
+          result_id: 'model-rev-0',
+          is_final: true,
+        },
+        {
+          start_ms: 420,
+          end_ms: 940,
+          speaker_id: 'speaker_0',
+          text: 'Haddock',
+          provider: 'prosody_ssm',
+          result_id: 'model-rev-0',
+          is_final: true,
+        },
+      ],
+    });
+
+    const turns = conversation.getTurns();
+    expect(turns).toHaveLength(1);
+    // The settled words stand where the streamed ones were; the word past
+    // the span survives untouched.
+    expect(turns[0].text).toBe('Brett Haddock builds');
+  });
+
   it('live: speaker change starts a new turn', () => {
     const conversation = new Conversation();
     conversation.apply({

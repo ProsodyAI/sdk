@@ -1,4 +1,4 @@
-import type { BargeInEvent, DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, StateDeltaEvent, TranscriptUpdateEvent, TurnBoundaryEvent, WarningEvent } from './types.js';
+import type { BargeInEvent, DirectiveEvent, ProsodyEvent, ServerErrorEvent, SessionEndEvent, SpeakerProfilesEvent, SpeakerUpdateEvent, StateDeltaEvent, TranscriptRevisionEvent, TranscriptUpdateEvent, TurnBoundaryEvent, WarningEvent } from './types.js';
 import { VoiceFrame } from './step.js';
 import type { Conversation } from './conversation.js';
 export type RealtimeEncoding = 'pcm16' | 'linear16' | 'opus';
@@ -26,6 +26,8 @@ export interface ProsodyRealtimeHandlers {
     onVoiceFrame?: (frame: VoiceFrame) => void;
     conversation?: Conversation;
     onTranscriptUpdate?: (event: TranscriptUpdateEvent) => void;
+    /** The second pass settled a span; its words replace the streamed ones. */
+    onTranscriptRevision?: (event: TranscriptRevisionEvent) => void;
     onSpeakerUpdate?: (event: SpeakerUpdateEvent) => void;
     onSpeakerProfiles?: (event: SpeakerProfilesEvent) => void;
     /** The lane's state moved decisively against its own baseline. */

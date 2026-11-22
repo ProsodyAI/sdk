@@ -3,10 +3,10 @@ import { ConversationAnalysis, } from './analysis.js';
 import { isKnownSpeaker, normalizeSpeakerId, } from './conversation/turn-model.js';
 import { measurementFromState, prosodyDeltaFromWire, prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
 import { byMagnitude, momentsFromStateDeltas, } from './conversation/moments.js';
-import { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+import { applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
-export { applySpeakerUpdateToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+export { applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude } from './conversation/moments.js';
 /**
@@ -52,6 +52,11 @@ export class Conversation {
         if (type === 'transcript_update') {
             const update = event;
             this.segments = mergeTranscriptUpdateSegments(this.segments, update.segments ?? [], update.result_id ?? '', Boolean(update.is_final), Boolean(update.speech_final));
+            return this;
+        }
+        if (type === 'transcript_revision') {
+            const revision = event;
+            this.segments = applyTranscriptRevisionToSegments(this.segments, revision.segments ?? [], revision.result_id ?? '', Number(revision.start_ms ?? 0), Number(revision.end_ms ?? 0));
             return this;
         }
         if (type === 'speaker_update') {

@@ -40,6 +40,35 @@ export function mergeTranscriptUpdateSegments(
   return [...retained, ...nextSegments];
 }
 
+/**
+ * Apply one settled span from the second pass: drop the held segments whose
+ * midpoint falls inside `[startMs, endMs)` and keep the revision's words,
+ * all final, in their place.
+ */
+export function applyTranscriptRevisionToSegments(
+  current: LiveSegment[],
+  incoming: TranscriptUpdateSegment[],
+  resultId: string,
+  startMs: number,
+  endMs: number,
+): LiveSegment[] {
+  if (endMs <= startMs) return current;
+  const retained = current.filter((segment) => {
+    const midpoint = Math.floor((segment.start_ms + segment.end_ms) / 2);
+    return midpoint < startMs || midpoint >= endMs;
+  });
+  const revised: LiveSegment[] = incoming.map((segment) => ({
+    ...segment,
+    speaker_id: normalizeSpeakerId(segment.speaker_id),
+    result_id: resultId || segment.result_id,
+    is_final: true,
+    speech_final: false,
+  }));
+  return [...retained, ...revised].sort(
+    (a, b) => a.start_ms - b.start_ms || a.end_ms - b.end_ms,
+  );
+}
+
 /** Port of demo `applySpeakerUpdateToSegments`. */
 export function applySpeakerUpdateToSegments(
   segments: LiveSegment[],

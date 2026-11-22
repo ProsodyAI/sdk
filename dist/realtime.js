@@ -76,6 +76,7 @@ export class ProsodyRealtimeStream {
                         || payload.type === 'warning'
                         || payload.type === 'directive'
                         || payload.type === 'transcript_update'
+                        || payload.type === 'transcript_revision'
                         || payload.type === 'speaker_update'
                         || payload.type === 'speaker_profiles'
                         || payload.type === 'state_delta'
@@ -185,6 +186,10 @@ export class ProsodyRealtimeStream {
             }
             case 'transcript_update':
                 this.handlers.onTranscriptUpdate?.(event);
+                this.handlers.conversation?.apply(event);
+                break;
+            case 'transcript_revision':
+                this.handlers.onTranscriptRevision?.(event);
                 this.handlers.conversation?.apply(event);
                 break;
             case 'speaker_update':

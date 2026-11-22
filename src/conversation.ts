@@ -7,6 +7,7 @@ import type {
   SessionEndEvent,
   SpeakerUpdateEvent,
   StateDeltaEvent,
+  TranscriptRevisionEvent,
   TranscriptUpdateEvent,
   TurnBoundaryEvent,
 } from './types.js';
@@ -38,6 +39,7 @@ import {
 } from './conversation/moments.js';
 import {
   applySpeakerUpdateToSegments,
+  applyTranscriptRevisionToSegments,
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
@@ -54,6 +56,7 @@ export {
 } from './conversation/prosody.js';
 export {
   applySpeakerUpdateToSegments,
+  applyTranscriptRevisionToSegments,
   mergeTranscriptUpdateSegments,
 } from './conversation/transcript-merge.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
@@ -109,6 +112,17 @@ export class Conversation {
         update.result_id ?? '',
         Boolean(update.is_final),
         Boolean(update.speech_final),
+      );
+      return this;
+    }
+    if (type === 'transcript_revision') {
+      const revision = event as TranscriptRevisionEvent;
+      this.segments = applyTranscriptRevisionToSegments(
+        this.segments,
+        revision.segments ?? [],
+        revision.result_id ?? '',
+        Number(revision.start_ms ?? 0),
+        Number(revision.end_ms ?? 0),
       );
       return this;
     }
