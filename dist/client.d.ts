@@ -3,7 +3,7 @@ import type { ProsodyClientConfig } from './config.js';
 import type { RecallResult } from './types/memory.js';
 import type { IpaTranscription } from './types/phonetics.js';
 import { Conversation } from './conversation.js';
-import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type RealtimeEncoding } from './realtime.js';
+import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type ListeningCapability, type RealtimeEncoding } from './realtime.js';
 import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
 import { type Transcription, type TranscribeOptions } from './transcription.js';
 type RealtimeSessionOpts = LiveSessionStartOptions & Pick<LiveSessionOptions, 'onUpdate' | 'onError' | 'onClose' | 'onEvent' | 'WebSocketImpl'>;
@@ -16,6 +16,7 @@ type RealtimeConnectOpts = {
     source?: string;
     sourceOffsetMs?: number;
     chunkSeconds?: number;
+    capabilities?: ListeningCapability[];
     WebSocketImpl?: typeof WebSocket;
 };
 /**

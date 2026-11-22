@@ -116,6 +116,7 @@ export { parseProsodyEvent } from './events.js';
 export {
   ProsodyRealtimeStream,
   realtimeWsUrl,
+  type ListeningCapability,
   type ProsodyRealtimeConfig,
   type ProsodyRealtimeHandlers,
   type RealtimeEncoding,

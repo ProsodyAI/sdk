@@ -9,7 +9,7 @@ export { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions, } f
 export { transcriptionFromConversation, Speaker, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';
 export { applySpeakerUpdateToSegments, } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
-export { ProsodyRealtimeStream, realtimeWsUrl, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';
+export { ProsodyRealtimeStream, realtimeWsUrl, type ListeningCapability, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';
 export { createWavBuffer } from './wav.js';
 export type { IpaTranscription, PhonemeSegment, } from './types/phonetics.js';
 export { ProsodyClient as default } from './client.js';

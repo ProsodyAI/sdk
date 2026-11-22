@@ -1,5 +1,5 @@
 import { Conversation } from './conversation.js';
-import { type RealtimeEncoding } from './realtime.js';
+import { type ListeningCapability, type RealtimeEncoding } from './realtime.js';
 import { type Transcription, type TranscribeOptions } from './transcription.js';
 import type { DirectiveEvent, ProsodyEvent, SessionEndEvent, SpeakerProfile } from './types.js';
 export interface LiveSessionStartOptions {
@@ -11,6 +11,8 @@ export interface LiveSessionStartOptions {
     analysisMode?: string;
     chunkSeconds?: number;
     sessionId?: string;
+    /** The capabilities this session runs. Omit for all of them. */
+    capabilities?: ListeningCapability[];
 }
 export interface LiveSessionOptions {
     apiKey: string;

@@ -2,6 +2,7 @@ import { Conversation } from './conversation.js';
 import {
   ProsodyRealtimeStream,
   type ProsodyRealtimeConfig,
+  type ListeningCapability,
   type RealtimeEncoding,
 } from './realtime.js';
 import {
@@ -25,6 +26,8 @@ export interface LiveSessionStartOptions {
   analysisMode?: string;
   chunkSeconds?: number;
   sessionId?: string;
+  /** The capabilities this session runs. Omit for all of them. */
+  capabilities?: ListeningCapability[];
 }
 
 export interface LiveSessionOptions {
@@ -118,6 +121,7 @@ export class LiveSession {
       source: startOpts.source ?? 'sdk',
       sourceOffsetMs: startOpts.sourceOffsetMs,
       chunkSeconds: startOpts.chunkSeconds ?? 1,
+      capabilities: startOpts.capabilities,
       WebSocketImpl: this.options.WebSocketImpl,
     };
 

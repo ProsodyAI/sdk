@@ -67,6 +67,7 @@ export class LiveSession {
             source: startOpts.source ?? 'sdk',
             sourceOffsetMs: startOpts.sourceOffsetMs,
             chunkSeconds: startOpts.chunkSeconds ?? 1,
+            capabilities: startOpts.capabilities,
             WebSocketImpl: this.options.WebSocketImpl,
         };
         const stream = new ProsodyRealtimeStream(config, {
