@@ -1,6 +1,8 @@
 export declare class ProsodyError extends Error {
     statusCode: number;
     responseBody?: unknown | undefined;
+    code?: string;
+    requestId?: string;
     constructor(statusCode: number, message: string, responseBody?: unknown | undefined);
 }
 export declare class AuthenticationError extends ProsodyError {

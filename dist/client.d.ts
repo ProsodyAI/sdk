@@ -3,6 +3,7 @@ import type { ProsodyClientConfig } from './config.js';
 import type { RecallResult } from './types/memory.js';
 import type { IpaTranscription } from './types/phonetics.js';
 import { Conversation } from './conversation.js';
+import { ControlClient } from './control.js';
 import { ProsodyRealtimeStream, type ProsodyRealtimeHandlers, type ListeningCapability, type RealtimeEncoding } from './realtime.js';
 import { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions } from './live-session.js';
 import { type Transcription, type TranscribeOptions } from './transcription.js';
@@ -56,6 +57,7 @@ export declare class ProsodyClient {
             post: (personId: string, topK?: number, signal?: AbortSignal) => Promise<RecallResult>;
         };
     };
+    readonly control: ControlClient;
     constructor(config: ProsodyClientConfig | string);
     /** Transcribe a recording over REST; diarization and vocal measurement are options. */
     transcribe(audio: string | Buffer, options?: TranscribeOptions, signal?: AbortSignal): Promise<Transcription>;

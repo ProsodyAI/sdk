@@ -33,6 +33,7 @@
     "clean": "node scripts/clean.mjs",
     "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "types:control": "openapi-typescript ../../api/openapi.json -o src/types/control.ts",
     "test": "vitest run",
     "prepack": "npm run build"
   },
