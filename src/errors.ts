@@ -1,4 +1,7 @@
 export class ProsodyError extends Error {
+  code?: string;
+  requestId?: string;
+
   constructor(
     public statusCode: number,
     message: string,
@@ -47,20 +50,30 @@ export class ConnectionError extends ProsodyError {
   }
 }
 
+function enveloped(error: ProsodyError, body: any): ProsodyError {
+  const envelope = body?.error;
+  if (envelope && typeof envelope === 'object') {
+    if (typeof envelope.code === 'string') error.code = envelope.code;
+    if (typeof envelope.request_id === 'string') error.requestId = envelope.request_id;
+  }
+  return error;
+}
+
 export function errorFromResponse(status: number, body: any): ProsodyError {
-  const message = body?.message || body?.error || `Request failed with status ${status}`;
+  const described = body?.error && typeof body.error === 'object' ? body.error.message : undefined;
+  const message = body?.message || described || body?.error || `Request failed with status ${status}`;
 
   switch (status) {
     case 401:
     case 403:
-      return new AuthenticationError(message);
+      return enveloped(new AuthenticationError(message), body);
     case 422:
-      return new ValidationError(message, body?.details);
+      return enveloped(new ValidationError(message, body?.details), body);
     case 429: {
       const retryAfter = body?.retry_after_ms ?? 1000;
-      return new RateLimitError(retryAfter, message);
+      return enveloped(new RateLimitError(retryAfter, message), body);
     }
     default:
-      return new ProsodyError(status, message, body);
+      return enveloped(new ProsodyError(status, message, body), body);
   }
 }

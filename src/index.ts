@@ -25,6 +25,9 @@ export type {
   DiarizationResult,
   AnalysisTurn,
   AnalysisEvent,
+  IntonationPhraseEvent,
+  IntonationTerminal,
+  ProminenceEvent,
   TurnBoundary,
   AnalysisResult,
   TranscriptionStatus,
@@ -57,6 +60,40 @@ export type {
 } from './types.js';
 
 export type { ProsodyClientConfig, RetryConfig } from './config.js';
+
+export {
+  ControlClient,
+  type Precondition,
+  type Directive,
+  type DirectiveRef,
+  type Lexicon,
+  type Bundle,
+  type DialoguePolicy,
+  type CallState,
+  type Transition,
+  type StateDelta,
+  type Agent,
+  type AgentConfig,
+  type CreateAgentRequest,
+  type UpdateAgentRequest,
+  type Listening,
+  type Limits,
+  type Account,
+  type ErrorEnvelope,
+} from './control.js';
+export {
+  endpoints,
+  callControl,
+  type ControlRoute,
+  type ControlMethod,
+  type ControlCall,
+  type ControlResult,
+  type ControlResponse,
+  type ControlBody,
+  type ControlPath,
+  type ControlQuery,
+} from './endpoints.js';
+export type { paths as ControlPaths, components as ControlComponents } from './types/control.js';
 
 export {
   ProsodyError,

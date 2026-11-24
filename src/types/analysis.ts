@@ -65,7 +65,27 @@ export type AnalysisEvent =
   | { type: 'turn_boundary'; frame_ms: number; commit_ms: number }
   | { type: 'barge_in'; frame_ms: number; commit_ms: number; duration_ms: number; resolved: boolean }
   | { type: 'state_delta'; frame_ms: number; commit_ms: number; duration_ms: number; magnitude: number; resolved: boolean }
-  | { type: 'entity_span'; frame_ms: number; commit_ms: number; duration_ms: number; kind: string };
+  | { type: 'entity_span'; frame_ms: number; commit_ms: number; duration_ms: number; kind: string }
+  | IntonationPhraseEvent
+  | ProminenceEvent;
+
+export type IntonationTerminal = 'fall' | 'rise' | 'level';
+
+export interface IntonationPhraseEvent {
+  type: 'intonation_phrase';
+  frame_ms: number;
+  commit_ms: number;
+  duration_ms: number;
+  terminal: IntonationTerminal;
+  glide_st: number;
+}
+
+export interface ProminenceEvent {
+  type: 'prominence';
+  frame_ms: number;
+  commit_ms: number;
+  duration_ms: number;
+}
 
 /** The timing skeleton of a conversation: who holds the floor, and when. */
 export interface TurnBoundary {

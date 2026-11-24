@@ -1,3 +1,5 @@
+export { ControlClient, } from './control.js';
+export { endpoints, callControl, } from './endpoints.js';
 export { ProsodyError, AuthenticationError, RateLimitError, ValidationError, TimeoutError, ConnectionError, } from './errors.js';
 export { parseAnalysisResult, ConversationAnalysis, voiceFrames, measurementSeries, } from './analysis.js';
 export { VoiceFrame, } from './step.js';

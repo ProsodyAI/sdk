@@ -2,6 +2,7 @@ import { parseAnalysisResult } from './analysis.js';
 import { Conversation } from './conversation.js';
 import { resolveConfig } from './config.js';
 import { callForm, callJSON, callQuery, endpoints } from './endpoints.js';
+import { ControlClient } from './control.js';
 import { audioFormData } from './forms.js';
 import { ProsodyRealtimeStream, } from './realtime.js';
 import { createWavBuffer } from './wav.js';
@@ -24,11 +25,13 @@ export class ProsodyClient {
     speakers;
     /** Operator surface: a saved person's persisted significant moments. */
     memory;
+    control;
     constructor(config) {
         const resolved = resolveConfig(config);
         this.apiKey = resolved.apiKey;
         this.baseUrl = resolved.baseUrl;
         this.opts = resolved;
+        this.control = new ControlClient(resolved);
         this.conversations = Object.freeze({
             analyze: this.analyzeConversation.bind(this),
         });
