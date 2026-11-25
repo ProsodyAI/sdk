@@ -7,7 +7,8 @@ export { Conversation, prosodyFromState, prosodyFromFrame, mergeTranscriptUpdate
 export { ProsodyClient } from './client.js';
 export { LiveSession, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, } from './transcription.js';
-export { applySpeakerUpdateToSegments, } from './conversation.js';
+export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, } from './conversation.js';
+export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, } from './realtime.js';
 export { createWavBuffer } from './wav.js';

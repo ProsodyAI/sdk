@@ -12,6 +12,8 @@ export interface ConversationTurn {
 export type LiveSegment = TranscriptUpdateSegment & {
     speech_final?: boolean;
     is_final?: boolean;
+    /** The model committed this segment to its speaker; no later span relabels it. */
+    speaker_committed?: boolean;
 };
 /** One recurrent step's committed readout, anchored on the audio clock. */
 export type StepAnchor = {
