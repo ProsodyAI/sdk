@@ -80,9 +80,39 @@ export class RoomTranscript {
         else
             this.speakerChange(event);
     }
-    /** Every held segment, agent lines included, in session-clock order. */
+    /**
+     * Every held segment, agent lines included, in session-clock order, with
+     * the callers' unattributed runs resolved the way a reader resolves them:
+     * a run before any caller voice belongs to the first voice after it, and a
+     * run between two spans of the same voice belongs to that voice. Only whole
+     * words resolve; a word still forming keeps its label.
+     */
     all() {
-        return [...this.segments].sort((a, b) => a.start_ms - b.start_ms || a.end_ms - b.end_ms);
+        const sorted = this.segments
+            .map((segment) => ({ ...segment }))
+            .sort((a, b) => a.start_ms - b.start_ms || a.end_ms - b.end_ms);
+        const callers = sorted.filter((segment) => !this.isAgent(segment.speaker_id));
+        for (let index = 0; index < callers.length;) {
+            if (isKnownSpeaker(callers[index].speaker_id)) {
+                index += 1;
+                continue;
+            }
+            const runStart = index;
+            while (index < callers.length && !isKnownSpeaker(callers[index].speaker_id))
+                index += 1;
+            const left = callers[runStart - 1];
+            const right = callers[index];
+            const run = callers.slice(runStart, index);
+            if (!right?.is_final || !run.every((segment) => segment.is_final))
+                continue;
+            const owner = normalizeSpeakerId(right.speaker_id);
+            const bridged = left === undefined || (left.is_final && normalizeSpeakerId(left.speaker_id) === owner);
+            if (!bridged)
+                continue;
+            for (const segment of run)
+                segment.speaker_id = owner;
+        }
+        return sorted;
     }
     /** The callers' whole words, in session-clock order. */
     words() {
