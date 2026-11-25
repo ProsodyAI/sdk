@@ -147,7 +147,22 @@ export {
   type VoiceStat,
 } from './transcription.js';
 export {
+  applyCommittedSpans,
   applySpeakerUpdateToSegments,
+  applyTranscriptRevisionToSegments,
+  type CommittedSpan,
+} from './conversation.js';
+export {
+  AGENT_SPEAKER_ID,
+  ROOM_SPEAKER_CHANGE_EVENT,
+  ROOM_TRANSCRIPT_EVENT,
+  RoomTranscript,
+  UNKNOWN_SPEAKER_ID,
+  parseRoomTranscriptInput,
+  type RoomSpeakerChangeEvent,
+  type RoomTranscriptDelta,
+  type RoomTranscriptEvent,
+  type RoomTranscriptInput,
 } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export {

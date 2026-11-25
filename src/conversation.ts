@@ -55,10 +55,24 @@ export {
   type ProsodyState,
 } from './conversation/prosody.js';
 export {
+  applyCommittedSpans,
   applySpeakerUpdateToSegments,
   applyTranscriptRevisionToSegments,
   mergeTranscriptUpdateSegments,
+  type CommittedSpan,
 } from './conversation/transcript-merge.js';
+export {
+  AGENT_SPEAKER_ID,
+  ROOM_SPEAKER_CHANGE_EVENT,
+  ROOM_TRANSCRIPT_EVENT,
+  RoomTranscript,
+  UNKNOWN_SPEAKER_ID,
+  parseRoomTranscriptInput,
+  type RoomSpeakerChangeEvent,
+  type RoomTranscriptDelta,
+  type RoomTranscriptEvent,
+  type RoomTranscriptInput,
+} from './conversation/room-transcript.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 

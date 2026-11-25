@@ -6,7 +6,8 @@ import { byMagnitude, momentsFromStateDeltas, } from './conversation/moments.js'
 import { applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
 import { buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { prosodyFromState, prosodyFromFrame, } from './conversation/prosody.js';
-export { applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, } from './conversation/transcript-merge.js';
+export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, } from './conversation/room-transcript.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude } from './conversation/moments.js';
 /**

@@ -10,7 +10,8 @@ export { Conversation, prosodyFromState, prosodyFromFrame, mergeTranscriptUpdate
 export { ProsodyClient } from './client.js';
 export { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';
-export { applySpeakerUpdateToSegments, } from './conversation.js';
+export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, type CommittedSpan, } from './conversation.js';
+export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, type RoomSpeakerChangeEvent, type RoomTranscriptDelta, type RoomTranscriptEvent, type RoomTranscriptInput, } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, type ListeningCapability, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';
 export { createWavBuffer } from './wav.js';
