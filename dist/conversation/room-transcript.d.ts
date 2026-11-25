@@ -57,7 +57,13 @@ export declare class RoomTranscript {
     private wordResults;
     /** Feed one decoded room payload; events this model does not read are ignored. */
     observe(payload: unknown): void;
-    /** Every held segment, agent lines included, in session-clock order. */
+    /**
+     * Every held segment, agent lines included, in session-clock order, with
+     * the callers' unattributed runs resolved the way a reader resolves them:
+     * a run before any caller voice belongs to the first voice after it, and a
+     * run between two spans of the same voice belongs to that voice. Only whole
+     * words resolve; a word still forming keeps its label.
+     */
     all(): LiveSegment[];
     /** The callers' whole words, in session-clock order. */
     words(): LiveSegment[];
