@@ -9,6 +9,7 @@ export { LiveSession, } from './live-session.js';
 export { transcriptionFromConversation, Speaker, } from './transcription.js';
 export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, } from './conversation.js';
 export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, } from './conversation.js';
+export { ROOM_TOOLS_METHOD, ROOM_TOOL_METHOD_PREFIX, parseRoomToolArguments, parseRoomToolManifest, parseRoomToolReply, registerRoomTools, roomToolManifest, roomToolMethod, } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, } from './realtime.js';
 export { createWavBuffer } from './wav.js';

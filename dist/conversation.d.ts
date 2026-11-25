@@ -8,6 +8,7 @@ export type { ConversationTurn } from './conversation/turn-model.js';
 export { prosodyFromState, prosodyFromFrame, type MeasurementPath, type Prosody, type ProsodyChange, type ProsodyDelta, type ProsodyState, } from './conversation/prosody.js';
 export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, mergeTranscriptUpdateSegments, type CommittedSpan, } from './conversation/transcript-merge.js';
 export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, type RoomSpeakerChangeEvent, type RoomTranscriptDelta, type RoomTranscriptEvent, type RoomTranscriptInput, } from './conversation/room-transcript.js';
+export { ROOM_TOOLS_METHOD, ROOM_TOOL_METHOD_PREFIX, parseRoomToolArguments, parseRoomToolManifest, parseRoomToolReply, registerRoomTools, roomToolManifest, roomToolMethod, type RoomRpcHost, type RoomTool, type RoomToolArguments, type RoomToolDefinition, type RoomToolHandler, type RoomToolManifest, type RoomToolReply, } from './conversation/room-tools.js';
 export { appendTranscriptPiece, buildTurnsFromSegments } from './conversation/turn-builder.js';
 export { byMagnitude, type Moment } from './conversation/moments.js';
 /**

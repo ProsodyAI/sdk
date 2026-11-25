@@ -164,6 +164,23 @@ export {
   type RoomTranscriptEvent,
   type RoomTranscriptInput,
 } from './conversation.js';
+export {
+  ROOM_TOOLS_METHOD,
+  ROOM_TOOL_METHOD_PREFIX,
+  parseRoomToolArguments,
+  parseRoomToolManifest,
+  parseRoomToolReply,
+  registerRoomTools,
+  roomToolManifest,
+  roomToolMethod,
+  type RoomRpcHost,
+  type RoomTool,
+  type RoomToolArguments,
+  type RoomToolDefinition,
+  type RoomToolHandler,
+  type RoomToolManifest,
+  type RoomToolReply,
+} from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export {
   ProsodyRealtimeStream,
