@@ -12,6 +12,7 @@ export { LiveSession, type LiveSessionOptions, type LiveSessionStartOptions, } f
 export { transcriptionFromConversation, Speaker, type TranscribeOptions, type TranscribeTurn, type Transcription, type VoiceProfile, type VoiceStat, } from './transcription.js';
 export { applyCommittedSpans, applySpeakerUpdateToSegments, applyTranscriptRevisionToSegments, type CommittedSpan, } from './conversation.js';
 export { AGENT_SPEAKER_ID, ROOM_SPEAKER_CHANGE_EVENT, ROOM_TRANSCRIPT_EVENT, RoomTranscript, UNKNOWN_SPEAKER_ID, parseRoomTranscriptInput, type RoomSpeakerChangeEvent, type RoomTranscriptDelta, type RoomTranscriptEvent, type RoomTranscriptInput, } from './conversation.js';
+export { ROOM_TOOLS_METHOD, ROOM_TOOL_METHOD_PREFIX, parseRoomToolArguments, parseRoomToolManifest, parseRoomToolReply, registerRoomTools, roomToolManifest, roomToolMethod, type RoomRpcHost, type RoomTool, type RoomToolArguments, type RoomToolDefinition, type RoomToolHandler, type RoomToolManifest, type RoomToolReply, } from './conversation.js';
 export { parseProsodyEvent } from './events.js';
 export { ProsodyRealtimeStream, realtimeWsUrl, type ListeningCapability, type ProsodyRealtimeConfig, type ProsodyRealtimeHandlers, type RealtimeEncoding, } from './realtime.js';
 export { createWavBuffer } from './wav.js';
