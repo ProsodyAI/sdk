@@ -1749,6 +1749,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/realtime/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Call a phone number with the agent
+         * @description Dial `to_number` through the platform's carrier and dispatch the agent into the call.
+         */
+        post: operations["create_realtime_call_v1_realtime_calls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/realtime/sessions": {
         parameters: {
             query?: never;
@@ -6139,6 +6159,54 @@ export interface components {
             text: string;
         };
         /**
+         * RealtimeCallCreateRequest
+         * @description Have the agent call a phone number.
+         */
+        RealtimeCallCreateRequest: {
+            /**
+             * Agent Name
+             * @description LiveKit agent to dispatch; the platform's default when omitted
+             */
+            agent_name?: string | null;
+            /**
+             * Client
+             * @description Opaque identifier of the requester, such as a hash of the visitor's address, so one visitor is held to the per-client call limit
+             */
+            client?: string | null;
+            /**
+             * Participant Name
+             * @description Display name of the phone participant in the room
+             */
+            participant_name?: string | null;
+            /**
+             * To Number
+             * @description The number to call, in E.164 form
+             */
+            to_number: string;
+        };
+        /**
+         * RealtimeCallCreateResponse
+         * @description One placed call: the session it opened and the room the agent is in.
+         */
+        RealtimeCallCreateResponse: {
+            /** Event Topic */
+            event_topic: string;
+            /** Participant Identity */
+            participant_identity: string;
+            /** Room Name */
+            room_name: string;
+            /** Session Id */
+            session_id: string;
+            status: components["schemas"]["RealtimeCallStatus"];
+            /** To Number */
+            to_number: string;
+        };
+        /**
+         * RealtimeCallStatus
+         * @enum {string}
+         */
+        RealtimeCallStatus: "ringing";
+        /**
          * RealtimeSessionCreateRequest
          * @description Create a realtime analysis room, or join one that already exists.
          */
@@ -6163,6 +6231,8 @@ export interface components {
              * @description Deprecated for LiveKit rooms. Browser-supplied person identity is rejected; acoustic voiceprint resolution is authoritative.
              */
             user_id?: string | null;
+            /** @description The speech service that speaks on this call, fixed when the call starts. Omitted, the deployment's default serves. Ignored when joining an existing session. personaplex is refused until the gateway speaks the speech slot's signed call protocol. */
+            voice?: components["schemas"]["SpeechKind"] | null;
         };
         /**
          * RealtimeSessionCreateResponse
@@ -7344,6 +7414,12 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /**
+         * SpeechKind
+         * @description The speech services this gateway can bridge to.
+         * @enum {string}
+         */
+        SpeechKind: "personaplex" | "gpt-live";
         /**
          * SpeechPresenceCurve
          * @description Per-epoch frame-level speech presence: ranking plus both error rates.
@@ -11949,6 +12025,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhoneticsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_realtime_call_v1_realtime_calls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RealtimeCallCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RealtimeCallCreateResponse"];
                 };
             };
             /** @description Validation Error */
