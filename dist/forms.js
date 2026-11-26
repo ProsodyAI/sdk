@@ -1,18 +1,18 @@
 /** FormData builders for audio uploads. */
+/** Whether an audio input names a recording by URL. */
+export function isAudioUrl(audio) {
+    return typeof audio === 'string' && /^https?:\/\//i.test(audio);
+}
 /**
- * Build the multipart body for one audio input: a local path, an HTTPS URL
- * (when allowed), or a Buffer.
+ * Build the multipart body for one uploaded recording: a local path or a
+ * Buffer. A URL is not an upload; the client sends it to the URL route.
  */
 export async function audioFormData(audio, options = {}) {
-    const { filename = 'audio.wav', allowUrl = true } = options;
+    const { filename = 'audio.wav' } = options;
     const formData = new FormData();
     if (typeof audio === 'string') {
-        if (audio.startsWith('http')) {
-            if (!allowUrl) {
-                throw new Error('This endpoint requires an uploaded audio file');
-            }
-            formData.append('audio_url', audio);
-            return formData;
+        if (isAudioUrl(audio)) {
+            throw new Error('This endpoint requires an uploaded audio file');
         }
         const fs = await import('fs');
         const buffer = fs.readFileSync(audio);
