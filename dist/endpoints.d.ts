@@ -67,6 +67,7 @@ export interface ControlResult<Body> {
 /** The whole REST surface. Adding an endpoint is one entry here. */
 export declare const endpoints: {
     readonly analyzeAudio: Endpoint<Record<string, unknown>>;
+    readonly analyzeUrl: Endpoint<Record<string, unknown>>;
     readonly analyzeBase64: Endpoint<Record<string, unknown>>;
     readonly submitCorrection: Endpoint<{
         status: string;

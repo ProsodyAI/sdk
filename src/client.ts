@@ -21,7 +21,7 @@ import { Conversation } from './conversation.js';
 import { resolveConfig } from './config.js';
 import { callForm, callJSON, callQuery, endpoints } from './endpoints.js';
 import { ControlClient } from './control.js';
-import { audioFormData } from './forms.js';
+import { audioFormData, isAudioUrl } from './forms.js';
 import {
   ProsodyRealtimeStream,
   type ProsodyRealtimeHandlers,
@@ -158,14 +158,26 @@ export class ProsodyClient {
    * decided by the word-initial nasal's spectrum, not by parsing text.
    */
   async ipa(audio: string | Buffer, signal?: AbortSignal): Promise<IpaTranscription> {
-    const formData = await audioFormData(audio, { allowUrl: false });
+    const formData = await audioFormData(audio);
     return callForm(endpoints.phoneticsIpa, this.opts, formData, signal);
   }
 
   // ──────────────────────────── Analysis ────────────────────────────
 
-  /** Raw batch analysis result (`POST /v1/analyze/audio`), parsed as `AnalysisResult`. */
+  /**
+   * Raw batch analysis result, parsed as `AnalysisResult`. A local path or a
+   * Buffer is uploaded (`POST /v1/analyze/audio`); an `http(s)` URL is fetched
+   * by the API (`POST /v1/analyze/url`).
+   */
   async analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult> {
+    if (isAudioUrl(audio)) {
+      const fetched = await callJSON(endpoints.analyzeUrl, this.opts, {
+        audio_url: audio,
+        language: options?.language,
+        session_id: options?.sessionId,
+      }, signal);
+      return parseAnalysisResult(fetched);
+    }
     const formData = await audioFormData(audio);
     if (options?.language) formData.append('language', options.language);
     if (options?.sessionId) formData.append('session_id', options.sessionId);
@@ -429,5 +441,5 @@ async function enrollmentForm(audio: string | Buffer): Promise<FormData> {
   if (typeof audio === 'string' && audio.startsWith('http')) {
     throw new Error('Speaker enrollment requires an uploaded audio file');
   }
-  return audioFormData(audio, { filename: 'enrollment.wav', allowUrl: false });
+  return audioFormData(audio, { filename: 'enrollment.wav' });
 }

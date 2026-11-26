@@ -79,6 +79,7 @@ export interface ControlResult<Body> {
 /** The whole REST surface. Adding an endpoint is one entry here. */
 export const endpoints = {
   analyzeAudio: endpoint<Record<string, unknown>>('POST', '/v1/analyze/audio'),
+  analyzeUrl: endpoint<Record<string, unknown>>('POST', '/v1/analyze/url'),
   analyzeBase64: endpoint<Record<string, unknown>>('POST', '/v1/analyze/base64'),
   submitCorrection: endpoint<{ status: string }>('POST', '/v1/feedback/correction'),
   submitSessionOutcome: endpoint<{ status: string }>('POST', '/v1/feedback/session_outcome'),

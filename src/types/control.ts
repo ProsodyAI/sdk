@@ -2532,7 +2532,7 @@ export interface components {
             format?: string | null;
             /**
              * Storage Path
-             * @description Path or URL to stored audio (e.g. S3/GCS)
+             * @description gs:// or s3:// URI of the stored audio, inside this organization's storage
              */
             storage_path: string;
         };
@@ -2842,6 +2842,11 @@ export interface components {
              * @default []
              */
             metrics: components["schemas"]["LabelMetrics"][];
+            /**
+             * Organization
+             * @default
+             */
+            organization: string;
             /** Ready */
             ready?: string | null;
             status: components["schemas"]["BundleStatus"];
@@ -4387,6 +4392,80 @@ export interface components {
             delivery?: components["schemas"]["Delivery"] | null;
             realization?: components["schemas"]["Realization"] | null;
         };
+        /**
+         * InterviewCosineStats
+         * @description Cosine similarity over the probe profiles. A diagnostic column.
+         */
+        InterviewCosineStats: {
+            /** Cross Cosine Max */
+            cross_cosine_max?: number | null;
+            /** Cross Cosine Mean */
+            cross_cosine_mean?: number | null;
+            /** Same Cosine Mean */
+            same_cosine_mean?: number | null;
+            /** Same Cosine Min */
+            same_cosine_min?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * InterviewGenerativeStats
+         * @description Margin statistics from the clip-under-profile error matrix.
+         */
+        InterviewGenerativeStats: {
+            /** Cross Delta Mean */
+            cross_delta_mean?: number | null;
+            /** Cross Delta Min */
+            cross_delta_min?: number | null;
+            /** Margin */
+            margin?: number | null;
+            /** N Cross Pairs */
+            n_cross_pairs?: number | null;
+            /** N Same Pairs */
+            n_same_pairs?: number | null;
+            /** Same Delta Max */
+            same_delta_max?: number | null;
+            /** Same Delta Mean */
+            same_delta_mean?: number | null;
+            /** Separated */
+            separated?: boolean | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * InterviewProbeReport
+         * @description The interview_probe.json payload: generative margins by subclip length.
+         */
+        InterviewProbeReport: {
+            /** By Subclip Seconds */
+            by_subclip_seconds?: {
+                [key: string]: components["schemas"]["InterviewSubclipStats"];
+            };
+            /** Decoder Available */
+            decoder_available?: boolean | null;
+            /** Probe Files */
+            probe_files?: string[];
+            /** Separated At Any Length */
+            separated_at_any_length?: boolean | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * InterviewSubclipStats
+         * @description One subclip length's scores. ``generative`` rides only with a decoder.
+         */
+        InterviewSubclipStats: {
+            /** Clips Per Speaker */
+            clips_per_speaker?: {
+                [key: string]: number;
+            };
+            cosine?: components["schemas"]["InterviewCosineStats"] | null;
+            generative?: components["schemas"]["InterviewGenerativeStats"] | null;
+            /** N Clips */
+            n_clips?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
         /** IntonationCalibration */
         IntonationCalibration: {
             /** Clips */
@@ -4450,80 +4529,6 @@ export interface components {
          * @enum {string}
          */
         IssueStatus: "ISSUE_STATUS_OPEN" | "ISSUE_STATUS_RESOLVED" | "ISSUE_STATUS_DROPPED";
-        /**
-         * JarvisCosineStats
-         * @description Cosine similarity over the probe profiles. A diagnostic column.
-         */
-        JarvisCosineStats: {
-            /** Cross Cosine Max */
-            cross_cosine_max?: number | null;
-            /** Cross Cosine Mean */
-            cross_cosine_mean?: number | null;
-            /** Same Cosine Mean */
-            same_cosine_mean?: number | null;
-            /** Same Cosine Min */
-            same_cosine_min?: number | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /**
-         * JarvisGenerativeStats
-         * @description Margin statistics from the clip-under-profile error matrix.
-         */
-        JarvisGenerativeStats: {
-            /** Cross Delta Mean */
-            cross_delta_mean?: number | null;
-            /** Cross Delta Min */
-            cross_delta_min?: number | null;
-            /** Margin */
-            margin?: number | null;
-            /** N Cross Pairs */
-            n_cross_pairs?: number | null;
-            /** N Same Pairs */
-            n_same_pairs?: number | null;
-            /** Same Delta Max */
-            same_delta_max?: number | null;
-            /** Same Delta Mean */
-            same_delta_mean?: number | null;
-            /** Separated */
-            separated?: boolean | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /**
-         * JarvisProbeReport
-         * @description The jarvis_probe.json payload: generative margins by subclip length.
-         */
-        JarvisProbeReport: {
-            /** By Subclip Seconds */
-            by_subclip_seconds?: {
-                [key: string]: components["schemas"]["JarvisSubclipStats"];
-            };
-            /** Decoder Available */
-            decoder_available?: boolean | null;
-            /** Probe Files */
-            probe_files?: string[];
-            /** Separated At Any Length */
-            separated_at_any_length?: boolean | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /**
-         * JarvisSubclipStats
-         * @description One subclip length's scores. ``generative`` rides only with a decoder.
-         */
-        JarvisSubclipStats: {
-            /** Clips Per Speaker */
-            clips_per_speaker?: {
-                [key: string]: number;
-            };
-            cosine?: components["schemas"]["JarvisCosineStats"] | null;
-            generative?: components["schemas"]["JarvisGenerativeStats"] | null;
-            /** N Clips */
-            n_clips?: number | null;
-        } & {
-            [key: string]: unknown;
-        };
         /** Judgment */
         Judgment: {
             answerhood?: components["schemas"]["Answerhood"] | null;
@@ -6593,8 +6598,8 @@ export interface components {
             /** Health Checks */
             health_checks?: components["schemas"]["Check"][];
             identity_verification?: components["schemas"]["IdentityVerificationReport"] | null;
+            interview_probe?: components["schemas"]["InterviewProbeReport"] | null;
             intonation_terminal_calibration?: components["schemas"]["IntonationCalibration"] | null;
-            jarvis_probe?: components["schemas"]["JarvisProbeReport"] | null;
             objective_manifest?: components["schemas"]["ObjectiveManifest"] | null;
             regression_gate?: components["schemas"]["RegressionGate"] | null;
             /** Run Id */

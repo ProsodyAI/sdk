@@ -8,6 +8,7 @@ function control(path, method) {
 /** The whole REST surface. Adding an endpoint is one entry here. */
 export const endpoints = {
     analyzeAudio: endpoint('POST', '/v1/analyze/audio'),
+    analyzeUrl: endpoint('POST', '/v1/analyze/url'),
     analyzeBase64: endpoint('POST', '/v1/analyze/base64'),
     submitCorrection: endpoint('POST', '/v1/feedback/correction'),
     submitSessionOutcome: endpoint('POST', '/v1/feedback/session_outcome'),

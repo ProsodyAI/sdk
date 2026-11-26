@@ -67,7 +67,11 @@ export declare class ProsodyClient {
      * decided by the word-initial nasal's spectrum, not by parsing text.
      */
     ipa(audio: string | Buffer, signal?: AbortSignal): Promise<IpaTranscription>;
-    /** Raw batch analysis result (`POST /v1/analyze/audio`), parsed as `AnalysisResult`. */
+    /**
+     * Raw batch analysis result, parsed as `AnalysisResult`. A local path or a
+     * Buffer is uploaded (`POST /v1/analyze/audio`); an `http(s)` URL is fetched
+     * by the API (`POST /v1/analyze/url`).
+     */
     analyze(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<AnalysisResult>;
     /** Analyze one recording into a diarized conversation with vocal measurements. */
     analyzeConversation(audio: string | Buffer, options?: AnalysisOptions, signal?: AbortSignal): Promise<Conversation>;
