@@ -326,6 +326,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/evals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Evals
+         * @description List `UUIDv5`-addressed `EvalSummary` objects filtered by target, spec, or checkpoint UUID.
+         */
+        get: operations["list_evals_v1_admin_evals_get"];
+        put?: never;
+        /**
+         * Upsert Evals
+         * @description Ingest one or more `UUIDv5`-addressed `EvalSummary` objects (zero files required).
+         */
+        post: operations["upsert_evals_v1_admin_evals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/evals/specs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Eval Specs
+         * @description List evaluation definitions with their deterministic `UUIDv5` `id`.
+         */
+        get: operations["list_eval_specs_v1_admin_evals_specs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/evals/{eval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Eval
+         * @description Fetch a single evaluation object directly by its deterministic `UUIDv5`.
+         */
+        get: operations["get_eval_v1_admin_evals__eval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/inference-runs": {
         parameters: {
             query?: never;
@@ -505,6 +569,26 @@ export interface paths {
         patch: operations["update_autoscaling_v1_admin_model_deployments_patch"];
         trace?: never;
     };
+    "/v1/admin/model/deployments/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Deployment
+         * @description Build and publish a Baseten deployment remotely from Git or UUID `StorageObject`s.
+         */
+        post: operations["publish_deployment_v1_admin_model_deployments_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/model/logs": {
         parameters: {
             query?: never;
@@ -617,6 +701,57 @@ export interface paths {
          *     training items and leaves the database-backed ones intact.
          */
         get: operations["list_notifications_v1_admin_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/objects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Storage Object */
+        post: operations["create_storage_object_v1_admin_objects_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/objects/{object_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Storage Object */
+        get: operations["get_storage_object_v1_admin_objects__object_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/objects/{object_id}/bytes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Storage Object Bytes */
+        get: operations["get_storage_object_bytes_v1_admin_objects__object_id__bytes_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -917,6 +1052,26 @@ export interface paths {
         get: operations["list_event_runs_v1_admin_training_runs_events_recent_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/training-runs/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Launch Remote Training Job
+         * @description Create a remote job on `project_id` pulling code via `git` and inputs by `StorageObject` UUID.
+         */
+        post: operations["launch_remote_training_job_v1_admin_training_runs_jobs_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1768,6 +1923,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/realtime/calls/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * End a call the agent placed
+         * @description Hang up the call `session_id` opened. A call that already ended answers the same.
+         */
+        delete: operations["end_realtime_call_v1_realtime_calls__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/realtime/sessions": {
         parameters: {
             query?: never;
@@ -2256,6 +2431,11 @@ export interface components {
         AgentConfig: {
             /** Bundle */
             bundle?: string | null;
+            /**
+             * Connectors
+             * @default []
+             */
+            connectors: components["schemas"]["ConnectorSelection"][];
             /** Dialoguepolicy */
             dialoguePolicy?: string | null;
             /**
@@ -2269,6 +2449,11 @@ export interface components {
              */
             instructions: string;
             /**
+             * Knowledge
+             * @default []
+             */
+            knowledge: components["schemas"]["KnowledgeEntry"][];
+            /**
              * Language
              * @default
              */
@@ -2276,6 +2461,11 @@ export interface components {
             lifecycle?: components["schemas"]["Lifecycle"] | null;
             listening?: components["schemas"]["Listening"] | null;
             policy?: components["schemas"]["Policy"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["Role"][];
             /**
              * Selections
              * @default []
@@ -2466,6 +2656,24 @@ export interface components {
              * @default
              */
             referent: string;
+        };
+        /** ArgumentLimit */
+        ArgumentLimit: {
+            /**
+             * Argument
+             * @default
+             */
+            argument: string;
+            /**
+             * Tool
+             * @default
+             */
+            tool: string;
+            /**
+             * Values
+             * @default []
+             */
+            values: string[];
         };
         /**
          * ArtifactIdentity
@@ -3026,6 +3234,34 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /**
+         * ComputeSpec
+         * @description Provider-neutral compute request for remote training / evaluation jobs.
+         */
+        ComputeSpec: {
+            /**
+             * Cpu Count
+             * @default 8
+             */
+            cpu_count: number;
+            /**
+             * Gpu Count
+             * @default 1
+             */
+            gpu_count: number;
+            /** Gpu Type */
+            gpu_type?: string | null;
+            /**
+             * Memory
+             * @default 32Gi
+             */
+            memory: string;
+            /**
+             * Node Count
+             * @default 1
+             */
+            node_count: number;
+        };
         /** Condition */
         "Condition-Input": {
             all?: components["schemas"]["Conditions-Input"] | null;
@@ -3067,6 +3303,41 @@ export interface components {
              * @default []
              */
             conditions: components["schemas"]["Condition-Output"][];
+        };
+        /** ConnectorSelection */
+        ConnectorSelection: {
+            /**
+             * Connectorid
+             * @default
+             */
+            connectorId: string;
+            effect?: components["schemas"]["ToolEffect"] | null;
+            /**
+             * Limits
+             * @default []
+             */
+            limits: components["schemas"]["ArgumentLimit"][];
+            requires?: components["schemas"]["IdentityRequirement"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: string[];
+            /**
+             * Secretref
+             * @default
+             */
+            secretRef: string;
+            /**
+             * Tools
+             * @default []
+             */
+            tools: string[];
+            /**
+             * Url
+             * @default
+             */
+            url: string;
         };
         /** ConstTerm */
         "ConstTerm-Input": {
@@ -3239,6 +3510,33 @@ export interface components {
              * @description ID of the created session
              */
             session_id: string;
+        };
+        /** CreateStorageObjectRequest */
+        CreateStorageObjectRequest: {
+            /**
+             * Content Type
+             * @default application/octet-stream
+             */
+            content_type: string;
+            /**
+             * Data B64
+             * @description Base64-encoded binary payload
+             */
+            data_b64?: string | null;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Object Id */
+            object_id?: string | null;
+            /** Tenant Id */
+            tenant_id?: string | null;
+            /**
+             * Text
+             * @description UTF-8 text payload (alternative to data_b64)
+             */
+            text?: string | null;
         };
         /**
          * CrossRecordingAnalysis
@@ -3907,6 +4205,31 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** EvalRecordList */
+        EvalRecordList: {
+            /** Evals */
+            evals?: components["schemas"]["EvalSummary-Output"][];
+        };
+        /**
+         * EvalSpecEntry
+         * @description One evaluation definition addressed by deterministic `UUIDv5`.
+         */
+        EvalSpecEntry: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
+        };
+        /** EvalSpecList */
+        EvalSpecList: {
+            /** Specs */
+            specs?: components["schemas"]["EvalSpecEntry"][];
+        };
         /**
          * EvalSuitePresence
          * @description Which eval artifacts a run actually produced.
@@ -3950,6 +4273,106 @@ export interface components {
             has_vad_eval: boolean;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * EvalSummary
+         * @description First-class `UUIDv5`-addressed evaluation object (no filename required).
+         */
+        "EvalSummary-Input": {
+            /** Artifact */
+            artifact?: string | null;
+            /** Checkpoint Id */
+            checkpoint_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Metrics
+             * @default []
+             */
+            metrics: components["schemas"]["MetricRow-Input"][];
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Passed */
+            passed?: boolean | null;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Spec Id
+             * Format: uuid
+             */
+            spec_id: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+        };
+        /**
+         * EvalSummary
+         * @description First-class `UUIDv5`-addressed evaluation object (no filename required).
+         */
+        "EvalSummary-Output": {
+            /** Artifact */
+            artifact?: string | null;
+            /** Checkpoint Id */
+            checkpoint_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Metrics
+             * @default []
+             */
+            metrics: components["schemas"]["prosody_inference__runtime__MetricRow"][];
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Passed */
+            passed?: boolean | null;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Spec Id
+             * Format: uuid
+             */
+            spec_id: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
         };
         /** EventRunList */
         EventRunList: {
@@ -4158,6 +4581,48 @@ export interface components {
         /** GetPolicyResponse */
         GetPolicyResponse: {
             policy?: components["schemas"]["DialoguePolicy-Output"] | null;
+        };
+        /**
+         * GitPackageMount
+         * @description Companion Git repo bundled into `target` (default `packages`) inside a Truss archive.
+         */
+        GitPackageMount: {
+            source: components["schemas"]["GitSource"];
+            /**
+             * Target
+             * @default packages
+             */
+            target: string;
+        };
+        /**
+         * GitSource
+         * @description Remote Git repository coordinates — pulled on-node or via HTTPS tarball API.
+         */
+        GitSource: {
+            /**
+             * Ref
+             * @default main
+             */
+            ref: string;
+            /** Repo */
+            repo: string;
+            /**
+             * Subdir
+             * @default .
+             */
+            subdir: string;
+            /**
+             * Submodules
+             * @default []
+             */
+            submodules: string[];
+            /**
+             * Token Env
+             * @default GITHUB_TOKEN
+             */
+            token_env: string;
+            /** Token Secret */
+            token_secret?: string | null;
         };
         /** Goal */
         "Goal-Input": {
@@ -4600,6 +5065,19 @@ export interface components {
             text: string;
             when: components["schemas"]["Situation-Output"];
         };
+        /** KnowledgeEntry */
+        KnowledgeEntry: {
+            /**
+             * Content
+             * @default
+             */
+            content: string;
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+        };
         /** KpiAdapterFitRequest */
         KpiAdapterFitRequest: {
             /** Schema Id */
@@ -4822,6 +5300,51 @@ export interface components {
             /** Start Ms */
             start_ms: number;
         };
+        /**
+         * LaunchRemoteJobRequest
+         * @description Launch a training, evaluation, LoRA, or benchmark job remotely (zero local paths).
+         */
+        LaunchRemoteJobRequest: {
+            /**
+             * Cacheenabled
+             * @default true
+             */
+            cacheEnabled: boolean;
+            /**
+             * Checkpointvolumegib
+             * @default 20
+             */
+            checkpointVolumeGib: number | null;
+            /** Commands */
+            commands: string[];
+            compute?: components["schemas"]["ComputeSpec"];
+            /** Environment */
+            environment?: {
+                [key: string]: string;
+            };
+            git?: components["schemas"]["GitSource"] | null;
+            /**
+             * Image
+             * @default pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel
+             */
+            image: string;
+            /** Loadcheckpointjobid */
+            loadCheckpointJobId?: string | null;
+            /** Loadcheckpointname */
+            loadCheckpointName?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Objectfiles */
+            objectFiles?: {
+                [key: string]: string;
+            };
+            /** Projectid */
+            projectId: string;
+            /** Secrets */
+            secrets?: {
+                [key: string]: string;
+            };
+        };
         /** LexicalEntry */
         LexicalEntry: {
             /** Category */
@@ -4965,6 +5488,16 @@ export interface components {
              */
             memory: boolean;
         };
+        /**
+         * ListeningCapability
+         * @description What a live session asks the listening side to do with its audio.
+         *
+         *     A session that names none gets all of them. One that leaves
+         *     ``acoustic_state`` out is never encoded or stepped through the
+         *     recurrence: it costs only the capabilities it named.
+         * @enum {string}
+         */
+        ListeningCapability: "transcription" | "diarization" | "acoustic_state";
         /** LitTerm */
         "LitTerm-Input": {
             /** Boolean */
@@ -4987,7 +5520,7 @@ export interface components {
         };
         /**
          * LiveTrainingJob
-         * @description One Baseten training job as the console lists it.
+         * @description One Baseten training job as the console lists it, stamped with deterministic `UUIDv5`s.
          */
         LiveTrainingJob: {
             /** Baseten Url */
@@ -5005,14 +5538,20 @@ export interface components {
             project_id: string;
             /** Project Name */
             project_name?: string | null;
+            /** Project Uuid */
+            project_uuid?: string | null;
             /** Run Id */
             run_id?: string | null;
+            /** Run Uuid */
+            run_uuid?: string | null;
             /** Running */
             running: boolean;
             /** Status */
             status: string;
             /** Updated At */
             updated_at?: string | null;
+            /** Uuid */
+            uuid?: string | null;
         };
         /** LiveTrainingJobs */
         LiveTrainingJobs: {
@@ -5178,47 +5717,26 @@ export interface components {
         };
         /**
          * MetricRow
-         * @description One graded curve the event declares: where to read it, what it is
-         *     called. ``key`` is a dotted path from the payload root, where a numeric
-         *     segment indexes a list.
+         * @description One scalar measurement emitted by any Eval or Benchmark.
          */
-        MetricRow: {
-            /**
-             * About
-             * @default
-             */
-            about: string;
-            /**
-             * Comparable
-             * @default
-             */
-            comparable: string;
-            /**
-             * Descent
-             * @default false
-             */
-            descent: boolean;
+        "MetricRow-Input": {
+            /** Higher Is Better */
+            higher_is_better?: boolean | null;
             /** Key */
             key: string;
             /** Label */
             label: string;
+            /** Passed */
+            passed?: boolean | null;
+            /** Target */
+            target?: number | null;
             /**
-             * Name
+             * Unit
              * @default
              */
-            name: string;
-            /**
-             * Protocol
-             * @default
-             */
-            protocol: string;
-            /**
-             * Root
-             * @default
-             */
-            root: string;
-        } & {
-            [key: string]: unknown;
+            unit: string;
+            /** Value */
+            value?: number | null;
         };
         /**
          * MetricTrend
@@ -5666,6 +6184,11 @@ export interface components {
         /** PolicyState */
         PolicyState: {
             /**
+             * Goal
+             * @default
+             */
+            goal: string;
+            /**
              * Name
              * @default
              */
@@ -5679,6 +6202,10 @@ export interface components {
              * @default []
              */
             tools: string[];
+            /** When */
+            when?: {
+                [key: string]: string;
+            };
         };
         /**
          * PredictedMetric
@@ -6016,6 +6543,46 @@ export interface components {
             /** Valence */
             valence?: number | null;
         };
+        /**
+         * PublishDeploymentRequest
+         * @description Publish a deployment remotely from Git or a `StorageObject` UUID (zero local paths).
+         */
+        PublishDeploymentRequest: {
+            /** Archiveobjectid */
+            archiveObjectId?: string | null;
+            /** Configoverrides */
+            configOverrides?: {
+                [key: string]: unknown;
+            };
+            /** Deploymentname */
+            deploymentName?: string | null;
+            /**
+             * Dryrun
+             * @default false
+             */
+            dryRun: boolean;
+            /** Environment */
+            environment?: string | null;
+            /** Extrafileobjects */
+            extraFileObjects?: {
+                [key: string]: string;
+            };
+            git?: components["schemas"]["GitSource"] | null;
+            /**
+             * Model
+             * @default prosody
+             */
+            model: string;
+            /** Modelid */
+            modelId?: string | null;
+            /** Packages */
+            packages?: components["schemas"]["GitPackageMount"][];
+            /**
+             * Preserveenvinstancetype
+             * @default false
+             */
+            preserveEnvInstanceType: boolean;
+        };
         /** Push */
         "Push-Input": {
             /**
@@ -6163,10 +6730,33 @@ export interface components {
             text: string;
         };
         /**
+         * RealtimeCallAgent
+         * @description One of the organization's configured agents, by account.
+         */
+        RealtimeCallAgent: {
+            /**
+             * Account Id
+             * @description The account the agent is configured under
+             */
+            account_id: string;
+            /**
+             * Agent Id
+             * @description The agent's id
+             */
+            agent_id: string;
+            /**
+             * Version
+             * @description The agent version the call is pinned to; the latest when omitted
+             */
+            version?: number | null;
+        };
+        /**
          * RealtimeCallCreateRequest
          * @description Have the agent call a phone number.
          */
         RealtimeCallCreateRequest: {
+            /** @description The configured agent that takes the call, on the agent server registered as `agent_name`. Omitted: the platform's own voice */
+            agent?: components["schemas"]["RealtimeCallAgent"] | null;
             /**
              * Agent Name
              * @description LiveKit agent to dispatch; the platform's default when omitted
@@ -6220,6 +6810,11 @@ export interface components {
              * @description The worker this room dispatches. LiveKit starts only a worker whose registered name matches, so a caller running its own worker names it here. Omitted, the deployment's configured agent serves.
              */
             agent_name?: string | null;
+            /**
+             * Capabilities
+             * @description Listening capabilities to run on this call's audio (transcription, diarization, acoustic_state). Omitted, the call asks the listening deployment for every capability its speech service does not already supply.
+             */
+            capabilities?: components["schemas"]["ListeningCapability"][] | null;
             /**
              * Participant Name
              * @description Optional display name for the scoped LiveKit participant
@@ -6427,6 +7022,24 @@ export interface components {
              */
             issue: string;
         };
+        /** Role */
+        Role: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * People
+             * @default []
+             */
+            people: string[];
+            /**
+             * Phonenumbers
+             * @default []
+             */
+            phoneNumbers: string[];
+        };
         /** Rule */
         "Rule-Input": {
             /**
@@ -6568,6 +7181,8 @@ export interface components {
             /** Total Time Min */
             total_time_min?: number | null;
             tracker_curve?: components["schemas"]["TrackerCurve"] | null;
+            /** Uuid */
+            uuid?: string | null;
             vad_curve?: components["schemas"]["VadCurve"] | null;
             vad_eval?: components["schemas"]["VadReport"] | null;
         } & {
@@ -6575,8 +7190,7 @@ export interface components {
         };
         /**
          * RunEvals
-         * @description One run's evaluation record, written once when the evaluation job
-         *     completes. Training curves stay on ``RunDetail``.
+         * @description One run's evaluation record, with deterministic `UUIDv5`s for the run and every eval.
          */
         RunEvals: {
             acoustic_eval?: components["schemas"]["AcousticEvalReport"] | null;
@@ -6588,6 +7202,10 @@ export interface components {
             entity_eval?: components["schemas"]["EntityDictationReport"] | null;
             eval?: components["schemas"]["EvalRecord"] | null;
             eval_counts?: components["schemas"]["EvalCounts"] | null;
+            /** Eval Ids */
+            eval_ids?: {
+                [key: string]: string;
+            };
             eval_suite?: components["schemas"]["EvalSuitePresence"] | null;
             /** Eval Suite Note */
             eval_suite_note?: string | null;
@@ -6612,6 +7230,8 @@ export interface components {
             speech_presence_curve?: components["schemas"]["SpeechPresenceCurve"] | null;
             stress_prominence_calibration?: components["schemas"]["ProminenceCalibration"] | null;
             tracker_curve?: components["schemas"]["TrackerCurve"] | null;
+            /** Uuid */
+            uuid?: string | null;
             vad_eval?: components["schemas"]["VadReport"] | null;
             vox1o?: components["schemas"]["VoxCelebAnchorReport"] | null;
         } & {
@@ -6691,6 +7311,8 @@ export interface components {
             training_job_status?: string | null;
             /** Updated At */
             updated_at?: string | null;
+            /** Uuid */
+            uuid?: string | null;
             /**
              * Verdict
              * @default 0
@@ -6849,7 +7471,7 @@ export interface components {
              */
             has_vad_eval: boolean;
             /** Metrics */
-            metrics?: components["schemas"]["MetricRow"][];
+            metrics?: components["schemas"]["admin__inference__models__reports__MetricRow"][];
             /** Objective Manifest Version */
             objective_manifest_version?: string | null;
             /** Output Schema Version */
@@ -6975,6 +7597,8 @@ export interface components {
             } | null;
             /** Model Id */
             model_id?: string | null;
+            /** Uuid */
+            uuid?: string | null;
         };
         /**
          * ServingComponent
@@ -7515,6 +8139,40 @@ export interface components {
             status: string;
         };
         /**
+         * StorageObject
+         * @description Canonical Prosody storage handle identified by deterministic `UUIDv5` (no S3 required).
+         */
+        StorageObject: {
+            /**
+             * Content Type
+             * @default application/octet-stream
+             */
+            content_type: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /** Sha256 */
+            sha256?: string | null;
+            /** Size Bytes */
+            size_bytes?: number | null;
+            /** Tenant Id */
+            tenant_id?: string | null;
+            /** Uri */
+            uri?: string | null;
+        };
+        /**
          * StoredSessionEntry
          * @description One stored call's index entry in org storage.
          */
@@ -7784,6 +8442,11 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             requires?: components["schemas"]["IdentityRequirement"] | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: string[];
         };
         /**
          * ToolEffect
@@ -7853,7 +8516,7 @@ export interface components {
             /** Corpora */
             corpora?: components["schemas"]["CorpusCatalogItem"][];
             /** Metrics */
-            metrics?: components["schemas"]["MetricRow"][];
+            metrics?: components["schemas"]["admin__inference__models__reports__MetricRow"][];
             /** Probes */
             probes?: components["schemas"]["ProbeDecl"][];
         };
@@ -7942,6 +8605,11 @@ export interface components {
         UpdateTenantBetaRequest: {
             /** Is Beta */
             is_beta: boolean;
+        };
+        /** UpsertEvalsRequest */
+        UpsertEvalsRequest: {
+            /** Evals */
+            evals: components["schemas"]["EvalSummary-Input"][];
         };
         /** Utterance */
         Utterance: {
@@ -8258,6 +8926,50 @@ export interface components {
          * @enum {string}
          */
         WorkloadService: "prosody-api";
+        /**
+         * MetricRow
+         * @description One graded curve the event declares: where to read it, what it is
+         *     called. ``key`` is a dotted path from the payload root, where a numeric
+         *     segment indexes a list.
+         */
+        admin__inference__models__reports__MetricRow: {
+            /**
+             * About
+             * @default
+             */
+            about: string;
+            /**
+             * Comparable
+             * @default
+             */
+            comparable: string;
+            /**
+             * Descent
+             * @default false
+             */
+            descent: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Protocol
+             * @default
+             */
+            protocol: string;
+            /**
+             * Root
+             * @default
+             */
+            root: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** EnrollmentConfirmResponse */
         admin__voice__EnrollmentConfirmResponse: {
             /** Enrolled */
@@ -8273,6 +8985,29 @@ export interface components {
             preview_sha256: string;
             /** Requires Explicit Mapping */
             requires_explicit_mapping: boolean;
+        };
+        /**
+         * MetricRow
+         * @description One scalar measurement emitted by any Eval or Benchmark.
+         */
+        prosody_inference__runtime__MetricRow: {
+            /** Higher Is Better */
+            higher_is_better?: boolean | null;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Passed */
+            passed?: boolean | null;
+            /** Target */
+            target?: number | null;
+            /**
+             * Unit
+             * @default
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
         };
         /** EnrollmentConfirmResponse */
         routes__voice__EnrollmentConfirmResponse: {
@@ -9110,6 +9845,147 @@ export interface operations {
             };
         };
     };
+    list_evals_v1_admin_evals_get: {
+        parameters: {
+            query?: {
+                target_id?: string | null;
+                spec_id?: string | null;
+                checkpoint_id?: string | null;
+                run_id?: string | null;
+            };
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalRecordList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_evals_v1_admin_evals_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertEvalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalRecordList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_eval_specs_v1_admin_evals_specs_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalSpecList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_eval_v1_admin_evals__eval_id__get: {
+        parameters: {
+            query?: {
+                run_id?: string | null;
+            };
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                eval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalSummary-Output"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_inference_runs_v1_admin_inference_runs_get: {
         parameters: {
             query?: {
@@ -9502,6 +10378,42 @@ export interface operations {
             };
         };
     };
+    publish_deployment_v1_admin_model_deployments_publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishDeploymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     deployment_logs_v1_admin_model_logs_get: {
         parameters: {
             query: {
@@ -9701,6 +10613,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationFeed"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_storage_object_v1_admin_objects_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStorageObjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageObject"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_storage_object_v1_admin_objects__object_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                object_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageObject"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_storage_object_bytes_v1_admin_objects__object_id__bytes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path: {
+                object_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10322,6 +11338,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventRunList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    launch_remote_training_job_v1_admin_training_runs_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Admin-Key"?: string | null;
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LaunchRemoteJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12063,6 +13115,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RealtimeCallCreateResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_realtime_call_v1_realtime_calls__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
