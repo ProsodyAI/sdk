@@ -45,6 +45,7 @@ person's significant moments.
 - **Measurement series**: `voiceFrames` and `measurementSeries` read one quantity across a call
 - **Speaker identity** directory and a preview-then-confirm enrollment flow
 - **Memory recall** of a saved person's significant moments
+- **Voice agents** configured from tool calls, a knowledge base, connectors, roles and a conversational flow
 - **Acoustic IPA transcription**: timed phoneme segments read off the audio itself
 - **Typed readouts**: `state` (what was measured) and `change` (what it moved), in family shape
 - **Strict TypeScript**, zero runtime dependencies, ESM, tree-shakeable
@@ -253,6 +254,79 @@ for (const moment of recall.memories) {
   moment.metadata.text;               // words around the moment
 }
 ```
+
+## Agents
+
+An agent is configuration in an account, written through `prosody.control`.
+It is made of its instructions and opening, the tool calls it may make, the
+knowledge base it answers from, the connectors it reaches with your own
+credential, the roles that decide who each of those exists for, and the flow
+of its conversation. Every write is a new version, and a call keeps the
+version it started with.
+
+```typescript
+import type { AgentConfig } from '@prosodyai/sdk';
+
+const config: AgentConfig = {
+  selections: [],
+  language: 'en',
+  instructions: 'You answer the front desk for Elm Street Dental. Short turns, one question at a time.',
+  greeting: 'Say hello, say who you are, and ask how you can help with their appointment.',
+  knowledge: [{ title: 'Hours', content: 'Open weekdays 8 to 5. Closed weekends and public holidays.' }],
+  roles: [{ name: 'staff', people: [], phoneNumbers: ['+15551234567'] }],
+  tools: [
+    {
+      name: 'book_appointment',
+      description: 'Book the slot the caller agreed to, after reading it back.',
+      parameters: { type: 'object', properties: { slot: { type: 'string' } }, required: ['slot'] },
+      effect: 'TOOL_EFFECT_WRITE',
+      http: { url: 'https://example.com/agent-tools', secretRef: 'front-desk', timeoutMs: 8000 },
+      roles: [],
+    },
+  ],
+  connectors: [
+    {
+      connectorId: 'stripe',
+      url: '',
+      secretRef: 'stripe',
+      tools: ['stripe_api_read'],
+      limits: [{ tool: 'stripe_api_read', argument: 'stripe_api_operation_id', values: ['GetProducts', 'GetPrices'] }],
+      roles: [],
+    },
+  ],
+  policy: {
+    initial: 'opening',
+    states: [
+      {
+        name: 'opening',
+        goal: 'Find out whether they are booking, moving or cancelling an appointment.',
+        tools: [],
+        on: { reason_heard: 'booking' },
+        when: { reason_heard: 'the caller has said what they need' },
+      },
+      { name: 'booking', goal: 'Agree a slot and book it.', tools: ['book_appointment'], on: {}, when: {} },
+    ],
+  },
+};
+
+const created = await prosody.control.createAgent('front-desk', { accountId: 'front-desk', displayName: 'Front desk', config }, crypto.randomUUID());
+```
+
+- **Tool calls** run at your own https endpoint. `requires` holds one to a
+  recognized or verified speaker, and `roles` to speakers holding a role.
+- **Knowledge base** passages are given to the agent with its instructions.
+- **Connectors** are tool servers reached with the credential in your named
+  secret. A connector is read-only unless `effect` grants writing, `tools`
+  names what it grants, and `limits` holds a tool's argument to listed values.
+- **Roles** are held by the people the listening model resolves and by the
+  numbers phone callers are on, never by what a caller says.
+- **Flow** stages each have a goal, the tools that exist in them, and the ways
+  out: `when` conditions the agent judges, and events the platform reports
+  such as `tool.book_appointment.ok`.
+
+An agent never takes card details by voice. To take a payment, grant the
+Stripe connector the `PostPaymentLinks` operation and send the buyer the page
+it returns.
 
 ## Configuration
 
